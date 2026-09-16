@@ -6,10 +6,10 @@ DrawPin is a free, mobile-web drawing board for local spots (coffee shops, resta
 
 ## Working agreement
 
-- **Ask before committing to anything you're unsure about**: scope, architecture, library choices, naming, data model changes. Propose options with a recommendation, then wait.
+- **Ask before big decisions**: scope, architecture, data model changes, or picking a new direction. For small stuff (naming, a minor library pick, small refactors), just pick something sensible and mention it.
 - Production-level code only: typed, validated, error-handled, tested, documented.
 - Follow the `code-documentation` skill (`.claude/skills/code-documentation/SKILL.md`) on every code change.
-- Keep changes small and scoped to one issue.
+- Keep changes small and focused on one thing.
 - Never commit secrets. Real values go in `.env.local` (git-ignored); every variable is listed in `.env.example`.
 
 ## Tech stack (decided)
@@ -25,7 +25,7 @@ DrawPin is a free, mobile-web drawing board for local spots (coffee shops, resta
 | Scheduled jobs | Vercel Cron (hourly) |
 | Package manager | npm |
 
-**Not yet decided** (propose an ADR and ask before choosing): linting/formatting setup, unit test framework, end-to-end test framework, UI/styling library, validation library.
+**Not yet decided**: linting/formatting setup, unit test framework, end-to-end test framework, UI/styling library, validation library. Pick something sensible and mention the choice; only write an ADR or check first if it's a big direction call.
 
 ## Domain rules (quick reference; details in `docs/PLAN.md`)
 
@@ -56,21 +56,19 @@ Create folders as they're first needed. Don't add empty placeholder files.
 
 ## Git workflow
 
-- `main` is protected. Never commit or push directly to `main`.
-- One issue → one branch → one pull request.
-- Branch names: `type/<issue#>-short-name`, e.g. `feat/12-qr-join`, `fix/31-vote-limit`, `chore/1-repo-foundation`, `docs/8-erd`.
+- `main` is protected. Never commit or push directly to `main` — use a branch + PR.
+- One branch → one pull request. An issue isn't required for every change.
+- Branch names: `type/short-name`, with an issue number when there is one, e.g. `feat/qr-join`, `fix/31-vote-limit`, `chore/lighten-process`.
 - Commit messages follow Conventional Commits: `feat: …`, `fix: …`, `docs: …`, `chore: …`, `refactor: …`, `test: …`. Use the imperative mood and a short summary line.
-- PR description: what changed, why, how it was tested, and `Closes #<issue>`.
+- PR description: what changed, why, how it was tested, and `Closes #<issue>` if there is one.
 - Pull requests are squash-merged. Keep history linear (rebase on `main`, no merge commits).
-- Don't push, open PRs, or merge unless asked.
+- Once CI passes, you may push and merge your own PRs with `gh pr merge --squash --delete-branch`, then switch back to `main` and pull. Never force-push, and never merge if CI is failing.
 
 ## Before saying a task is done
 
-- [ ] Type check, lint, and tests pass (once configured)
-- [ ] New or changed behavior has tests
-- [ ] Documentation checklist from the `code-documentation` skill is satisfied
-- [ ] No secrets, debug logs, or commented-out code left behind
-- [ ] Changes stay within `docs/PLAN.md` scope, or the deviation was approved
+- [ ] Lint, typecheck, and tests pass
+- [ ] It works
+- [ ] No leftover junk: debug logs, dead code, or TODOs without a note
 
 ## Diagrams
 
