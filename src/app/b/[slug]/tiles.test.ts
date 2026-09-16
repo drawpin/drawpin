@@ -1,10 +1,76 @@
 import { describe, expect, it } from "vitest";
 import {
   formatAuthor,
+  liveTileRowSchema,
+  mergeTiles,
   olderThanCursorFilter,
+  type Tile,
   tileCursorSchema,
   toTile,
 } from "./tiles";
+
+const tile = (id: string, caption: string | null = null): Tile => ({
+  id,
+  author: null,
+  caption,
+  imageUrl: `https://cdn.example/${id}.webp`,
+  createdAt: "2026-09-16T21:30:00.123456+00:00",
+});
+
+describe("mergeTiles", () => {
+  it("keeps list order and drops later duplicates", () => {
+    const merged = mergeTiles(
+      [tile("new")],
+      [tile("new", "server copy"), tile("a"), tile("b")],
+      [tile("a"), tile("b"), tile("c")],
+    );
+
+    expect(merged.map((t) => t.id)).toEqual(["new", "a", "b", "c"]);
+    expect(merged[0].caption).toBeNull();
+  });
+
+  it("keeps a tile that dropped off a refreshed first page", () => {
+    // On screen: a..c. After a refresh the server's first page gained "new" and
+    // lost "c"; "c" must stay visible above the next "Load more" page.
+    const onScreen = [tile("a"), tile("b"), tile("c")];
+    const refreshedPage = [tile("new"), tile("a"), tile("b")];
+
+    expect(mergeTiles(refreshedPage, onScreen).map((t) => t.id)).toEqual([
+      "new",
+      "a",
+      "b",
+      "c",
+    ]);
+  });
+});
+
+describe("liveTileRowSchema", () => {
+  const row = {
+    id: "0b6f3f0e-2a8e-4b1a-9f55-4d9f0f6f2c11",
+    week_id: "5d1c0b8e-6a3f-4c2e-8f1d-2b7a9c4e6f10",
+    device_id: "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+    display_name: "Ahmad",
+    name_tag: "4821",
+    caption: null,
+    image_path: "venue/week/tile.webp",
+    created_at: "2026-09-16T21:30:00.123456+00:00",
+    status: "live",
+  };
+
+  it("accepts a live tile row", () => {
+    expect(liveTileRowSchema.safeParse(row).success).toBe(true);
+  });
+
+  it("rejects removed tiles and malformed rows", () => {
+    expect(
+      liveTileRowSchema.safeParse({ ...row, status: "removed" }).success,
+    ).toBe(false);
+    expect(
+      liveTileRowSchema.safeParse({ ...row, image_path: "" }).success,
+    ).toBe(false);
+    expect(liveTileRowSchema.safeParse({}).success).toBe(false);
+  });
+});
 
 describe("formatAuthor", () => {
   it("joins the username and tag", () => {

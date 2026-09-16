@@ -142,6 +142,17 @@ Tile drawings live in the `tiles` bucket, referenced by `tiles.image_path`.
 - **No `storage.objects` policies**: uploads and deletes happen server-side
   with the service role, so the anon key can't write to the bucket.
 
+## Realtime
+
+`tiles` and `weeks` are in the `supabase_realtime` publication, so open boards
+receive new tiles and new weeks as they're inserted. Realtime applies the RLS
+policies below per subscriber, so visitors only receive rows they could
+already read.
+
+Only inserts are used. A tile changing status (e.g. an owner removing it)
+isn't pushed to visitors: once removed, the row fails the "live tiles" policy,
+so Realtime won't send the update to anon subscribers.
+
 ## Row level security
 
 RLS is on for every table, and all writes go through API routes using the

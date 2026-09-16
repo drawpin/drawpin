@@ -6,6 +6,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,7 +40,21 @@ const NAME_STORAGE_KEY = "drawpin:display-name";
 
 const initialState: PostTileState = { status: "idle" };
 
+const subscribeToNothing = () => () => {};
+
+/** `false` in the server HTML, `true` once React has hydrated in the browser. */
+function useHydrated() {
+  return useSyncExternalStore(
+    subscribeToNothing,
+    () => true,
+    () => false,
+  );
+}
+
 export function DrawTileForm({ slug }: { slug: string }) {
+  // Before hydration the submit handler isn't attached, so a tap would do a
+  // plain GET submit: the drawing is lost and the caption lands in the URL.
+  const hydrated = useHydrated();
   const [state, formAction, pending] = useActionState(
     postTileAction,
     initialState,
@@ -182,7 +197,7 @@ export function DrawTileForm({ slug }: { slug: string }) {
         </p>
       )}
 
-      <Button type="submit" size="lg" disabled={pending}>
+      <Button type="submit" size="lg" disabled={!hydrated || pending}>
         {pending ? "Posting…" : "Post my tile"}
       </Button>
     </form>
