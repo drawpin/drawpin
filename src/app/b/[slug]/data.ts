@@ -14,7 +14,12 @@ import {
 // Mirrors the venues.slug check constraint; anything else can't be a board.
 const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
-export type Board = { id: string; name: string; isPaused: boolean };
+export type Board = {
+  id: string;
+  name: string;
+  timezone: string;
+  isPaused: boolean;
+};
 
 /**
  * Looks up a venue's board by its public slug. Cached per request so the page
@@ -27,14 +32,19 @@ export const getBoard = cache(async (slug: string): Promise<Board | null> => {
 
   const { data, error } = await createPublicClient()
     .from("venues")
-    .select("id, name, is_paused")
+    .select("id, name, timezone, is_paused")
     .eq("slug", slug)
     .maybeSingle();
 
   if (error) throw new Error(`Could not load board: ${error.message}`);
   if (!data) return null;
 
-  return { id: data.id, name: data.name, isPaused: data.is_paused };
+  return {
+    id: data.id,
+    name: data.name,
+    timezone: data.timezone,
+    isPaused: data.is_paused,
+  };
 });
 
 /**
