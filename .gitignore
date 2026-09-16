@@ -46,6 +46,13 @@ web_modules/
 
 # TypeScript cache
 *.tsbuildinfo
+next-env.d.ts
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
 
 # Optional npm cache directory
 .npm
@@ -141,3 +148,6 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Claude Code worktrees
+.claude/worktrees/

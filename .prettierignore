@@ -1,0 +1,11 @@
+.next
+node_modules
+coverage
+playwright-report
+test-results
+package-lock.json
+
+# Pre-existing project foundation — not this scaffold's to reformat.
+CLAUDE.md
+docs/
+.claude/
