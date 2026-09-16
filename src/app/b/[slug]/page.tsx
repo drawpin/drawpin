@@ -45,17 +45,15 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
         </p>
       )}
 
-      {weekId && page && page.tiles.length > 0 ? (
-        <TileFeed
-          weekId={weekId}
-          initialTiles={page.tiles}
-          initialCursor={page.nextCursor}
-        />
-      ) : (
-        <p className="text-muted-foreground py-12 text-center">
-          No drawings yet this week.
-        </p>
-      )}
+      <TileFeed
+        // Tiles and the pagination cursor belong to one week; start fresh when
+        // the board moves on to a new one.
+        key={weekId ?? "no-week"}
+        venueId={board.id}
+        weekId={weekId}
+        initialTiles={page?.tiles ?? []}
+        initialCursor={page?.nextCursor ?? null}
+      />
     </main>
   );
 }

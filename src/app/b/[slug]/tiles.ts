@@ -64,6 +64,36 @@ export function toTile(
 }
 
 /**
+ * A `tiles` row as Realtime delivers it to the browser. Validated before it's
+ * shown, and only live tiles are accepted.
+ */
+export const liveTileRowSchema = z.object({
+  id: z.guid(),
+  display_name: z.string().nullable(),
+  name_tag: z.string().nullable(),
+  caption: z.string().nullable(),
+  image_path: z.string().min(1),
+  created_at: z.string().min(1),
+  status: z.literal("live"),
+});
+
+/**
+ * Combines tile lists in the order given, keeping the first copy of each tile.
+ * Pass newer lists first: realtime arrivals, then the server's page, then
+ * tiles already on screen.
+ */
+export function mergeTiles(...lists: Tile[][]): Tile[] {
+  const seen = new Set<string>();
+  const merged: Tile[] = [];
+  for (const tile of lists.flat()) {
+    if (seen.has(tile.id)) continue;
+    seen.add(tile.id);
+    merged.push(tile);
+  }
+  return merged;
+}
+
+/**
  * Builds a PostgREST `or` filter selecting tiles older than the cursor.
  * Ordering is by `created_at` then `id`, so tiles posted in the same
  * microsecond are neither skipped nor repeated between pages.
