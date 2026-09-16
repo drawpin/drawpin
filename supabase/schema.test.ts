@@ -13,7 +13,7 @@ let db: PGlite;
 async function stubSupabaseSchema(instance: PGlite) {
   await instance.exec(`
     create schema auth;
-    create table auth.users (id uuid primary key);
+    create table auth.users (id uuid primary key, email text);
     create role anon;
     create role authenticated;
     create function auth.uid() returns uuid language sql stable as $fn$
@@ -56,8 +56,7 @@ async function seedBoard() {
   };
 
   await db.exec(`
-    insert into auth.users (id) values ('${ids.ownerId}');
-    insert into owners (id, email) values ('${ids.ownerId}', '${ids.ownerId}@example.com');
+    insert into auth.users (id, email) values ('${ids.ownerId}', '${ids.ownerId}@example.com');
     insert into venues (id, owner_id, name, slug, timezone)
       values ('${ids.venueId}', '${ids.ownerId}', 'Test Cafe', '${ids.slug}', 'America/Chicago');
     insert into weeks (id, venue_id, starts_at, posting_ends_at, voting_ends_at, status)
@@ -86,6 +85,21 @@ beforeAll(async () => {
   await applyMigrations(db);
 }, 30_000);
 
+describe("owners", () => {
+  it("are created automatically when a user signs up", async () => {
+    const userId = crypto.randomUUID();
+
+    await db.exec(
+      `insert into auth.users (id, email) values ('${userId}', 'new@example.com');`,
+    );
+
+    const result = await db.query<{ email: string }>(
+      `select email from owners where id = '${userId}';`,
+    );
+    expect(result.rows).toEqual([{ email: "new@example.com" }]);
+  });
+});
+
 describe("venues", () => {
   it("allows only one board per owner", async () => {
     const { ownerId } = await seedBoard();
@@ -98,10 +112,9 @@ describe("venues", () => {
 
   it("rejects a slug that isn't url-safe", async () => {
     const ownerId = crypto.randomUUID();
-    await db.exec(`
-      insert into auth.users (id) values ('${ownerId}');
-      insert into owners (id, email) values ('${ownerId}', '${ownerId}@example.com');
-    `);
+    await db.exec(
+      `insert into auth.users (id, email) values ('${ownerId}', '${ownerId}@example.com');`,
+    );
 
     await expect(
       db.exec(`insert into venues (owner_id, name, slug, timezone)
