@@ -27,6 +27,7 @@ async function stubSupabaseSchema(instance: PGlite) {
       file_size_limit bigint,
       allowed_mime_types text[]
     );
+    create publication supabase_realtime;
   `);
 }
 
@@ -292,6 +293,17 @@ describe("tiles storage bucket", () => {
         allowed_mime_types: ["image/webp"],
       },
     ]);
+  });
+});
+
+describe("realtime publication", () => {
+  it("streams tiles and weeks, and nothing private", async () => {
+    const result = await db.query<{ tablename: string }>(
+      `select tablename from pg_publication_tables
+       where pubname = 'supabase_realtime' order by tablename;`,
+    );
+
+    expect(result.rows.map((row) => row.tablename)).toEqual(["tiles", "weeks"]);
   });
 });
 
