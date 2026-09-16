@@ -8,8 +8,10 @@ import { serverEnv } from "@/lib/env";
  * one per request — never share it.
  */
 export async function createClient() {
-  const env = serverEnv();
+  // cookies() first: it's what tells `next build` the calling page is dynamic.
+  // Reading env first would throw during prerendering, where no env is set.
   const cookieStore = await cookies();
+  const env = serverEnv();
 
   return createServerClient(
     env.NEXT_PUBLIC_SUPABASE_URL,
