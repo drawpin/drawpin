@@ -56,7 +56,7 @@ as Supabase, moderation, and bot-protection integrations land.
 
 ## Contributing
 
-- One issue → one branch → one pull request. Branches: `type/<issue#>-short-name`.
+- One branch → one pull request. Branches: `type/short-name`, with an issue number when there is one.
 - Commits follow [Conventional Commits](https://www.conventionalcommits.org/).
 - `main` is the only long-lived branch (trunk-based, see
   [`docs/adr/001-trunk-based-branching.md`](docs/adr/001-trunk-based-branching.md));

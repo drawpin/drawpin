@@ -14,8 +14,8 @@ Use trunk-based development:
 
 - `main` is the only long-lived branch. It is always deployable and every
   merge to it deploys to production.
-- All work happens on short-lived branches cut from `main`, one per issue
-  (`type/<issue#>-short-name`).
+- All work happens on short-lived branches cut from `main`, one per change
+  (`type/short-name`, with an issue number when there is one).
 - Branches merge back via pull request, squash-merged, keeping `main`'s
   history linear (rebase on `main`, no merge commits).
 - Every branch and PR gets a Vercel preview deployment; that preview is where
@@ -26,7 +26,7 @@ Use trunk-based development:
 - A single trunk avoids merge-branch drift and the overhead of keeping a
   second long-lived branch in sync.
 - Short-lived branches keep diffs small and reviewable, matching the "keep
-  changes small and scoped to one issue" working agreement.
+  changes small and focused on one thing" working agreement.
 - Vercel preview deployments give per-PR testing without needing a shared
   staging branch.
 - Squash-merging keeps `main` bisectable and keeps the commit log at PR
