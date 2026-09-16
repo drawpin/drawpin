@@ -19,6 +19,14 @@ async function stubSupabaseSchema(instance: PGlite) {
     create function auth.uid() returns uuid language sql stable as $fn$
       select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid;
     $fn$;
+    create schema storage;
+    create table storage.buckets (
+      id text primary key,
+      name text not null,
+      public boolean default false,
+      file_size_limit bigint,
+      allowed_mime_types text[]
+    );
   `);
 }
 
@@ -267,6 +275,23 @@ describe("hall of fame", () => {
     await expect(
       db.exec(`delete from tiles where id = '${tileIds[1]}';`),
     ).resolves.toBeDefined();
+  });
+});
+
+describe("tiles storage bucket", () => {
+  it("is public, WebP-only, and capped at 1 MB", async () => {
+    const result = await db.query(
+      `select public, file_size_limit, allowed_mime_types
+       from storage.buckets where id = 'tiles';`,
+    );
+
+    expect(result.rows).toEqual([
+      {
+        public: true,
+        file_size_limit: 1048576,
+        allowed_mime_types: ["image/webp"],
+      },
+    ]);
   });
 });
 
