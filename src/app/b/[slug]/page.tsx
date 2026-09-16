@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { buttonVariants } from "@/components/ui/button";
 import { connection } from "next/server";
 import { getBoard, getPostingWeekId, listLiveTiles } from "./data";
 import { TileFeed } from "./tile-feed";
@@ -27,7 +29,14 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
 
   return (
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-6 px-4 py-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{board.name}</h1>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-semibold tracking-tight">{board.name}</h1>
+        {!board.isPaused && (
+          <Link href={`/b/${slug}/draw`} className={buttonVariants()}>
+            Draw a tile
+          </Link>
+        )}
+      </div>
 
       {board.isPaused && (
         <p role="status" className="bg-muted rounded-lg px-3 py-2 text-sm">
