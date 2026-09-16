@@ -132,6 +132,16 @@ The frozen top 7 of a finished week, kept forever.
 `on delete restrict` is what stops the 30-day purge from deleting a winning
 tile.
 
+## Storage
+
+Tile drawings live in the `tiles` bucket, referenced by `tiles.image_path`.
+
+- **Public**, so boards load images straight from the storage CDN. File names
+  are random UUIDs, and removing or purging a tile deletes its file.
+- **WebP only**, up to **1 MB** per file.
+- **No `storage.objects` policies**: uploads and deletes happen server-side
+  with the service role, so the anon key can't write to the bucket.
+
 ## Row level security
 
 RLS is on for every table, and all writes go through API routes using the
