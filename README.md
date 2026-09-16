@@ -16,6 +16,23 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+### Local database
+
+The schema lives in `supabase/migrations/` and runs on a local Supabase stack,
+which needs [Docker](https://docs.docker.com/desktop/) running:
+
+```bash
+npx supabase start     # boots Postgres, Auth, Storage, Studio
+npx supabase db reset  # applies every migration from scratch
+```
+
+`supabase start` prints the local API URL and keys — copy them into
+`.env.local`. Stop the stack with `npx supabase stop`.
+
+The schema's domain rules are covered by `supabase/schema.test.ts`, which runs
+the migrations against Postgres compiled to WASM. It's part of `npm test` and
+needs no Docker.
+
 ## Tech Stack
 
 | Area                                       | Choice                                                       |
@@ -50,9 +67,15 @@ Decisions and rationale are recorded as ADRs in [`docs/adr/`](docs/adr/).
 
 ## Configuration
 
-No environment variables are consumed by the app yet. Copy
-[`.env.example`](.env.example) to `.env.local` and see it for what's expected
-as Supabase, moderation, and bot-protection integrations land.
+Copy [`.env.example`](.env.example) to `.env.local` and fill it in from the
+output of `npx supabase start`. More variables arrive as moderation and
+bot-protection land.
+
+| Variable                        | Required | Description                                              |
+| ------------------------------- | -------- | -------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | yes      | Supabase API URL; `http://127.0.0.1:54321` locally       |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | yes      | Browser-side key, limited by row level security          |
+| `SUPABASE_SERVICE_ROLE_KEY`     | yes      | Server-side key; bypasses RLS, never sent to the browser |
 
 ## Contributing
 
