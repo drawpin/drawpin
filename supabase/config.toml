@@ -155,11 +155,13 @@ max_indexes = 5
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
-site_url = "http://127.0.0.1:3000"
+# `localhost` rather than 127.0.0.1 so magic links land on the same host `next dev` serves, where the
+# session cookies live.
+site_url = "http://localhost:3000"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["https://127.0.0.1:3000"]
+additional_redirect_urls = ["http://localhost:3000"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
@@ -226,11 +228,12 @@ enable_confirmations = false
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 secure_password_change = false
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
-max_frequency = "1s"
+max_frequency = "60s"
 # Number of characters used in the email OTP.
 otp_length = 6
-# Number of seconds before the email OTP expires (defaults to 1 hour).
-otp_expiry = 3600
+# Number of seconds before the email OTP expires (defaults to 1 hour). Owner sign-in links are
+# short-lived (docs/PLAN.md, Owner admin).
+otp_expiry = 900
 
 # Use a production-ready SMTP server
 # [auth.email.smtp]
@@ -246,6 +249,19 @@ otp_expiry = 3600
 # [auth.email.template.invite]
 # subject = "You have been invited"
 # content_path = "./supabase/templates/invite.html"
+
+# Links go to /auth/confirm with a token hash instead of Supabase's default PKCE redirect, so a sign-in
+# requested on one device still works when the email is opened on another. With email confirmations off
+# (as here) every sign-in uses the magic link template; hosted projects have them on by default, where a
+# first sign-in sends the confirmation template instead, so both templates carry the same link.
+# Hosted projects don't read this file: set both templates in the dashboard when deploying.
+[auth.email.template.magic_link]
+subject = "Your DrawPin sign-in link"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.confirmation]
+subject = "Your DrawPin sign-in link"
+content_path = "./supabase/templates/magic_link.html"
 
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]
