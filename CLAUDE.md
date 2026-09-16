@@ -24,8 +24,13 @@ DrawPin is a free, mobile-web drawing board for local spots (coffee shops, resta
 | Drawing | HTML canvas + `perfect-freehand` |
 | Scheduled jobs | Vercel Cron (hourly) |
 | Package manager | npm |
+| UI/styling | Tailwind CSS + shadcn/ui |
+| Linting/formatting | ESLint (`eslint-config-next`) + Prettier |
+| Unit tests | Vitest |
+| End-to-end tests | Playwright (mobile viewport only) |
+| Validation | Zod |
 
-**Not yet decided** (propose an ADR and ask before choosing): linting/formatting setup, unit test framework, end-to-end test framework, UI/styling library, validation library.
+See `docs/adr/002-frontend-tooling.md` for the rationale behind the last five rows.
 
 ## Domain rules (quick reference; details in `docs/PLAN.md`)
 
@@ -55,6 +60,8 @@ src/                  Next.js app
 Create folders as they're first needed. Don't add empty placeholder files.
 
 ## Git workflow
+
+Trunk-based: `main` is the only long-lived branch and every merge to it deploys to production. See `docs/adr/001-trunk-based-branching.md`.
 
 - `main` is protected. Never commit or push directly to `main`.
 - One issue → one branch → one pull request.
