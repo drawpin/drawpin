@@ -29,6 +29,11 @@ npx supabase db reset  # applies every migration from scratch
 `supabase start` prints the local API URL and keys — copy them into
 `.env.local`. Stop the stack with `npx supabase stop`.
 
+Owners sign in with an emailed magic link. Locally no real email is sent: open
+the Mailpit inbox at [http://127.0.0.1:54324](http://127.0.0.1:54324) to find
+the link. Use `http://localhost:3000` rather than `127.0.0.1` so the link lands
+on the host holding the session cookies.
+
 The schema's domain rules are covered by `supabase/schema.test.ts`, which runs
 the migrations against Postgres compiled to WASM. It's part of `npm test` and
 needs no Docker.
@@ -71,11 +76,12 @@ Copy [`.env.example`](.env.example) to `.env.local` and fill it in from the
 output of `npx supabase start`. More variables arrive as moderation and
 bot-protection land.
 
-| Variable                        | Required | Description                                              |
-| ------------------------------- | -------- | -------------------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`      | yes      | Supabase API URL; `http://127.0.0.1:54321` locally       |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | yes      | Browser-side key, limited by row level security          |
-| `SUPABASE_SERVICE_ROLE_KEY`     | yes      | Server-side key; bypasses RLS, never sent to the browser |
+| Variable                        | Required | Description                                                                      |
+| ------------------------------- | -------- | -------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | yes      | Supabase API URL; `http://127.0.0.1:54321` locally                               |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | yes      | Browser-side key, limited by row level security                                  |
+| `SUPABASE_SERVICE_ROLE_KEY`     | yes      | Server-side key; bypasses RLS, never sent to the browser                         |
+| `SITE_URL`                      | yes      | Public site origin for board links and QR codes; `http://localhost:3000` locally |
 
 ## Contributing
 

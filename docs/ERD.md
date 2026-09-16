@@ -11,7 +11,9 @@ the database never does timezone math.
 ## Tables
 
 ### `owners`
-Venue owners, the only accounts in the product. Mirrors `auth.users`.
+Venue owners, the only accounts in the product. Mirrors `auth.users`: a
+trigger on `auth.users` inserts the row when someone signs up, so every
+signed-in user has one.
 
 | Column | Type | Notes |
 |---|---|---|
