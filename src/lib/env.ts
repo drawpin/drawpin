@@ -5,6 +5,7 @@ const serverEnvSchema = z.object({
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   SITE_URL: z.url(),
+  DEVICE_COOKIE_SECRET: z.string().min(32),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
