@@ -2,7 +2,7 @@
 
 A free, mobile-web drawing board for local spots (coffee shops, restaurants).
 Customers scan a printed QR code or enter a daily 8-digit code, draw a tile,
-see everyone's tiles live, and vote on the weekly top 7. No app download and
+see everyone's tiles live, and vote for the weekly winner. No app download and
 no customer accounts.
 
 See [`docs/PLAN.md`](docs/PLAN.md) for the full, locked v1 product scope.

@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "DrawPin",
   description:
-    "Scan a QR code, draw a tile, and vote on the weekly top 7 at your local spot.",
+    "Scan a QR code, draw a tile, and vote for the weekly winner at your local spot.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
