@@ -35,6 +35,9 @@ export function TileFeed({
   // above the original cursor stays on screen (see mergeTiles), so the cursor
   // still points at the right next page.
   const [cursor, setCursor] = useState(initialCursor);
+  const [removedIds, setRemovedIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -50,7 +53,22 @@ export function TileFeed({
     setTiles((current) => mergeTiles([tile], current));
   }, []);
 
-  useLiveBoard({ venueId, weekId, onTile: addLiveTile });
+  const dropRemovedTile = useCallback((tileId: string) => {
+    setRemovedIds((current) =>
+      current.has(tileId) ? current : new Set(current).add(tileId),
+    );
+  }, []);
+
+  useLiveBoard({
+    venueId,
+    weekId,
+    onTile: addLiveTile,
+    onTileRemoved: dropRemovedTile,
+  });
+
+  // Kept separately from `tiles`: a refresh can hand back a page that still
+  // contains a tile removed moments ago, and it must stay hidden.
+  const visibleTiles = tiles.filter((tile) => !removedIds.has(tile.id));
 
   function loadMore() {
     if (!cursor || !weekId) return;
@@ -67,7 +85,7 @@ export function TileFeed({
     });
   }
 
-  if (tiles.length === 0) {
+  if (visibleTiles.length === 0) {
     return (
       <p className="text-muted-foreground py-12 text-center">
         No drawings yet this week.
@@ -78,7 +96,7 @@ export function TileFeed({
   return (
     <div className="flex flex-col gap-4">
       <ul className="grid grid-cols-2 gap-3">
-        {tiles.map((tile, index) => (
+        {visibleTiles.map((tile, index) => (
           <li key={tile.id} className="flex flex-col gap-1">
             <Image
               src={tile.imageUrl}
