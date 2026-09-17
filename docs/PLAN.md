@@ -1,4 +1,4 @@
-# DrawPin — Product Plan (v5, locked)
+# DrawPin — Product Plan (v6, locked)
 
 > Source of truth for v1 scope. Changes require an ADR in `docs/adr/` and a version bump here.
 
@@ -21,7 +21,8 @@ Free, web-based drawing boards for local spots (coffee shops, restaurants). Scan
 - Every username, caption, and drawing is checked by a blocklist + OpenAI moderation (text + image).
 - A blocked post shows "This couldn't be posted" and does **not** use up the daily post.
 - **3 blocked attempts in a day locks the device until the next 4:00 AM reset.**
-- No staff approval, no report button. The owner's "Remove tile" is the backstop.
+- If moderation can't be reached, the post is refused with "try again in a minute" and does **not** use up the daily post. It's never published unchecked, and posting works again as soon as moderation is back.
+- No staff approval, no report button. The owner's "Remove tile" is the backstop — image moderation doesn't cover every category (e.g. drawn hate symbols), so it ships alongside moderation in phase 2.
 
 ### Weekly cycle
 - Week runs **Monday 4:00 AM → next Monday 4:00 AM**, venue local time.
@@ -56,17 +57,20 @@ No charges for venues or users in v1.
 - OpenAI moderation endpoint (text + image), custom blocklist
 - Cloudflare Turnstile; FingerprintJS (open source)
 - Canvas drawing: `perfect-freehand`
-- Scheduled jobs: Vercel Cron (hourly) → per-venue code rotation, week rollover, Hall of Fame finalize, 30-day cleanup
+- Venue-time transitions happen on demand, when first needed (ADR-003): daily join code, week status, Hall of Fame finalize
+- Scheduled jobs: Vercel Cron (daily) → 30-day cleanup
 
 ## Back pocket (not v1)
 Weekly prompt mode, live jam mode, location checks, Google sign-in for owners, multi-location owners, wall display.
 
 ## Phases
-1. Owner signs in → creates board → customers open QR/code → username → draw tile → live feed on phones
-2. Moderation pipeline, rotating code, device limits, Turnstile
+1. Owner signs in → creates board → customers open QR → username → draw tile → live feed on phones *(done)*
+2. Safety, before sharing the board publicly: moderation pipeline, owner Pause board + Remove tile, Turnstile, device limits, rotating daily join code
 3. Weekly cycle: lock, vote prompt, voting rules, Hall of Fame, cleanup job
-4. Owner admin screen (QR/code, pause, remove tile)
+4. UI pass: visual polish across customer and owner pages
 5. Back-pocket features
+
+v6 changes: scheduling moved from an hourly cron to on-demand transitions plus a daily cleanup job (ADR-003, Vercel Hobby only allows daily cron); owner Pause/Remove moved from phase 4 into phase 2 as the moderation backstop; moderation-outage behavior defined; phase 4 is now the UI pass.
 
 ## Diagrams (Lucid)
 - System architecture
