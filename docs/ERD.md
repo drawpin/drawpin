@@ -169,3 +169,22 @@ public board and the owner screen need:
 
 Live vote tallies stay unreadable on purpose — the top 7 is only revealed once
 the week closes.
+
+## Data API grants
+
+Tables get **no** privileges for the API roles by default: the hosted project
+has "Automatically expose new tables" turned off, and a migration turns the
+local stack's grant-everything default off to match. Each table's privileges
+are granted explicitly, and RLS then narrows the rows:
+
+| Role | Tables | Privileges |
+|---|---|---|
+| `service_role` (server) | all | select, insert, update, delete |
+| `anon`, `authenticated` | `venues`, `weeks`, `tiles`, `hall_of_fame` | select |
+| `authenticated` (owners) | `owners`, `daily_codes` | select |
+| `anon`, `authenticated` | `devices`, `votes`, `post_attempts` | none |
+
+**A new table must grant its privileges in the migration that creates it**,
+or every query on it fails with `permission denied` (`42501`).
+`supabase/schema.test.ts` checks this matrix and fails when a table is added
+without updating it.

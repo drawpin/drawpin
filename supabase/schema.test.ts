@@ -16,6 +16,11 @@ async function stubSupabaseSchema(instance: PGlite) {
     create table auth.users (id uuid primary key, email text);
     create role anon;
     create role authenticated;
+    create role service_role;
+    -- Mirrors the local Supabase stack, which grants every API role everything
+    -- on new public tables; migrations must not rely on it.
+    alter default privileges for role postgres in schema public
+      grant all on tables to anon, authenticated, service_role;
     create function auth.uid() returns uuid language sql stable as $fn$
       select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid;
     $fn$;
@@ -304,6 +309,79 @@ describe("realtime publication", () => {
     );
 
     expect(result.rows.map((row) => row.tablename)).toEqual(["tiles", "weeks"]);
+  });
+});
+
+describe("data API grants", () => {
+  const PRIVILEGES = [
+    "SELECT",
+    "INSERT",
+    "UPDATE",
+    "DELETE",
+    "TRUNCATE",
+    "REFERENCES",
+    "TRIGGER",
+  ];
+
+  async function privileges(role: string, table: string) {
+    const result = await db.query<{ privilege: string }>(
+      `select privilege from unnest($1::text[]) as privilege
+       where has_table_privilege($2, $3, privilege)`,
+      [PRIVILEGES, role, `public.${table}`],
+    );
+    return result.rows.map((row) => row.privilege);
+  }
+
+  const publicTables = ["venues", "weeks", "tiles", "hall_of_fame"];
+  const ownerTables = ["owners", "daily_codes"];
+  const privateTables = ["devices", "votes", "post_attempts"];
+  const allTables = [...publicTables, ...ownerTables, ...privateTables];
+
+  it.each(allTables)("lets the server read and write %s", async (table) => {
+    expect(await privileges("service_role", table)).toEqual([
+      "SELECT",
+      "INSERT",
+      "UPDATE",
+      "DELETE",
+    ]);
+  });
+
+  it.each(publicTables)(
+    "lets visitors and owners only read %s",
+    async (table) => {
+      expect(await privileges("anon", table)).toEqual(["SELECT"]);
+      expect(await privileges("authenticated", table)).toEqual(["SELECT"]);
+    },
+  );
+
+  it.each(ownerTables)("lets only owners read %s", async (table) => {
+    expect(await privileges("anon", table)).toEqual([]);
+    expect(await privileges("authenticated", table)).toEqual(["SELECT"]);
+  });
+
+  it.each(privateTables)("keeps %s closed to the API", async (table) => {
+    expect(await privileges("anon", table)).toEqual([]);
+    expect(await privileges("authenticated", table)).toEqual([]);
+  });
+
+  it("covers every public table", async () => {
+    const result = await db.query<{ tablename: string }>(
+      `select tablename from pg_tables where schemaname = 'public' order by tablename`,
+    );
+    expect(result.rows.map((row) => row.tablename)).toEqual(
+      [...allTables].sort(),
+    );
+  });
+
+  it("gives tables created by later migrations no API access by default", async () => {
+    await db.exec(`create table public.grants_probe (id int primary key);`);
+    try {
+      for (const role of ["anon", "authenticated", "service_role"]) {
+        expect(await privileges(role, "grants_probe")).toEqual([]);
+      }
+    } finally {
+      await db.exec(`drop table public.grants_probe;`);
+    }
   });
 });
 
