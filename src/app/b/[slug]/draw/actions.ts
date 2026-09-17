@@ -4,8 +4,10 @@ import { redirect } from "next/navigation";
 import { nameTagFor } from "@/lib/device-id";
 import { ensureDeviceId } from "@/lib/device";
 import { serverEnv } from "@/lib/env";
+import { TURNSTILE_FIELD } from "@/lib/turnstile/field";
 import { parseBlocklist } from "@/lib/moderation/blocklist";
 import { moderateTile } from "@/lib/moderation/moderate-tile";
+import { checkTurnstile } from "@/lib/turnstile/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { processTileImage } from "@/lib/tile-image";
 import { type PostTileFailure, postTile } from "./post-tile";
@@ -42,6 +44,10 @@ export async function postTileAction(
   if (!parsed.success) {
     return { status: "error", message: parsed.error.issues[0].message };
   }
+
+  // Before creating a device, moderating, or touching storage.
+  const challenge = await checkTurnstile(formData.get(TURNSTILE_FIELD));
+  if (challenge) return { status: "error", message: challenge };
 
   const { slug, displayName, caption, image } = parsed.data;
   const admin = createAdminClient();

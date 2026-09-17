@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { readDeviceId } from "@/lib/device";
+import { serverEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { localDayFor } from "@/lib/venue-time";
 import { getBoard } from "../data";
@@ -85,7 +86,10 @@ export default async function DrawPage({
           {blocked}
         </p>
       ) : (
-        <DrawTileForm slug={slug} />
+        <DrawTileForm
+          slug={slug}
+          turnstileSiteKey={serverEnv().NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+        />
       )}
     </main>
   );
