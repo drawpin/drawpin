@@ -1,5 +1,6 @@
 "use server";
 
+import { serverEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { type LoginState, loginSchema } from "./schema";
 
@@ -19,7 +20,15 @@ export async function sendMagicLink(
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithOtp({
     email: parsed.data.email,
-    options: { shouldCreateUser: true },
+    options: {
+      shouldCreateUser: true,
+      // Where Supabase's default email template sends the owner after
+      // verifying the link. Must be in the project's allowed redirect URLs.
+      emailRedirectTo: new URL(
+        "/auth/confirm",
+        serverEnv().SITE_URL,
+      ).toString(),
+    },
   });
 
   if (error) {

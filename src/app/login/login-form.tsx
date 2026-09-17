@@ -17,10 +17,20 @@ export function LoginForm() {
 
   if (state.status === "sent") {
     return (
-      <p role="status" className="text-center">
-        Check <span className="font-medium">{state.email}</span> for a sign-in
-        link. It expires in 15 minutes.
-      </p>
+      <div role="status" className="flex flex-col gap-2 text-center">
+        <p>
+          Check <span className="font-medium">{state.email}</span> for a sign-in
+          link. It expires in 15 minutes.
+        </p>
+        {/* Supabase's default email link only completes in the browser that
+            requested it (see src/app/auth/confirm/params.ts). */}
+        <p className="text-muted-foreground text-sm">
+          Open the link in{" "}
+          <span className="font-medium">this same browser</span>. Links opened
+          on another device or inside an email app&apos;s built-in browser
+          won&apos;t sign you in.
+        </p>
+      </div>
     );
   }
 

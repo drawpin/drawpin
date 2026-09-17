@@ -34,6 +34,14 @@ the Mailpit inbox at [http://127.0.0.1:54324](http://127.0.0.1:54324) to find
 the link. Use `http://localhost:3000` rather than `127.0.0.1` so the link lands
 on the host holding the session cookies.
 
+The hosted project can't use the custom template in
+`supabase/templates/magic_link.html`: free Supabase projects can only edit auth
+emails with their own SMTP provider. Until one is set up, owners get Supabase's
+default email, whose link only signs in **in the browser that requested it**.
+`/auth/confirm` handles both link formats, and the login page tells owners to
+use the same browser. Setting up SMTP and the custom template removes that
+limitation with no code change.
+
 The schema's domain rules are covered by `supabase/schema.test.ts`, which runs
 the migrations against Postgres compiled to WASM. It's part of `npm test` and
 needs no Docker.

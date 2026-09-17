@@ -1,31 +1,30 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-
-const confirmSchema = z.object({
-  token_hash: z.string().min(1),
-  // The email templates always send `email`; the older types are accepted in
-  // case a link from a default Supabase template is followed.
-  type: z.enum(["email", "magiclink", "signup"]),
-});
+import { parseConfirmParams } from "./params";
 
 /**
- * Completes a magic-link sign-in: verifies the token from the email link,
- * which sets the session cookies, then sends the owner to their board. Works
- * even when the link is opened on a different device than the one that
- * requested it.
+ * Completes a magic-link sign-in, then sends the owner to their board.
+ *
+ * Accepts both link formats (see `ConfirmParams`): our custom template's
+ * token hash, and the `?code=` redirect from Supabase's default template.
+ * Either way a successful check sets the session cookies; anything else goes
+ * back to the login page with an "invalid or expired link" message.
  */
 export async function GET(request: NextRequest) {
-  const parsed = confirmSchema.safeParse(
-    Object.fromEntries(request.nextUrl.searchParams),
-  );
+  const params = parseConfirmParams(request.nextUrl.searchParams);
 
-  if (parsed.success) {
+  if (params.kind !== "invalid") {
     const supabase = await createClient();
-    const { error } = await supabase.auth.verifyOtp({
-      type: parsed.data.type,
-      token_hash: parsed.data.token_hash,
-    });
+    const { error } =
+      params.kind === "code"
+        ? await supabase.auth.exchangeCodeForSession(
+            params.code,
+            params.flowId ? { flowId: params.flowId } : undefined,
+          )
+        : await supabase.auth.verifyOtp({
+            type: params.type,
+            token_hash: params.tokenHash,
+          });
 
     if (!error) {
       return NextResponse.redirect(new URL("/admin", request.url));
