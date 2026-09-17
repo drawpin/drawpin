@@ -1,29 +1,24 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { requireOwner } from "@/lib/auth";
 import { boardUrl, createBoardQrCode } from "@/lib/board";
 import { serverEnv } from "@/lib/env";
-import { createClient } from "@/lib/supabase/server";
-import { signOut } from "./actions";
+import { setBoardPaused, signOut } from "./actions";
+import { BoardTiles } from "./board-tiles";
+import { listBoardTiles, requireOwnedVenue } from "./venue";
 
 export const metadata: Metadata = { title: "Your board · DrawPin" };
 
 export default async function AdminPage() {
-  const owner = await requireOwner();
+  // The board's state changes as customers post, so never serve a cached copy.
+  await connection();
 
-  const supabase = await createClient();
-  const { data: venue, error } = await supabase
-    .from("venues")
-    .select("name, slug")
-    .eq("owner_id", owner.id)
-    .maybeSingle();
-
-  if (error) throw new Error(`Could not load venue: ${error.message}`);
-  if (!venue) redirect("/setup");
-
+  const venue = await requireOwnedVenue();
   const url = boardUrl(serverEnv().SITE_URL, venue.slug);
-  const qr = await createBoardQrCode(url);
+  const [qr, tiles] = await Promise.all([
+    createBoardQrCode(url),
+    listBoardTiles(venue.id),
+  ]);
 
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col gap-8 px-6 py-10">
@@ -67,6 +62,40 @@ export default async function AdminPage() {
         <p className="text-muted-foreground text-xs">
           Customers open this link by scanning the QR code.
         </p>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h2 className="text-sm font-medium">
+          {venue.isPaused ? "Board paused" : "Board open"}
+        </h2>
+        <p className="text-muted-foreground text-xs">
+          {venue.isPaused
+            ? "Customers can see the board but can't post."
+            : "Customers can post to the board."}
+        </p>
+        <form action={setBoardPaused}>
+          <input
+            type="hidden"
+            name="paused"
+            value={venue.isPaused ? "false" : "true"}
+          />
+          <Button
+            type="submit"
+            variant={venue.isPaused ? "default" : "outline"}
+            size="sm"
+          >
+            {venue.isPaused ? "Resume posting" : "Pause board"}
+          </Button>
+        </form>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h2 className="text-sm font-medium">This week&apos;s drawings</h2>
+        <p className="text-muted-foreground text-xs">
+          Removing a drawing takes it off the board for everyone and deletes it.
+          This can&apos;t be undone.
+        </p>
+        <BoardTiles tiles={tiles} />
       </section>
     </main>
   );
