@@ -149,9 +149,19 @@ receive new tiles and new weeks as they're inserted. Realtime applies the RLS
 policies below per subscriber, so visitors only receive rows they could
 already read.
 
-Only inserts are used. A tile changing status (e.g. an owner removing it)
-isn't pushed to visitors: once removed, the row fails the "live tiles" policy,
-so Realtime won't send the update to anon subscribers.
+Only inserts are used. A tile changing status isn't pushed to visitors: once
+removed, the row fails the "live tiles" policy, so Realtime won't send the
+update to anon subscribers.
+
+**Removal** therefore travels as a Realtime **broadcast** on the topic
+`board:<venue_id>`, sent by the server with the service role when an owner
+removes a tile. The payload is just the tile id, which is already public.
+Open boards drop the tile immediately and keep it hidden through later
+refreshes.
+
+A removed tile's row is **kept**, not deleted, so a tile that already won a
+week still satisfies `hall_of_fame`'s foreign key. Its image file is deleted,
+so it can't be shown anywhere, including the Hall of Fame.
 
 ## Row level security
 
