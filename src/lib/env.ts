@@ -6,6 +6,9 @@ const serverEnvSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   SITE_URL: z.url(),
   DEVICE_COOKIE_SECRET: z.string().min(32),
+  OPENAI_API_KEY: z.string().min(1),
+  /** Optional extra blocked words, comma-separated. Kept out of the repo. */
+  MODERATION_BLOCKLIST: z.string().optional(),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
