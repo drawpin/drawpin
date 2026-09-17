@@ -22,7 +22,7 @@ DrawPin is a free, mobile-web drawing board for local spots (coffee shops, resta
 | Bot protection | Cloudflare Turnstile |
 | Device limiting | Signed device ID cookie + FingerprintJS (open source), hashed IP |
 | Drawing | HTML canvas + `perfect-freehand` |
-| Scheduled jobs | Vercel Cron (hourly) |
+| Scheduled jobs | On-demand venue-time transitions + daily Vercel Cron for cleanup (ADR-003) |
 | Package manager | npm |
 | UI/styling | Tailwind CSS + shadcn/ui |
 | Linting/formatting | ESLint (`eslint-config-next`) + Prettier |

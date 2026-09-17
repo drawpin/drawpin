@@ -58,7 +58,7 @@ needs no Docker.
 | Drawing                                    | HTML canvas + `perfect-freehand`                             |
 | UI/styling                                 | Tailwind CSS + shadcn/ui                                     |
 | Validation                                 | Zod                                                          |
-| Scheduled jobs                             | Vercel Cron (hourly)                                         |
+| Scheduled jobs                             | On-demand transitions + daily Vercel Cron (ADR-003)          |
 | Package manager                            | npm                                                          |
 
 Decisions and rationale are recorded as ADRs in [`docs/adr/`](docs/adr/).
