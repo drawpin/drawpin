@@ -2,6 +2,8 @@
 
 import { serverEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
+import { TURNSTILE_FIELD } from "@/lib/turnstile/field";
+import { checkTurnstile } from "@/lib/turnstile/guard";
 import { type LoginState, loginSchema } from "./schema";
 
 /**
@@ -16,6 +18,11 @@ export async function sendMagicLink(
   if (!parsed.success) {
     return { status: "error", message: parsed.error.issues[0].message };
   }
+
+  // Before sending any email: a script shouldn't be able to fire sign-in
+  // emails at an address.
+  const challenge = await checkTurnstile(formData.get(TURNSTILE_FIELD));
+  if (challenge) return { status: "error", message: challenge };
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithOtp({

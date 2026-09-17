@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getOwner } from "@/lib/auth";
+import { serverEnv } from "@/lib/env";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Sign in · DrawPin" };
@@ -27,7 +28,9 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           from. Request a new one below.
         </p>
       )}
-      <LoginForm />
+      <LoginForm
+        turnstileSiteKey={serverEnv().NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+      />
     </main>
   );
 }

@@ -11,6 +11,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Turnstile } from "@/components/turnstile";
+import { TURNSTILE_FIELD } from "@/lib/turnstile/field";
 import { postTileAction } from "./actions";
 import {
   DrawingCanvas,
@@ -51,7 +53,14 @@ function useHydrated() {
   );
 }
 
-export function DrawTileForm({ slug }: { slug: string }) {
+export function DrawTileForm({
+  slug,
+  turnstileSiteKey,
+}: {
+  slug: string;
+  turnstileSiteKey: string;
+}) {
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   // Before hydration the submit handler isn't attached, so a tap would do a
   // plain GET submit: the drawing is lost and the caption lands in the URL.
   const hydrated = useHydrated();
@@ -113,6 +122,11 @@ export function DrawTileForm({ slug }: { slug: string }) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <input type="hidden" name="slug" value={slug} />
+      <input
+        type="hidden"
+        name={TURNSTILE_FIELD}
+        value={turnstileToken ?? ""}
+      />
 
       <DrawingCanvas
         ref={canvasRef}
@@ -197,8 +211,18 @@ export function DrawTileForm({ slug }: { slug: string }) {
         </p>
       )}
 
-      <Button type="submit" size="lg" disabled={!hydrated || pending}>
-        {pending ? "Posting…" : "Post my tile"}
+      <Turnstile siteKey={turnstileSiteKey} onToken={setTurnstileToken} />
+
+      <Button
+        type="submit"
+        size="lg"
+        disabled={!hydrated || pending || !turnstileToken}
+      >
+        {pending
+          ? "Posting…"
+          : turnstileToken
+            ? "Post my tile"
+            : "Checking your browser…"}
       </Button>
     </form>
   );

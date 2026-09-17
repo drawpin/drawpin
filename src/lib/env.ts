@@ -7,6 +7,8 @@ const serverEnvSchema = z.object({
   SITE_URL: z.url(),
   DEVICE_COOKIE_SECRET: z.string().min(32),
   OPENAI_API_KEY: z.string().min(1),
+  NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string().min(1),
+  TURNSTILE_SECRET_KEY: z.string().min(1),
   /** Optional extra blocked words, comma-separated. Kept out of the repo. */
   MODERATION_BLOCKLIST: z.string().optional(),
 });

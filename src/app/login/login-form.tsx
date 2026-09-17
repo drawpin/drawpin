@@ -1,15 +1,18 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Turnstile } from "@/components/turnstile";
+import { TURNSTILE_FIELD } from "@/lib/turnstile/field";
 import { sendMagicLink } from "./actions";
 import type { LoginState } from "./schema";
 
 const initialState: LoginState = { status: "idle" };
 
-export function LoginForm() {
+export function LoginForm({ turnstileSiteKey }: { turnstileSiteKey: string }) {
+  const [token, setToken] = useState<string | null>(null);
   const [state, formAction, pending] = useActionState(
     sendMagicLink,
     initialState,
@@ -52,8 +55,14 @@ export function LoginForm() {
           {state.message}
         </p>
       )}
-      <Button type="submit" size="lg" disabled={pending}>
-        {pending ? "Sending…" : "Email me a sign-in link"}
+      <input type="hidden" name={TURNSTILE_FIELD} value={token ?? ""} />
+      <Turnstile siteKey={turnstileSiteKey} onToken={setToken} />
+      <Button type="submit" size="lg" disabled={pending || !token}>
+        {pending
+          ? "Sending…"
+          : token
+            ? "Email me a sign-in link"
+            : "Checking your browser…"}
       </Button>
     </form>
   );

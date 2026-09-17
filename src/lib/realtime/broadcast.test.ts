@@ -1,14 +1,10 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { stubServerEnv } from "@/lib/testing/server-env";
 import { boardTopic, broadcastToBoard } from "./broadcast";
 
 beforeEach(() => {
-  vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "http://127.0.0.1:54321");
-  vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "anon-key");
-  vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "service-key");
-  vi.stubEnv("SITE_URL", "http://localhost:3000");
-  vi.stubEnv("DEVICE_COOKIE_SECRET", "x".repeat(32));
-  vi.stubEnv("OPENAI_API_KEY", "sk-test");
+  stubServerEnv();
 });
 
 describe("boardTopic", () => {

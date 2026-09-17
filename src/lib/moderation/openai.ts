@@ -8,8 +8,20 @@ const MODEL = "omni-moderation-latest";
 /** Kept short: a visitor is waiting on this before their post is accepted. */
 const TIMEOUT_MS = 5_000;
 
-/** One quick retry covers a blip without making the visitor wait twice as long. */
+/**
+ * The API returns sporadic empty-bodied 404s from its edge — the response has
+ * no `openai-*` headers, so it never reached their application — at roughly one
+ * call in three when measured directly with curl. A single retry isn't enough
+ * to keep posting reliable; four quick attempts stay inside a visitor's
+ * patience (worst case about two seconds of backoff).
+ */
+const MAX_ATTEMPTS = 4;
+
+/** Backoff between attempts, multiplied by the attempt number. */
 const RETRY_DELAY_MS = 300;
+
+/** Statuses that mean the request itself is wrong, so retrying can't help. */
+const PERMANENT_STATUSES = new Set([400, 401, 403]);
 
 /** Moderation couldn't be reached or understood, so nothing was checked. */
 export class ModerationUnavailableError extends Error {
@@ -66,8 +78,8 @@ export async function checkWithOpenAi(
   if (content.length === 0) return { flagged: false, categories: [] };
 
   let lastError = "unknown";
-  for (let attempt = 0; attempt < 2; attempt++) {
-    if (attempt > 0) await delay(RETRY_DELAY_MS);
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    if (attempt > 0) await delay(RETRY_DELAY_MS * attempt);
 
     try {
       const response = await fetchImpl(ENDPOINT, {
@@ -82,8 +94,10 @@ export async function checkWithOpenAi(
 
       if (!response.ok) {
         lastError = `HTTP ${response.status}`;
-        // 4xx other than rate limiting won't fix itself on a retry.
-        if (response.status < 500 && response.status !== 429) break;
+        // A bad key or malformed request won't fix itself; anything else,
+        // including the empty-bodied 404s the API returns intermittently,
+        // usually succeeds on the next try.
+        if (PERMANENT_STATUSES.has(response.status)) break;
         continue;
       }
 
