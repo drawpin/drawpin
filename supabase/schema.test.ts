@@ -301,6 +301,41 @@ describe("tiles storage bucket", () => {
   });
 });
 
+describe("record_blocked_attempt", () => {
+  it("counts blocked attempts per device per venue-local day", async () => {
+    const { venueId, artistDeviceId, voterDeviceId } = await seedBoard();
+    const count = async (deviceId: string, day: string) => {
+      const result = await db.query<{ record_blocked_attempt: number }>(
+        `select record_blocked_attempt($1::uuid, $2::uuid, $3::date)`,
+        [venueId, deviceId, day],
+      );
+      return result.rows[0].record_blocked_attempt;
+    };
+
+    expect(await count(artistDeviceId, "2026-09-16")).toBe(1);
+    expect(await count(artistDeviceId, "2026-09-16")).toBe(2);
+    // A different device and a different day each start over.
+    expect(await count(voterDeviceId, "2026-09-16")).toBe(1);
+    expect(await count(artistDeviceId, "2026-09-17")).toBe(1);
+  });
+
+  it("leaves the daily post available", async () => {
+    const { venueId, artistDeviceId } = await seedBoard();
+
+    await db.query(
+      `select record_blocked_attempt($1::uuid, $2::uuid, $3::date)`,
+      [venueId, artistDeviceId, "2026-09-16"],
+    );
+
+    const result = await db.query<{ has_posted: boolean }>(
+      `select has_posted from post_attempts
+       where venue_id = $1 and device_id = $2 and local_day = '2026-09-16'`,
+      [venueId, artistDeviceId],
+    );
+    expect(result.rows).toEqual([{ has_posted: false }]);
+  });
+});
+
 describe("realtime publication", () => {
   it("streams tiles and weeks, and nothing private", async () => {
     const result = await db.query<{ tablename: string }>(

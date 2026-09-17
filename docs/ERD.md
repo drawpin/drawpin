@@ -184,6 +184,11 @@ are granted explicitly, and RLS then narrows the rows:
 | `authenticated` (owners) | `owners`, `daily_codes` | select |
 | `anon`, `authenticated` | `devices`, `votes`, `post_attempts` | none |
 
+Functions follow the same rule. `record_blocked_attempt(venue_id, device_id,
+local_day)` counts a moderation-blocked post and returns the day's new total in
+one statement; execute is granted to `service_role` only, so `post_attempts`
+stays closed to the API roles.
+
 **A new table must grant its privileges in the migration that creates it**,
 or every query on it fails with `permission denied` (`42501`).
 `supabase/schema.test.ts` checks this matrix and fails when a table is added
