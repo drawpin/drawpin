@@ -59,6 +59,8 @@ src/                  Next.js app
 
 Create folders as they're first needed. Don't add empty placeholder files.
 
+New tables get no Data API privileges by default (hosted and local). Every migration that creates a table must also enable RLS and grant its privileges explicitly; see `docs/ERD.md`, Data API grants.
+
 ## Git workflow
 
 Trunk-based: `main` is the only long-lived branch and every merge to it deploys to production. See `docs/adr/001-trunk-based-branching.md`.
