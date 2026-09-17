@@ -87,7 +87,22 @@ describe("checkWithOpenAi", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it("retries a rate limit but gives up after two attempts", async () => {
+  it("retries the intermittent empty 404 the API returns", async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response("", { status: 404 }))
+      .mockResolvedValueOnce(ok(clean));
+
+    await expect(checkWithOpenAi(input, "sk-test", fetchMock)).resolves.toEqual(
+      {
+        flagged: false,
+        categories: [],
+      },
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("retries a rate limit but gives up after four attempts", async () => {
     const fetchMock = vi
       .fn<typeof fetch>()
       .mockResolvedValue(new Response("slow down", { status: 429 }));
@@ -95,7 +110,7 @@ describe("checkWithOpenAi", () => {
     await expect(
       checkWithOpenAi(input, "sk-test", fetchMock),
     ).rejects.toBeInstanceOf(ModerationUnavailableError);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
   });
 
   it("doesn't retry a bad key", async () => {
