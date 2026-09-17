@@ -84,13 +84,15 @@ Copy [`.env.example`](.env.example) to `.env.local` and fill it in from the
 output of `npx supabase start`. More variables arrive as moderation and
 bot-protection land.
 
-| Variable                        | Required | Description                                                                                                    |
-| ------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`      | yes      | Supabase API URL; `http://127.0.0.1:54321` locally                                                             |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | yes      | Browser-side key, limited by row level security                                                                |
-| `SUPABASE_SERVICE_ROLE_KEY`     | yes      | Server-side key; bypasses RLS, never sent to the browser                                                       |
-| `SITE_URL`                      | yes      | Public site origin for board links and QR codes; `http://localhost:3000` locally                               |
-| `DEVICE_COOKIE_SECRET`          | yes      | 32+ random characters; signs the device cookie and derives name tags. Changing it resets daily limits and tags |
+| Variable                        | Required | Description                                                                                                                                      |
+| ------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `NEXT_PUBLIC_SUPABASE_URL`      | yes      | Supabase API URL; `http://127.0.0.1:54321` locally                                                                                               |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | yes      | Browser-side key, limited by row level security                                                                                                  |
+| `SUPABASE_SERVICE_ROLE_KEY`     | yes      | Server-side key; bypasses RLS, never sent to the browser                                                                                         |
+| `SITE_URL`                      | yes      | Public site origin for board links and QR codes; `http://localhost:3000` locally                                                                 |
+| `DEVICE_COOKIE_SECRET`          | yes      | 32+ random characters; signs the device cookie and derives name tags. Changing it resets daily limits and tags                                   |
+| `OPENAI_API_KEY`                | yes      | Moderation for names, captions and drawings. Restrict the key to `/v1/moderations`; that endpoint is free. Posting is refused while it's missing |
+| `MODERATION_BLOCKLIST`          | no       | Extra blocked words, comma-separated. Links, emails and phone numbers are always blocked                                                         |
 
 ## Contributing
 

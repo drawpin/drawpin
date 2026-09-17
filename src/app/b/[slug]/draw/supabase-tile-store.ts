@@ -1,7 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { WeekBounds } from "@/lib/venue-time";
 import { TILES_BUCKET } from "../tiles";
-import type { NewTile, PostingVenue, TileStore } from "./post-tile";
+import type {
+  DailyAttempt,
+  NewTile,
+  PostingVenue,
+  TileStore,
+} from "./post-tile";
 
 /**
  * {@link TileStore} backed by Supabase. Needs the service-role client: the
@@ -21,6 +26,40 @@ export class SupabaseTileStore implements TileStore {
     return data
       ? { id: data.id, timezone: data.timezone, isPaused: data.is_paused }
       : null;
+  }
+
+  async getDailyAttempt(
+    venueId: string,
+    deviceId: string,
+    localDay: string,
+  ): Promise<DailyAttempt | null> {
+    const { data, error } = await this.admin
+      .from("post_attempts")
+      .select("has_posted, blocked_count")
+      .match({ venue_id: venueId, device_id: deviceId, local_day: localDay })
+      .maybeSingle();
+
+    if (error) throw new Error(`getDailyAttempt: ${error.message}`);
+    return data
+      ? { hasPosted: data.has_posted, blockedCount: data.blocked_count }
+      : null;
+  }
+
+  async recordBlockedAttempt(
+    venueId: string,
+    deviceId: string,
+    localDay: string,
+  ): Promise<number> {
+    // One statement so simultaneous blocked attempts can't both read the same
+    // count and overwrite each other.
+    const { data, error } = await this.admin.rpc("record_blocked_attempt", {
+      p_venue_id: venueId,
+      p_device_id: deviceId,
+      p_local_day: localDay,
+    });
+
+    if (error) throw new Error(`recordBlockedAttempt: ${error.message}`);
+    return data as number;
   }
 
   async ensurePostingWeek(
