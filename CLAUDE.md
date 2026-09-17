@@ -1,6 +1,6 @@
 # DrawPin — Claude Instructions
 
-DrawPin is a free, mobile-web drawing board for local spots (coffee shops, restaurants). Customers scan a printed QR code or enter a daily 8-digit code, draw a tile, see everyone's tiles live, and vote on the weekly top 7. No app download and no customer accounts.
+DrawPin is a free, mobile-web drawing board for local spots (coffee shops, restaurants). Customers scan a printed QR code or enter a daily 8-digit code, draw a tile, see everyone's tiles live, vote for the weekly winner, and crown a monthly super winner. No app download and no customer accounts.
 
 **Before any feature work, read `docs/PLAN.md`.** It is the locked v1 scope. Do not add features, change behavior, or pick new libraries beyond it without asking.
 
@@ -38,7 +38,8 @@ See `docs/adr/002-frontend-tooling.md` for the rationale behind the last five ro
 - 1 post per device per day. A post blocked by moderation doesn't use it up; 3 blocked attempts lock the device until the next reset.
 - A tile is a drawing plus an optional caption (≤ 80 chars). Username is optional, not unique, and shown with a 4-digit tag (e.g. `Ahmad#4821`).
 - Voting on week N's board happens during week N+1. Anyone with the link can vote: 3 votes per device, on different tiles, not your own, and votes are final.
-- The top 7 go to the Hall of Fame; ties go to the earlier post. Hall of Fame is kept forever; other tiles are deleted 30 days after voting ends.
+- Each week's most-voted tile (at least 1 vote) is its winner; ties go to the earlier post. Each month, up to 4 weekly winners (by votes) go to a one-week final (1 vote per device) that crowns a super winner.
+- Winners are kept forever; other tiles are deleted 30 days after voting ends.
 - One board per owner. The owner admin has three things only: QR + today's code, Pause board, Remove tile.
 - Store only hashes of IPs and fingerprints.
 

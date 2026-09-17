@@ -167,8 +167,8 @@ public board and the owner screen need:
 | `daily_codes` | the owner, for their own venue |
 | `devices`, `votes`, `post_attempts` | nobody (service role only) |
 
-Live vote tallies stay unreadable on purpose — the top 7 is only revealed once
-the week closes.
+Live vote tallies stay unreadable on purpose — winners are only revealed once
+voting closes.
 
 ## Data API grants
 
