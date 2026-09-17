@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { nameTagFor } from "@/lib/device-id";
 import { ensureDeviceId } from "@/lib/device";
 import { serverEnv } from "@/lib/env";
+import { parseBlocklist } from "@/lib/moderation/blocklist";
+import { moderateTile } from "@/lib/moderation/moderate-tile";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { processTileImage } from "@/lib/tile-image";
 import { type PostTileFailure, postTile } from "./post-tile";
@@ -15,6 +17,11 @@ const FAILURE_MESSAGES: Record<PostTileFailure, string> = {
   paused: "This board is paused, so posting is off right now.",
   "invalid-image": "We couldn't read your drawing. Try again.",
   blank: "Draw something first.",
+  blocked: "This couldn't be posted. It didn't use up your post for today.",
+  locked:
+    "Too many posts couldn't be posted today. You can try again after 4:00 AM.",
+  "moderation-unavailable":
+    "We couldn't check your drawing right now. Try again in a minute — this didn't use up your post.",
   "week-closed": "Posting is closed for this week.",
   "already-posted":
     "You've already posted today. You can post again after 4:00 AM.",
@@ -41,7 +48,9 @@ export async function postTileAction(
 
   try {
     const deviceId = await ensureDeviceId(admin);
-    const secret = serverEnv().DEVICE_COOKIE_SECRET;
+    const env = serverEnv();
+    const secret = env.DEVICE_COOKIE_SECRET;
+    const blockedTerms = parseBlocklist(env.MODERATION_BLOCKLIST);
 
     const result = await postTile(
       {
@@ -54,6 +63,8 @@ export async function postTileAction(
       {
         store: new SupabaseTileStore(admin),
         processImage: processTileImage,
+        moderate: (content) =>
+          moderateTile(content, { apiKey: env.OPENAI_API_KEY, blockedTerms }),
         nameTag: (id, name) => nameTagFor(id, name, secret),
         newId: () => crypto.randomUUID(),
         now: () => new Date(),

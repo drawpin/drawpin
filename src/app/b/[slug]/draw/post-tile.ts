@@ -1,5 +1,13 @@
+import type {
+  ModerationDecision,
+  TileContent,
+} from "@/lib/moderation/moderate-tile";
+import { ModerationUnavailableError } from "@/lib/moderation/openai";
 import { BlankTileImageError, InvalidTileImageError } from "@/lib/tile-image";
 import { localDayFor, type WeekBounds, weekBoundsFor } from "@/lib/venue-time";
+
+/** Blocked attempts in one venue-local day before the device is locked out. */
+export const BLOCKED_ATTEMPT_LIMIT = 3;
 
 export type PostingVenue = { id: string; timezone: string; isPaused: boolean };
 
@@ -13,9 +21,24 @@ export type NewTile = {
   image_path: string;
 };
 
+/** A device's posting record for one venue-local day. */
+export type DailyAttempt = { hasPosted: boolean; blockedCount: number };
+
 /** The storage and database operations posting needs. */
 export interface TileStore {
   findVenue(slug: string): Promise<PostingVenue | null>;
+  /** Today's record for this device, or `null` if it hasn't tried yet. */
+  getDailyAttempt(
+    venueId: string,
+    deviceId: string,
+    localDay: string,
+  ): Promise<DailyAttempt | null>;
+  /** Counts a moderation-blocked attempt; returns the day's new total. */
+  recordBlockedAttempt(
+    venueId: string,
+    deviceId: string,
+    localDay: string,
+  ): Promise<number>;
   /** Finds or creates the week with these bounds; `null` if it isn't taking posts. */
   ensurePostingWeek(
     venueId: string,
@@ -40,6 +63,7 @@ export interface TileStore {
 export type PostTileDeps = {
   store: TileStore;
   processImage: (upload: Uint8Array) => Promise<Buffer>;
+  moderate: (content: TileContent) => Promise<ModerationDecision>;
   nameTag: (deviceId: string, displayName: string) => string;
   newId: () => string;
   now: () => Date;
@@ -59,6 +83,9 @@ export type PostTileFailure =
   | "paused"
   | "invalid-image"
   | "blank"
+  | "blocked"
+  | "locked"
+  | "moderation-unavailable"
   | "week-closed"
   | "already-posted"
   | "failed";
@@ -71,11 +98,16 @@ export type PostTileResult =
  * venue-local day (docs/PLAN.md, Tiles).
  *
  * The order matters:
- * 1. The image is processed before the daily post is claimed, so a blank or
- *    broken drawing never uses up the day.
- * 2. The claim is a single conditional update, so two posts racing from the
+ * 1. A device already locked out by 3 blocked attempts is turned away before
+ *    any work is done.
+ * 2. The image is processed and moderated before the daily post is claimed, so
+ *    a blank, broken, or blocked drawing never uses up the day
+ *    (docs/PLAN.md, Moderation).
+ * 3. If moderation can't be reached, the post is refused rather than published
+ *    unchecked, and the day stays available.
+ * 4. The claim is a single conditional update, so two posts racing from the
  *    same device can't both win.
- * 3. If saving fails after the claim, the claim is released and any uploaded
+ * 5. If saving fails after the claim, the claim is released and any uploaded
  *    image deleted, so a server error doesn't cost the visitor their post.
  */
 export async function postTile(
@@ -87,6 +119,21 @@ export async function postTile(
   const venue = await store.findVenue(input.slug);
   if (!venue) return { ok: false, reason: "not-found" };
   if (venue.isPaused) return { ok: false, reason: "paused" };
+
+  const now = deps.now();
+  const localDay = localDayFor(now, venue.timezone);
+
+  const attempt = await store.getDailyAttempt(
+    venue.id,
+    input.deviceId,
+    localDay,
+  );
+  if (attempt && attempt.blockedCount >= BLOCKED_ATTEMPT_LIMIT) {
+    return { ok: false, reason: "locked" };
+  }
+  // The claim below is what really enforces this; checking here just avoids
+  // processing and moderating a drawing that can't be posted anyway.
+  if (attempt?.hasPosted) return { ok: false, reason: "already-posted" };
 
   let image: Buffer;
   try {
@@ -101,14 +148,40 @@ export async function postTile(
     throw error;
   }
 
-  const now = deps.now();
+  let decision: ModerationDecision;
+  try {
+    decision = await deps.moderate({
+      displayName: input.displayName,
+      caption: input.caption,
+      image,
+    });
+  } catch (error) {
+    if (error instanceof ModerationUnavailableError) {
+      deps.logError("Moderation unavailable; refusing the post", error);
+      return { ok: false, reason: "moderation-unavailable" };
+    }
+    throw error;
+  }
+
+  if (!decision.allowed) {
+    deps.logError(`Post blocked by moderation (${decision.reason})`, null);
+    const blockedCount = await store.recordBlockedAttempt(
+      venue.id,
+      input.deviceId,
+      localDay,
+    );
+    return {
+      ok: false,
+      reason: blockedCount >= BLOCKED_ATTEMPT_LIMIT ? "locked" : "blocked",
+    };
+  }
+
   const weekId = await store.ensurePostingWeek(
     venue.id,
     weekBoundsFor(now, venue.timezone),
   );
   if (!weekId) return { ok: false, reason: "week-closed" };
 
-  const localDay = localDayFor(now, venue.timezone);
   const claimed = await store.claimDailyPost(
     venue.id,
     input.deviceId,

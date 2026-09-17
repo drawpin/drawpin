@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ModerationUnavailableError } from "@/lib/moderation/openai";
 import { BlankTileImageError, InvalidTileImageError } from "@/lib/tile-image";
 import type { WeekBounds } from "@/lib/venue-time";
 import {
@@ -6,6 +7,7 @@ import {
   type PostTileDeps,
   type PostTileInput,
   postTile,
+  type PostTileResult,
   type PostingVenue,
   type TileStore,
 } from "./post-tile";
@@ -15,6 +17,7 @@ class FakeStore implements TileStore {
   venues = new Map<string, PostingVenue>();
   weeks = new Map<string, { id: string; closed: boolean }>();
   claims = new Map<string, boolean>();
+  blocked = new Map<string, number>();
   images = new Map<string, Buffer>();
   tiles: NewTile[] = [];
   weekBounds: WeekBounds[] = [];
@@ -33,6 +36,26 @@ class FakeStore implements TileStore {
     }
     const week = this.weeks.get(key)!;
     return week.closed ? null : week.id;
+  }
+
+  async getDailyAttempt(venueId: string, deviceId: string, localDay: string) {
+    const key = `${venueId}:${deviceId}:${localDay}`;
+    const blockedCount = this.blocked.get(key) ?? 0;
+    const hasPosted = this.claims.get(key) ?? false;
+    return blockedCount === 0 && !hasPosted
+      ? null
+      : { hasPosted, blockedCount };
+  }
+
+  async recordBlockedAttempt(
+    venueId: string,
+    deviceId: string,
+    localDay: string,
+  ) {
+    const key = `${venueId}:${deviceId}:${localDay}`;
+    const count = (this.blocked.get(key) ?? 0) + 1;
+    this.blocked.set(key, count);
+    return count;
   }
 
   async claimDailyPost(venueId: string, deviceId: string, localDay: string) {
@@ -71,6 +94,9 @@ let store: FakeStore;
 let deps: PostTileDeps;
 let clock: Date;
 
+/** The failure reason, or null when the post succeeded. */
+const reasonOf = (result: PostTileResult) => (result.ok ? null : result.reason);
+
 const input = (overrides: Partial<PostTileInput> = {}): PostTileInput => ({
   slug: "cafe-aaaa",
   deviceId: "device-1",
@@ -89,6 +115,7 @@ beforeEach(() => {
   deps = {
     store,
     processImage: vi.fn(async () => Buffer.from("webp")),
+    moderate: vi.fn<PostTileDeps["moderate"]>(async () => ({ allowed: true })),
     nameTag: (deviceId, name) =>
       `${deviceId}/${name}`.length.toString().padStart(4, "0"),
     newId: () => `tile-${++ids}`,
@@ -182,6 +209,91 @@ describe("postTile", () => {
 
     expect(await postTile(input(), deps)).toEqual({ ok: false, reason });
     expect(store.claims.size).toBe(0);
+  });
+
+  it("moderates the processed image with the name and caption", async () => {
+    await postTile(input(), deps);
+
+    expect(deps.moderate).toHaveBeenCalledWith({
+      displayName: "Ahmad",
+      caption: "hello",
+      image: Buffer.from("webp"),
+    });
+  });
+
+  it("blocks a flagged post without using up the day", async () => {
+    deps.moderate = vi.fn<PostTileDeps["moderate"]>(async () => ({
+      allowed: false,
+      reason: "openai:hate",
+    }));
+
+    expect(await postTile(input(), deps)).toEqual({
+      ok: false,
+      reason: "blocked",
+    });
+    expect(store.tiles).toHaveLength(0);
+    expect(store.images.size).toBe(0);
+    expect([...store.claims.values()]).not.toContain(true);
+
+    // The day is still available for a clean post.
+    deps.moderate = vi.fn<PostTileDeps["moderate"]>(async () => ({
+      allowed: true,
+    }));
+    expect((await postTile(input(), deps)).ok).toBe(true);
+  });
+
+  it("locks the device on the third blocked attempt, until the reset", async () => {
+    deps.moderate = vi.fn<PostTileDeps["moderate"]>(async () => ({
+      allowed: false,
+      reason: "openai:hate",
+    }));
+
+    expect(reasonOf(await postTile(input(), deps))).toBe("blocked");
+    expect(reasonOf(await postTile(input(), deps))).toBe("blocked");
+    expect(reasonOf(await postTile(input(), deps))).toBe("locked");
+
+    // Locked out even with a clean drawing, without moderating it again.
+    deps.moderate = vi.fn<PostTileDeps["moderate"]>(async () => ({
+      allowed: true,
+    }));
+    expect(reasonOf(await postTile(input(), deps))).toBe("locked");
+    expect(deps.moderate).not.toHaveBeenCalled();
+
+    // A new venue-local day clears it.
+    clock = new Date("2026-09-17T09:00:00Z");
+    expect((await postTile(input(), deps)).ok).toBe(true);
+  });
+
+  it("refuses the post when moderation can't be reached", async () => {
+    deps.moderate = vi.fn(async () => {
+      throw new ModerationUnavailableError("TimeoutError");
+    });
+
+    expect(await postTile(input(), deps)).toEqual({
+      ok: false,
+      reason: "moderation-unavailable",
+    });
+    expect(store.tiles).toHaveLength(0);
+    expect(store.blocked.size).toBe(0);
+
+    // Works again as soon as moderation recovers, same day.
+    deps.moderate = vi.fn<PostTileDeps["moderate"]>(async () => ({
+      allowed: true,
+    }));
+    expect((await postTile(input(), deps)).ok).toBe(true);
+  });
+
+  it("doesn't moderate or process a drawing that can't be posted", async () => {
+    await postTile(input(), deps);
+    const moderate = vi.fn<PostTileDeps["moderate"]>(async () => ({
+      allowed: true,
+    }));
+    deps.moderate = moderate;
+    deps.processImage = vi.fn(async () => Buffer.from("webp"));
+
+    expect(reasonOf(await postTile(input(), deps))).toBe("already-posted");
+    expect(moderate).not.toHaveBeenCalled();
+    expect(deps.processImage).not.toHaveBeenCalled();
   });
 
   it("refuses posts when the week isn't taking them", async () => {
