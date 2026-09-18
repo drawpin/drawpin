@@ -22,6 +22,22 @@ export async function getOwner(): Promise<User | null> {
 }
 
 /**
+ * Whether this account came through the owner flow.
+ *
+ * Owners sign in by email magic link and customers with Google (ADR-004), so
+ * the provider is what separates them. Without this, any signed-in customer
+ * could open `/setup` and create a venue.
+ */
+export function isOwnerAccount(user: User): boolean {
+  const metadata = user.app_metadata as {
+    provider?: string;
+    providers?: string[];
+  };
+  const providers = metadata.providers ?? [metadata.provider];
+  return providers.includes("email");
+}
+
+/**
  * Returns the signed-in owner, redirecting to `/login` if there isn't one.
  * Use at the top of every owner-only page and Server Action.
  */

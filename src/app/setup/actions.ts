@@ -1,9 +1,10 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { requireOwner } from "@/lib/auth";
+import { isOwnerAccount, requireOwner } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createVenue } from "./create-venue";
+import { ensureOwnerRow } from "./ensure-owner-row";
 import { type SetupState, setupSchema } from "./schema";
 
 /** Creates the signed-in owner's board from the setup form. */
@@ -12,6 +13,8 @@ export async function createVenueAction(
   formData: FormData,
 ): Promise<SetupState> {
   const owner = await requireOwner();
+  // A customer's Google account can reach this action as easily as the page.
+  if (!isOwnerAccount(owner)) redirect("/");
 
   const parsed = setupSchema.safeParse({
     name: formData.get("name"),
@@ -26,6 +29,11 @@ export async function createVenueAction(
   const admin = createAdminClient();
 
   try {
+    // `venues.owner_id` references it, and signing in no longer creates one.
+    await ensureOwnerRow(owner, async (row) =>
+      admin.from("owners").upsert(row, { onConflict: "id" }),
+    );
+
     await createVenue({ ownerId: owner.id, ...parsed.data }, async (row) =>
       admin.from("venues").insert(row),
     );
