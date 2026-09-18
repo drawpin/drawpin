@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DeviceFingerprintField } from "@/components/device-fingerprint";
 import { Turnstile } from "@/components/turnstile";
 import { TURNSTILE_FIELD } from "@/lib/turnstile/field";
 import { postTileAction } from "./actions";
@@ -127,6 +128,7 @@ export function DrawTileForm({
         name={TURNSTILE_FIELD}
         value={turnstileToken ?? ""}
       />
+      <DeviceFingerprintField />
 
       <DrawingCanvas
         ref={canvasRef}

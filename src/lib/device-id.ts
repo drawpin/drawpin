@@ -68,3 +68,24 @@ export function nameTagFor(
   );
   return String(number % 10_000).padStart(4, "0");
 }
+
+/**
+ * Hashes a browser fingerprint for storage.
+ *
+ * Keyed with the server secret so the stored value is useless anywhere else,
+ * and so a fingerprint can't be checked against the table by anyone who only
+ * has a copy of it (docs/PLAN.md, Device limiting: store only hashes).
+ */
+export function hashFingerprint(visitorId: string, secret: string): string {
+  return hmac(secret, "fingerprint", visitorId).toString("base64url");
+}
+
+/**
+ * Hashes an IP address for storage.
+ *
+ * Keyed rather than plain: there are only about 4 billion IPv4 addresses, so a
+ * plain hash of one can be reversed by trying them all.
+ */
+export function hashIpAddress(ip: string, secret: string): string {
+  return hmac(secret, "ip", ip).toString("base64url");
+}

@@ -45,6 +45,18 @@ export class SupabaseTileStore implements TileStore {
       : null;
   }
 
+  async countRecentPostsFromIp(ipHash: string, since: Date): Promise<number> {
+    // A function rather than a join through the Data API: neither devices nor
+    // tiles is readable this way (docs/ERD.md, Data API grants).
+    const { data, error } = await this.admin.rpc("count_recent_posts_from_ip", {
+      p_ip_hash: ipHash,
+      p_since: since.toISOString(),
+    });
+
+    if (error) throw new Error(`countRecentPostsFromIp: ${error.message}`);
+    return data ?? 0;
+  }
+
   async recordBlockedAttempt(
     venueId: string,
     deviceId: string,

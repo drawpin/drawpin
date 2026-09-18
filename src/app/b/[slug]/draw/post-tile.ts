@@ -9,6 +9,17 @@ import { localDayFor, type WeekBounds, weekBoundsFor } from "@/lib/venue-time";
 /** Blocked attempts in one venue-local day before the device is locked out. */
 export const BLOCKED_ATTEMPT_LIMIT = 3;
 
+/**
+ * Posts from one network within {@link BURST_WINDOW_MS} before further posts
+ * are turned away. Loose enough for a table of friends drawing together,
+ * tight enough that a script can't fill the board (docs/PLAN.md, Device
+ * limiting: IP is for bursts only, never one post per IP).
+ */
+export const BURST_POST_LIMIT = 5;
+
+/** The window the burst limit is measured over. */
+export const BURST_WINDOW_MS = 10 * 60 * 1000;
+
 export type PostingVenue = { id: string; timezone: string; isPaused: boolean };
 
 export type NewTile = {
@@ -33,6 +44,8 @@ export interface TileStore {
     deviceId: string,
     localDay: string,
   ): Promise<DailyAttempt | null>;
+  /** Posts made since `since` by devices last seen on this network. */
+  countRecentPostsFromIp(ipHash: string, since: Date): Promise<number>;
   /** Counts a moderation-blocked attempt; returns the day's new total. */
   recordBlockedAttempt(
     venueId: string,
@@ -76,6 +89,8 @@ export type PostTileInput = {
   displayName: string | null;
   caption: string | null;
   image: Uint8Array;
+  /** The visitor's hashed network, or `null` when no proxy reported one. */
+  ipHash: string | null;
 };
 
 export type PostTileFailure =
@@ -86,6 +101,7 @@ export type PostTileFailure =
   | "blocked"
   | "locked"
   | "moderation-unavailable"
+  | "burst"
   | "week-closed"
   | "already-posted"
   | "failed";
@@ -100,14 +116,16 @@ export type PostTileResult =
  * The order matters:
  * 1. A device already locked out by 3 blocked attempts is turned away before
  *    any work is done.
- * 2. The image is processed and moderated before the daily post is claimed, so
+ * 2. A network posting in bursts is turned away next, again before any heavy
+ *    work.
+ * 3. The image is processed and moderated before the daily post is claimed, so
  *    a blank, broken, or blocked drawing never uses up the day
  *    (docs/PLAN.md, Moderation).
- * 3. If moderation can't be reached, the post is refused rather than published
+ * 4. If moderation can't be reached, the post is refused rather than published
  *    unchecked, and the day stays available.
- * 4. The claim is a single conditional update, so two posts racing from the
+ * 5. The claim is a single conditional update, so two posts racing from the
  *    same device can't both win.
- * 5. If saving fails after the claim, the claim is released and any uploaded
+ * 6. If saving fails after the claim, the claim is released and any uploaded
  *    image deleted, so a server error doesn't cost the visitor their post.
  */
 export async function postTile(
@@ -134,6 +152,14 @@ export async function postTile(
   // The claim below is what really enforces this; checking here just avoids
   // processing and moderating a drawing that can't be posted anyway.
   if (attempt?.hasPosted) return { ok: false, reason: "already-posted" };
+
+  if (input.ipHash) {
+    const recent = await store.countRecentPostsFromIp(
+      input.ipHash,
+      new Date(now.getTime() - BURST_WINDOW_MS),
+    );
+    if (recent >= BURST_POST_LIMIT) return { ok: false, reason: "burst" };
+  }
 
   let image: Buffer;
   try {

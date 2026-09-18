@@ -3,6 +3,8 @@ import { ModerationUnavailableError } from "@/lib/moderation/openai";
 import { BlankTileImageError, InvalidTileImageError } from "@/lib/tile-image";
 import type { WeekBounds } from "@/lib/venue-time";
 import {
+  BURST_POST_LIMIT,
+  BURST_WINDOW_MS,
   type NewTile,
   type PostTileDeps,
   type PostTileInput,
@@ -45,6 +47,14 @@ class FakeStore implements TileStore {
     return blockedCount === 0 && !hasPosted
       ? null
       : { hasPosted, blockedCount };
+  }
+
+  /** Posts recorded against a network, newest last. */
+  postsByIp = new Map<string, Date[]>();
+
+  async countRecentPostsFromIp(ipHash: string, since: Date) {
+    const posts = this.postsByIp.get(ipHash) ?? [];
+    return posts.filter((at) => at >= since).length;
   }
 
   async recordBlockedAttempt(
@@ -103,6 +113,7 @@ const input = (overrides: Partial<PostTileInput> = {}): PostTileInput => ({
   displayName: "Ahmad",
   caption: "hello",
   image: new Uint8Array([1, 2, 3]),
+  ipHash: null,
   ...overrides,
 });
 
@@ -343,5 +354,64 @@ describe("postTile", () => {
     });
     expect(deps.logError).toHaveBeenCalledTimes(2);
     expect(store.images.size).toBe(0);
+  });
+});
+
+describe("burst protection", () => {
+  const ipHash = "network-1";
+
+  /** Records `count` posts from the network, all just now. */
+  const postedFromNetwork = (count: number) => {
+    store.postsByIp.set(
+      ipHash,
+      Array.from({ length: count }, () => clock),
+    );
+  };
+
+  it("lets a network post up to the limit", async () => {
+    postedFromNetwork(BURST_POST_LIMIT - 1);
+
+    const result = await postTile(input({ ipHash }), deps);
+
+    expect(reasonOf(result)).toBeNull();
+  });
+
+  it("turns away a network that's posting in bursts", async () => {
+    postedFromNetwork(BURST_POST_LIMIT);
+
+    const result = await postTile(input({ ipHash }), deps);
+
+    expect(reasonOf(result)).toBe("burst");
+  });
+
+  it("doesn't use up the day or moderate when it turns one away", async () => {
+    postedFromNetwork(BURST_POST_LIMIT);
+
+    await postTile(input({ ipHash }), deps);
+
+    expect(deps.moderate).not.toHaveBeenCalled();
+    expect(store.claims.size).toBe(0);
+  });
+
+  it("ignores posts older than the window", async () => {
+    const stale = new Date(clock.getTime() - BURST_WINDOW_MS - 1);
+    store.postsByIp.set(
+      ipHash,
+      Array.from({ length: BURST_POST_LIMIT }, () => stale),
+    );
+
+    const result = await postTile(input({ ipHash }), deps);
+
+    expect(reasonOf(result)).toBeNull();
+  });
+
+  it("skips the check when no proxy reported a network", async () => {
+    postedFromNetwork(BURST_POST_LIMIT);
+    const spy = vi.spyOn(store, "countRecentPostsFromIp");
+
+    const result = await postTile(input({ ipHash: null }), deps);
+
+    expect(spy).not.toHaveBeenCalled();
+    expect(reasonOf(result)).toBeNull();
   });
 });
