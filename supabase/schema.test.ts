@@ -74,9 +74,9 @@ async function seedBoard() {
     insert into owners (id, email) values ('${ids.ownerId}', '${ids.ownerId}@example.com');
     insert into venues (id, owner_id, name, slug, timezone)
       values ('${ids.venueId}', '${ids.ownerId}', 'Test Cafe', '${ids.slug}', 'America/Chicago');
-    insert into weeks (id, venue_id, starts_at, posting_ends_at, voting_ends_at, status)
+    insert into weeks (id, venue_id, starts_at, posting_ends_at, voting_ends_at)
       values ('${ids.weekId}', '${ids.venueId}',
-              '2026-09-07T09:00:00Z', '2026-09-14T09:00:00Z', '2026-09-21T09:00:00Z', 'voting');
+              '2026-09-07T09:00:00Z', '2026-09-14T09:00:00Z', '2026-09-21T09:00:00Z');
     insert into weeks (id, venue_id, starts_at, posting_ends_at, voting_ends_at)
       values ('${ids.nextWeekId}', '${ids.venueId}',
               '2026-09-14T09:00:00Z', '2026-09-21T09:00:00Z', '2026-09-28T09:00:00Z');
@@ -723,5 +723,46 @@ describe("row level security", () => {
     `);
 
     expect(result.rows.map((row) => row.tablename)).toEqual([]);
+  });
+});
+
+describe("weeks", () => {
+  it("has no stored status or purge date to drift", async () => {
+    const result = await db.query<{ column_name: string }>(
+      `select column_name from information_schema.columns
+       where table_schema = 'public' and table_name = 'weeks'
+       order by column_name`,
+    );
+
+    // Both were only ever written at creation, with nothing to update them
+    // later (ADR-003); the timestamps say everything they said.
+    expect(result.rows.map((row) => row.column_name)).toEqual([
+      "id",
+      "posting_ends_at",
+      "starts_at",
+      "venue_id",
+      "voting_ends_at",
+    ]);
+  });
+
+  it("drops the enum the status used", async () => {
+    const result = await db.query(
+      `select typname from pg_type where typname = 'week_status'`,
+    );
+
+    expect(result.rows).toEqual([]);
+  });
+
+  it("keeps each venue's weeks from overlapping", async () => {
+    const { venueId } = await seedBoard();
+
+    // One week per start, so "the week containing now" is always one row.
+    await expect(
+      db.query(
+        `insert into weeks (venue_id, starts_at, posting_ends_at, voting_ends_at)
+         values ($1, '2026-09-07T09:00:00Z', '2026-09-14T09:00:00Z', '2026-09-21T09:00:00Z')`,
+        [venueId],
+      ),
+    ).rejects.toThrow(/weeks_venue_id_starts_at_key/);
   });
 });

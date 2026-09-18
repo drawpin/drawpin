@@ -47,24 +47,37 @@ export const getBoard = cache(async (slug: string): Promise<Board | null> => {
   };
 });
 
+/** The week a board is posting to right now. */
+export type PostingWeek = {
+  id: string;
+  /** When posting closes, so the board can refresh itself at the rollover. */
+  postingEndsAt: string;
+};
+
 /**
- * Returns the id of the venue's week that is currently taking posts, or `null`
- * if there isn't one yet. Weeks are created when the first tile is posted.
+ * Returns the venue's week that is taking posts right now, or `null` if there
+ * isn't one yet. Weeks are created when the first tile is posted, so between
+ * 4:00 AM Monday and that first post there is none — which is the point: the
+ * board shows "no drawings yet" rather than last week's tiles.
+ *
+ * Selected by time range rather than a stored status, since nothing runs at
+ * 4:00 AM to change one (ADR-003).
  */
-export async function getPostingWeekId(
+export async function getPostingWeek(
   venueId: string,
-): Promise<string | null> {
+  now: Date = new Date(),
+): Promise<PostingWeek | null> {
+  const moment = now.toISOString();
   const { data, error } = await createPublicClient()
     .from("weeks")
-    .select("id")
+    .select("id, posting_ends_at")
     .eq("venue_id", venueId)
-    .eq("status", "posting")
-    .order("starts_at", { ascending: false })
-    .limit(1)
+    .lte("starts_at", moment)
+    .gt("posting_ends_at", moment)
     .maybeSingle();
 
   if (error) throw new Error(`Could not load week: ${error.message}`);
-  return data?.id ?? null;
+  return data ? { id: data.id, postingEndsAt: data.posting_ends_at } : null;
 }
 
 /**

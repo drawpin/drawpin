@@ -53,13 +53,14 @@ const ADMIN_TILE_LIMIT = 60;
 export async function listBoardTiles(venueId: string): Promise<AdminTile[]> {
   const admin = createAdminClient();
 
+  // The week taking posts right now, the same one the board shows.
+  const moment = new Date().toISOString();
   const { data: week, error: weekError } = await admin
     .from("weeks")
     .select("id")
     .eq("venue_id", venueId)
-    .eq("status", "posting")
-    .order("starts_at", { ascending: false })
-    .limit(1)
+    .lte("starts_at", moment)
+    .gt("posting_ends_at", moment)
     .maybeSingle();
 
   if (weekError) throw new Error(`listBoardTiles: ${weekError.message}`);

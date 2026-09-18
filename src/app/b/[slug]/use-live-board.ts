@@ -11,6 +11,8 @@ type UseLiveBoardOptions = {
   venueId: string;
   /** The week currently shown, or `null` if the board has no posting week yet. */
   weekId: string | null;
+  /** When the shown week stops taking posts, or `null` if there's no week. */
+  postingEndsAt: string | null;
   onTile: (tile: Tile) => void;
   onTileRemoved: (tileId: string) => void;
 };
@@ -27,6 +29,9 @@ const removedPayloadSchema = z.object({ tileId: z.guid() });
  *   send the update to visitors.
  * - A new week for the venue (created by the first post of the week) refreshes
  *   the page so the board switches to it.
+ * - At 4:00 AM Monday the shown week stops taking posts with nothing being
+ *   inserted, so a board left open overnight refreshes itself on the boundary
+ *   rather than showing last week's tiles until someone touches it.
  * - Whenever the Realtime subscription (re)connects, and whenever the tab
  *   becomes visible again, the page is refreshed to pick up anything posted
  *   while the connection was down — phones drop it as soon as they sleep.
@@ -34,6 +39,7 @@ const removedPayloadSchema = z.object({ tileId: z.guid() });
 export function useLiveBoard({
   venueId,
   weekId,
+  postingEndsAt,
   onTile,
   onTileRemoved,
 }: UseLiveBoardOptions) {
@@ -45,6 +51,21 @@ export function useLiveBoard({
     onTileRef.current = onTile;
     onTileRemovedRef.current = onTileRemoved;
   }, [onTile, onTileRemoved]);
+
+  useEffect(() => {
+    if (!postingEndsAt) return;
+
+    const millisecondsLeft = new Date(postingEndsAt).getTime() - Date.now();
+    // Already past: the page was served before the boundary and rendered after.
+    if (millisecondsLeft <= 0) {
+      router.refresh();
+      return;
+    }
+
+    // setTimeout is capped at about 24.8 days; a posting week is 7.
+    const timer = setTimeout(() => router.refresh(), millisecondsLeft);
+    return () => clearTimeout(timer);
+  }, [postingEndsAt, router]);
 
   useEffect(() => {
     let supabase: ReturnType<typeof getBrowserClient>;

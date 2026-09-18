@@ -62,6 +62,12 @@ code per venue per day, so two first views of `/admin` can't each create one.
 ### `weeks`
 A venue's weekly cycle: posting, then voting, then closed.
 
+The phase is **derived from these timestamps**, never stored: nothing runs at
+4:00 AM in each venue's time zone to change a column, so a stored status would
+sit at its creation value for ever (ADR-003). `src/lib/week-phase.ts` is the
+one place that reads the clock, and the board selects the week whose range
+contains now.
+
 | Column | Type | Notes |
 |---|---|---|
 | `id` | `uuid` | PK |
@@ -69,8 +75,6 @@ A venue's weekly cycle: posting, then voting, then closed.
 | `starts_at` | `timestamptz` | |
 | `posting_ends_at` | `timestamptz` | `> starts_at` |
 | `voting_ends_at` | `timestamptz` | `> posting_ends_at` |
-| `status` | `week_status` | `posting` \| `voting` \| `closed` |
-| `purge_after` | `timestamptz` | null until the week closes |
 
 ### `devices`
 Visitor devices, identified by the signed device-ID cookie. Only hashes are

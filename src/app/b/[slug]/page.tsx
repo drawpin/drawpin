@@ -6,7 +6,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { connection } from "next/server";
 import { getCustomer } from "@/lib/customer";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getBoard, getPostingWeekId, listLiveTiles } from "./data";
+import { getBoard, getPostingWeek, listLiveTiles } from "./data";
 import { TileFeed } from "./tile-feed";
 
 export async function generateMetadata({
@@ -27,8 +27,8 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
   const board = await getBoard(slug);
   if (!board) notFound();
 
-  const weekId = await getPostingWeekId(board.id);
-  const page = weekId ? await listLiveTiles(weekId) : null;
+  const week = await getPostingWeek(board.id);
+  const page = week ? await listLiveTiles(week.id) : null;
   const customer = await getCustomer(createAdminClient());
 
   return (
@@ -54,9 +54,10 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
       <TileFeed
         // Tiles and the pagination cursor belong to one week; start fresh when
         // the board moves on to a new one.
-        key={weekId ?? "no-week"}
+        key={week?.id ?? "no-week"}
         venueId={board.id}
-        weekId={weekId}
+        weekId={week?.id ?? null}
+        postingEndsAt={week?.postingEndsAt ?? null}
         initialTiles={page?.tiles ?? []}
         initialCursor={page?.nextCursor ?? null}
       />
