@@ -429,3 +429,13 @@ enabled = true
 # formatted with uppercase keywords, indent 2, max width 180, trailing commas,
 # and column/key alignment. Set to "null" to emit raw, unformatted SQL.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":180,\"commaStyle\":\"trailing\"}"
+
+# Customers sign in with Google (docs/adr/004-customer-accounts.md). Owners keep
+# the email magic link above. Credentials come from the environment — never
+# commit them; see `.env.example`.
+[auth.external.google]
+enabled = true
+client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
+# Required for local sign-in with Google: the CLI stack can't verify the nonce.
+skip_nonce_check = true

@@ -26,6 +26,8 @@ export type NewTile = {
   id: string;
   week_id: string;
   device_id: string;
+  /** The poster's account, or `null` for a guest tile. */
+  user_id: string | null;
   display_name: string | null;
   name_tag: string | null;
   caption: string | null;
@@ -68,6 +70,17 @@ export interface TileStore {
     deviceId: string,
     localDay: string,
   ): Promise<void>;
+  /** The same claim for a signed-in account; `false` if already used. */
+  claimAccountPost(
+    venueId: string,
+    userId: string,
+    localDay: string,
+  ): Promise<boolean>;
+  releaseAccountPost(
+    venueId: string,
+    userId: string,
+    localDay: string,
+  ): Promise<void>;
   uploadImage(path: string, image: Buffer): Promise<void>;
   deleteImage(path: string): Promise<void>;
   insertTile(tile: NewTile): Promise<void>;
@@ -91,6 +104,8 @@ export type PostTileInput = {
   image: Uint8Array;
   /** The visitor's hashed network, or `null` when no proxy reported one. */
   ipHash: string | null;
+  /** The signed-in account, or `null` when posting as a guest. */
+  userId: string | null;
 };
 
 export type PostTileFailure =
@@ -124,7 +139,8 @@ export type PostTileResult =
  * 4. If moderation can't be reached, the post is refused rather than published
  *    unchecked, and the day stays available.
  * 5. The claim is a single conditional update, so two posts racing from the
- *    same device can't both win.
+ *    same device can't both win. A signed-in post claims its account's day as
+ *    well, so a second device doesn't buy a second post (docs/PLAN.md, Tiles).
  * 6. If saving fails after the claim, the claim is released and any uploaded
  *    image deleted, so a server error doesn't cost the visitor their post.
  */
@@ -215,6 +231,21 @@ export async function postTile(
   );
   if (!claimed) return { ok: false, reason: "already-posted" };
 
+  if (input.userId) {
+    const claimedAccount = await store.claimAccountPost(
+      venue.id,
+      input.userId,
+      localDay,
+    );
+    if (!claimedAccount) {
+      await rollback(
+        () => store.releaseDailyPost(venue.id, input.deviceId, localDay),
+        deps,
+      );
+      return { ok: false, reason: "already-posted" };
+    }
+  }
+
   const tileId = deps.newId();
   const imagePath = `${venue.id}/${weekId}/${tileId}.webp`;
   let uploaded = false;
@@ -227,6 +258,7 @@ export async function postTile(
       id: tileId,
       week_id: weekId,
       device_id: input.deviceId,
+      user_id: input.userId,
       display_name: input.displayName,
       name_tag: input.displayName
         ? deps.nameTag(input.deviceId, input.displayName)
@@ -240,6 +272,13 @@ export async function postTile(
       () => store.releaseDailyPost(venue.id, input.deviceId, localDay),
       deps,
     );
+    if (input.userId) {
+      const userId = input.userId;
+      await rollback(
+        () => store.releaseAccountPost(venue.id, userId, localDay),
+        deps,
+      );
+    }
     if (uploaded) await rollback(() => store.deleteImage(imagePath), deps);
     return { ok: false, reason: "failed" };
   }

@@ -147,6 +147,35 @@ export class SupabaseTileStore implements TileStore {
     if (error) throw new Error(`releaseDailyPost: ${error.message}`);
   }
 
+  async claimAccountPost(
+    venueId: string,
+    userId: string,
+    localDay: string,
+  ): Promise<boolean> {
+    // The primary key is the claim: a conflict means this account has already
+    // posted to this venue today, whatever device it used.
+    const { error } = await this.admin
+      .from("account_posts")
+      .insert({ venue_id: venueId, user_id: userId, local_day: localDay });
+
+    if (!error) return true;
+    if (error.code === "23505") return false;
+    throw new Error(`claimAccountPost: ${error.message}`);
+  }
+
+  async releaseAccountPost(
+    venueId: string,
+    userId: string,
+    localDay: string,
+  ): Promise<void> {
+    const { error } = await this.admin
+      .from("account_posts")
+      .delete()
+      .match({ venue_id: venueId, user_id: userId, local_day: localDay });
+
+    if (error) throw new Error(`releaseAccountPost: ${error.message}`);
+  }
+
   async uploadImage(path: string, image: Buffer): Promise<void> {
     const { error } = await this.admin.storage
       .from(TILES_BUCKET)

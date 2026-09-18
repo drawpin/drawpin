@@ -21,6 +21,16 @@ because customers sign in too (ADR-004) and aren't owners.
 | `email` | `text` | |
 | `created_at` | `timestamptz` | |
 
+### `profiles`
+Customers (ADR-004). The counterpart to `owners`: an account has one or the
+other, never both, which is how the app tells a venue owner from a customer.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | `uuid` | PK, references `auth.users` |
+| `username` | `text` | 1–40 characters, not unique |
+| `created_at` | `timestamptz` | |
+
 ### `venues`
 One drawing board per owner, addressed publicly by `slug`.
 
@@ -81,6 +91,7 @@ A drawing plus optional caption and username, posted to one week.
 | `id` | `uuid` | PK |
 | `week_id` | `uuid` | FK → `weeks` |
 | `device_id` | `uuid` | FK → `devices`, `on delete restrict` |
+| `user_id` | `uuid` | FK → `profiles`, nullable, `on delete set null`. Null is a guest tile: shown on the board, never votable, never eligible to win |
 | `display_name` | `text` | null means anonymous |
 | `name_tag` | `char(4)` | 4 digits; set together with `display_name` |
 | `caption` | `varchar(80)` | nullable |
@@ -117,6 +128,19 @@ The per-device daily posting budget.
 | `has_posted` | `boolean` | one post per device per day |
 
 Unique on `(venue_id, device_id, local_day)`.
+
+### `account_posts`
+The daily limit for signed-in posting. A signed-in post claims a row here as
+well as its device's row in `post_attempts`, so a second device doesn't buy a
+second post. The primary key *is* the claim: an insert that conflicts means
+this account already posted to this venue today.
+
+| Column | Type | Notes |
+|---|---|---|
+| `venue_id` | `uuid` | PK with `user_id` and `local_day` |
+| `user_id` | `uuid` | FK → `profiles`, `on delete cascade` |
+| `local_day` | `date` | venue-local day, 4:00 AM boundary |
+| `created_at` | `timestamptz` | |
 
 ### `code_attempts`
 Wrong join-code guesses per network, so an 8-digit code can't be ground
@@ -185,11 +209,11 @@ public board and the owner screen need:
 
 | Table | Readable by |
 |---|---|
-| `venues`, `weeks`, `hall_of_fame` | anyone |
+| `venues`, `weeks`, `hall_of_fame`, `profiles` | anyone |
 | `tiles` | anyone, `status = 'live'` only |
 | `owners` | the owner, their own row |
 | `daily_codes` | the owner, for their own venue |
-| `devices`, `votes`, `post_attempts`, `code_attempts` | nobody (service role only) |
+| `devices`, `votes`, `post_attempts`, `code_attempts`, `account_posts` | nobody (service role only) |
 
 Live vote tallies stay unreadable on purpose — winners are only revealed once
 voting closes.
@@ -204,9 +228,9 @@ are granted explicitly, and RLS then narrows the rows:
 | Role | Tables | Privileges |
 |---|---|---|
 | `service_role` (server) | all | select, insert, update, delete |
-| `anon`, `authenticated` | `venues`, `weeks`, `tiles`, `hall_of_fame` | select |
+| `anon`, `authenticated` | `venues`, `weeks`, `tiles`, `hall_of_fame`, `profiles` | select |
 | `authenticated` (owners) | `owners`, `daily_codes` | select |
-| `anon`, `authenticated` | `devices`, `votes`, `post_attempts`, `code_attempts` | none |
+| `anon`, `authenticated` | `devices`, `votes`, `post_attempts`, `code_attempts`, `account_posts` | none |
 
 Functions follow the same rule. `record_blocked_attempt(venue_id, device_id,
 local_day)` counts a moderation-blocked post and returns the day's new total in

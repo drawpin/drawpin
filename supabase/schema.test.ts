@@ -510,6 +510,120 @@ describe("record_code_attempt", () => {
   });
 });
 
+describe("customer accounts", () => {
+  /** A customer, which is an auth user with a profile rather than an owner. */
+  async function seedCustomer(username = "Ahmad") {
+    const id = crypto.randomUUID();
+    await db.exec(
+      `insert into auth.users (id, email) values ('${id}', '${id}@example.com');
+       insert into profiles (id, username) values ('${id}', '${username}');`,
+    );
+    return id;
+  }
+
+  it("keeps owners and customers apart", async () => {
+    const customerId = await seedCustomer();
+
+    const owners = await db.query(`select id from owners where id = $1`, [
+      customerId,
+    ]);
+    expect(owners.rows).toEqual([]);
+  });
+
+  it("requires a username", async () => {
+    const id = crypto.randomUUID();
+    await db.exec(
+      `insert into auth.users (id, email) values ('${id}', '${id}@example.com');`,
+    );
+
+    await expect(
+      db.query(`insert into profiles (id, username) values ($1, '   ')`, [id]),
+    ).rejects.toThrow(/profiles_username_check/);
+  });
+
+  it("lets a tile belong to an account, or to nobody", async () => {
+    const { weekId, artistDeviceId } = await seedBoard();
+    const customerId = await seedCustomer();
+
+    await db.query(
+      `insert into tiles (week_id, device_id, user_id, image_path)
+       values ($1, $2, $3, 'tiles/signed-in.webp'), ($1, $2, null, 'tiles/guest.webp')`,
+      [weekId, artistDeviceId, customerId],
+    );
+
+    const result = await db.query<{ count: number }>(
+      `select count(*)::int as count from tiles where week_id = $1 and user_id is null`,
+      [weekId],
+    );
+    // seedBoard's five tiles are all guest tiles, plus the one just added.
+    expect(result.rows[0].count).toBe(6);
+  });
+
+  it("keeps a tile when its account is deleted, without the account", async () => {
+    const { weekId, artistDeviceId } = await seedBoard();
+    const customerId = await seedCustomer();
+    await db.query(
+      `insert into tiles (week_id, device_id, user_id, image_path)
+       values ($1, $2, $3, 'tiles/winner.webp')`,
+      [weekId, artistDeviceId, customerId],
+    );
+
+    // A Hall of Fame winner must survive its author closing their account
+    // (docs/PLAN.md, Accounts).
+    await db.query(`delete from auth.users where id = $1`, [customerId]);
+
+    const result = await db.query<{ user_id: string | null }>(
+      `select user_id from tiles where image_path = 'tiles/winner.webp'`,
+    );
+    expect(result.rows).toEqual([{ user_id: null }]);
+  });
+});
+
+describe("account_posts", () => {
+  async function seedCustomer() {
+    const id = crypto.randomUUID();
+    await db.exec(
+      `insert into auth.users (id, email) values ('${id}', '${id}@example.com');
+       insert into profiles (id, username) values ('${id}', 'Ahmad');`,
+    );
+    return id;
+  }
+
+  it("allows one post per account per venue per day", async () => {
+    const { venueId } = await seedBoard();
+    const customerId = await seedCustomer();
+    const claim = (day: string) =>
+      db.query(
+        `insert into account_posts (venue_id, user_id, local_day) values ($1, $2, $3)`,
+        [venueId, customerId, day],
+      );
+
+    await claim("2026-09-16");
+
+    // Whatever device it came from.
+    await expect(claim("2026-09-16")).rejects.toThrow(/account_posts_pkey/);
+    await expect(claim("2026-09-17")).resolves.toBeDefined();
+  });
+
+  it("goes away with the account", async () => {
+    const { venueId } = await seedBoard();
+    const customerId = await seedCustomer();
+    await db.query(
+      `insert into account_posts (venue_id, user_id, local_day)
+       values ($1, $2, '2026-09-16')`,
+      [venueId, customerId],
+    );
+
+    await db.query(`delete from auth.users where id = $1`, [customerId]);
+
+    const result = await db.query(
+      `select user_id from account_posts where user_id = $1`,
+      [customerId],
+    );
+    expect(result.rows).toEqual([]);
+  });
+});
+
 describe("realtime publication", () => {
   it("streams tiles and weeks, and nothing private", async () => {
     const result = await db.query<{ tablename: string }>(
@@ -541,9 +655,15 @@ describe("data API grants", () => {
     return result.rows.map((row) => row.privilege);
   }
 
-  const publicTables = ["venues", "weeks", "tiles", "hall_of_fame"];
+  const publicTables = ["venues", "weeks", "tiles", "hall_of_fame", "profiles"];
   const ownerTables = ["owners", "daily_codes"];
-  const privateTables = ["devices", "votes", "post_attempts", "code_attempts"];
+  const privateTables = [
+    "devices",
+    "votes",
+    "post_attempts",
+    "code_attempts",
+    "account_posts",
+  ];
   const allTables = [...publicTables, ...ownerTables, ...privateTables];
 
   it.each(allTables)("lets the server read and write %s", async (table) => {
