@@ -170,19 +170,30 @@ Rows for windows that have rolled off are deleted whenever a guess is counted,
 so the table stays small without a scheduled job.
 
 ### `hall_of_fame`
-The frozen top 7 of a finished week, kept forever.
+A finished week's winner, kept forever. One row per week (plan v8 replaced the
+original top seven with a single winner).
 
 | Column | Type | Notes |
 |---|---|---|
 | `id` | `uuid` | PK |
 | `venue_id` | `uuid` | FK → `venues` |
-| `week_id` | `uuid` | FK → `weeks`, unique with `rank` |
+| `week_id` | `uuid` | FK → `weeks`, **unique** — one winner per week |
 | `tile_id` | `uuid` | FK → `tiles`, unique, `on delete restrict` |
-| `rank` | `smallint` | 1–7 |
-| `vote_count` | `int` | |
+| `vote_count` | `int` | votes the winner had when it was crowned |
 
 `on delete restrict` is what stops the 30-day purge from deleting a winning
 tile.
+
+Rows are written by `finalize_week_winner(week_id)`, called the first time a
+closed week's result is needed rather than by a job (ADR-003). It takes an
+advisory lock on the week, so two people opening the Hall of Fame together
+crown it once, and it is safe to call again — which is what makes removals
+work: a week whose winning tile the owner has removed is **re-crowned from
+what's left**, and a week with nothing else voted for loses its entry
+entirely. Leaving a removed drawing enshrined would contradict the removal.
+
+`finalize_venue_winners(venue_id)` does the same for every closed week of a
+venue that has no entry yet, or whose winner is no longer live.
 
 ## Storage
 

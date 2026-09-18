@@ -102,10 +102,11 @@ export class SupabaseOwnerTileStore implements OwnerTileStore {
   async findTile(tileId: string): Promise<OwnedTile | null> {
     const { data, error } = await this.admin
       .from("tiles")
-      .select("id, image_path, weeks!inner(venue_id)")
+      .select("id, week_id, image_path, weeks!inner(venue_id)")
       .eq("id", tileId)
       .maybeSingle<{
         id: string;
+        week_id: string;
         image_path: string;
         weeks: { venue_id: string };
       }>();
@@ -114,6 +115,7 @@ export class SupabaseOwnerTileStore implements OwnerTileStore {
     return data
       ? {
           id: data.id,
+          weekId: data.week_id,
           venueId: data.weeks.venue_id,
           imagePath: data.image_path,
         }
@@ -127,6 +129,15 @@ export class SupabaseOwnerTileStore implements OwnerTileStore {
       .eq("id", tileId);
 
     if (error) throw new Error(`markRemoved: ${error.message}`);
+  }
+
+  async refinalizeWeek(weekId: string): Promise<void> {
+    // A no-op while the week is still being voted on.
+    const { error } = await this.admin.rpc("finalize_week_winner", {
+      p_week_id: weekId,
+    });
+
+    if (error) throw new Error(`refinalizeWeek: ${error.message}`);
   }
 
   async deleteImage(imagePath: string): Promise<void> {

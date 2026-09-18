@@ -55,6 +55,15 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
         )}
       </div>
 
+      <div className="flex justify-end">
+        <Link
+          href={`/b/${slug}/hall-of-fame`}
+          className="text-muted-foreground text-sm underline underline-offset-4"
+        >
+          Hall of Fame
+        </Link>
+      </div>
+
       {board.isPaused && (
         <p role="status" className="bg-muted rounded-lg px-3 py-2 text-sm">
           This board is paused. You can look around, but new posts are off for
