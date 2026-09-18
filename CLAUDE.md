@@ -1,6 +1,6 @@
 # DrawPin — Claude Instructions
 
-DrawPin is a free, mobile-web drawing board for local spots (coffee shops, restaurants). Customers scan a printed QR code or enter a daily 8-digit code, draw a tile, see everyone's tiles live, vote for the weekly winner, and crown a monthly super winner. No app download and no customer accounts.
+DrawPin is a free, mobile-web drawing board for local spots (coffee shops, restaurants). Customers scan a printed QR code or enter a daily 8-digit code, draw a tile, see everyone's tiles live, vote for the weekly winner, and crown a monthly super winner. No app download. Drawing needs no account; voting, winning and reporting need a Google sign-in (ADR-004).
 
 **Before any feature work, read `docs/PLAN.md`.** It is the locked v1 scope. Do not add features, change behavior, or pick new libraries beyond it without asking.
 
@@ -17,7 +17,7 @@ DrawPin is a free, mobile-web drawing board for local spots (coffee shops, resta
 | Area | Choice |
 |---|---|
 | App | Next.js (App Router) + TypeScript, hosted on Vercel |
-| Database / Storage / Realtime / Owner auth | Supabase (Postgres, Storage, Realtime, magic-link Auth) |
+| Database / Storage / Realtime / Auth | Supabase (Postgres, Storage, Realtime, Auth: magic link for owners, Google for customers) |
 | Moderation | OpenAI moderation endpoint (text + image) + custom blocklist |
 | Bot protection | Cloudflare Turnstile |
 | Device limiting | Signed device ID cookie + FingerprintJS (open source), hashed IP |
@@ -35,12 +35,13 @@ See `docs/adr/002-frontend-tooling.md` for the rationale behind the last five ro
 ## Domain rules (quick reference; details in `docs/PLAN.md`)
 
 - All "day" and "week" boundaries use **4:00 AM venue local time**. Weeks start Monday.
-- 1 post per device per day. A post blocked by moderation doesn't use it up; 3 blocked attempts lock the device until the next reset.
-- A tile is a drawing plus an optional caption (≤ 80 chars). Username is optional, not unique, and shown with a 4-digit tag (e.g. `Ahmad#4821`).
-- Voting on week N's board happens during week N+1. Anyone with the link can vote: 3 votes per device, on different tiles, not your own, and votes are final.
-- Each week's most-voted tile (at least 1 vote) is its winner; ties go to the earlier post. Each month, up to 4 weekly winners (by votes) go to a one-week final (1 vote per device) that crowns a super winner.
+- Anyone can draw; only signed-in accounts can be voted for, win, vote, or report. Guest tiles appear on the board marked as not in the running.
+- 1 post per device per day, and for a signed-in post, 1 per account per day as well — both must pass. A post blocked by moderation doesn't use it up; 3 blocked attempts lock the device until the next reset.
+- A tile is a drawing plus an optional caption (≤ 80 chars). Usernames aren't unique and show a 4-digit tag (e.g. `Ahmad#4821`), derived from the account when signed in and from the device for a guest.
+- Voting on week N's board happens during week N+1. Anyone signed in can vote: 3 votes per account per week, from any device, on different tiles, not your own, and votes are final.
+- Each week's most-voted tile (at least 1 vote) is its winner; ties go to the earlier post. Each month, up to 4 weekly winners (by votes) go to a one-week final (1 vote per account) that crowns a super winner.
 - Winners are kept forever; other tiles are deleted 30 days after voting ends.
-- One board per owner. The owner admin has three things only: QR + today's code, Pause board, Remove tile.
+- One board per owner. The owner admin has four things only: QR + today's code, Pause board, Remove tile, and reported tiles.
 - Store only hashes of IPs and fingerprints.
 
 ## Repository layout
