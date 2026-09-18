@@ -13,6 +13,7 @@ const tile = (id: string, caption: string | null = null): Tile => ({
   id,
   author: null,
   isGuest: true,
+  isOwn: false,
   caption,
   imageUrl: `https://cdn.example/${id}.webp`,
   createdAt: "2026-09-16T21:30:00.123456+00:00",
@@ -101,6 +102,7 @@ describe("toTile", () => {
 
     expect(tile).toEqual({
       isGuest: true,
+      isOwn: false,
       id: "0b6f3f0e-2a8e-4b1a-9f55-4d9f0f6f2c11",
       author: "Ahmad#4821",
       caption: "hello",
@@ -169,5 +171,33 @@ describe("guest tiles", () => {
     };
 
     expect(toTile(signedIn, url).isGuest).toBe(false);
+  });
+});
+
+describe("your own tiles", () => {
+  const row = {
+    id: "0b6f3f0e-2a8e-4b1a-9f55-4d9f0f6f2c11",
+    user_id: "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+    display_name: "Ahmad",
+    name_tag: "4821",
+    caption: null,
+    image_path: "venue/week/tile.webp",
+    created_at: "2026-09-16T21:30:00.123456+00:00",
+  };
+  const url = (path: string) => `https://cdn.example/${path}`;
+
+  it("marks a tile posted by whoever is looking", () => {
+    expect(toTile(row, url, row.user_id).isOwn).toBe(true);
+  });
+
+  it("doesn't mark someone else's", () => {
+    expect(toTile(row, url, "5d1c0b8e-6a3f-4c2e-8f1d-2b7a9c4e6f10").isOwn).toBe(
+      false,
+    );
+  });
+
+  it("marks nothing for a signed-out visitor", () => {
+    expect(toTile(row, url).isOwn).toBe(false);
+    expect(toTile({ ...row, user_id: null }, url, null).isOwn).toBe(false);
   });
 });

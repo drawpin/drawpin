@@ -6,7 +6,9 @@ import { buttonVariants } from "@/components/ui/button";
 import { connection } from "next/server";
 import { getCustomer } from "@/lib/customer";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getBoard, getPostingWeek, listLiveTiles } from "./data";
+import { getBoard, getPostingWeek, getVotingWeek, listLiveTiles } from "./data";
+import { VOTES_PER_WEEK } from "./vote/cast-votes";
+import { SupabaseVoteStore } from "./vote/supabase-vote-store";
 import { TileFeed } from "./tile-feed";
 
 export async function generateMetadata({
@@ -29,7 +31,18 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
 
   const week = await getPostingWeek(board.id);
   const page = week ? await listLiveTiles(week.id) : null;
-  const customer = await getCustomer(createAdminClient());
+  const admin = createAdminClient();
+  const customer = await getCustomer(admin);
+  const votingWeek = await getVotingWeek(board.id);
+  // A signed-out visitor sees the prompt too: they can sign in from there.
+  const votesLeft =
+    votingWeek && customer
+      ? VOTES_PER_WEEK -
+        (await new SupabaseVoteStore(admin).countVotes(
+          votingWeek.id,
+          customer.id,
+        ))
+      : VOTES_PER_WEEK;
 
   return (
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-6 px-4 py-6">
@@ -47,6 +60,16 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
           This board is paused. You can look around, but new posts are off for
           now.
         </p>
+      )}
+
+      {votingWeek && votesLeft > 0 && (
+        <Link
+          href={`/b/${slug}/vote`}
+          className="bg-muted rounded-lg px-3 py-2 text-sm underline underline-offset-4"
+        >
+          Vote for last week&apos;s best — {votesLeft}{" "}
+          {votesLeft === 1 ? "vote" : "votes"} left
+        </Link>
       )}
 
       <AccountBar customer={customer} next={`/b/${slug}`} />

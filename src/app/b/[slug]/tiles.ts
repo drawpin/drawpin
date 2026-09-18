@@ -10,6 +10,8 @@ export type Tile = {
   author: string | null;
   /** Posted without an account: shown, but not in the running (ADR-004). */
   isGuest: boolean;
+  /** Posted by whoever is looking at it, who can't vote for it. */
+  isOwn: boolean;
   caption: string | null;
   imageUrl: string;
   /** Postgres timestamp string, kept as-is so no microseconds are lost. */
@@ -52,15 +54,22 @@ export function formatAuthor(
   return `${displayName}#${nameTag}`;
 }
 
-/** Maps a `tiles` row to a board tile, resolving its public image URL. */
+/**
+ * Maps a `tiles` row to a board tile, resolving its public image URL.
+ *
+ * @param viewerId - The signed-in account looking at the board, so its own
+ * tiles can be marked. Account ids never reach the browser.
+ */
 export function toTile(
   row: TileRow,
   publicUrlFor: (imagePath: string) => string,
+  viewerId: string | null = null,
 ): Tile {
   return {
     id: row.id,
     author: formatAuthor(row.display_name, row.name_tag),
     isGuest: row.user_id === null,
+    isOwn: viewerId !== null && row.user_id === viewerId,
     caption: row.caption,
     imageUrl: publicUrlFor(row.image_path),
     createdAt: row.created_at,

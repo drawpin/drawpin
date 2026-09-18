@@ -104,20 +104,30 @@ A drawing plus optional caption and username, posted to one week.
 | `created_at` | `timestamptz` | |
 
 ### `votes`
-Final votes cast during the following week. Three per device per week.
+Final votes cast during the following week. Three per **account** per week, so
+they follow the person rather than the browser (ADR-004).
 
 | Column | Type | Notes |
 |---|---|---|
 | `id` | `uuid` | PK |
 | `week_id` | `uuid` | FK → `weeks` |
 | `tile_id` | `uuid` | FK → `tiles` |
-| `device_id` | `uuid` | FK → `devices`, `on delete restrict` |
+| `user_id` | `uuid` | FK → `profiles`, `on delete cascade` |
 | `created_at` | `timestamptz` | |
 
-Unique on `(week_id, device_id, tile_id)`, so each of a device's three votes
-lands on a different tile. A `before insert` trigger enforces the rest: at most
-three votes per week, never on your own tile, and the vote's week must match
-the tile's.
+Unique on `(week_id, user_id, tile_id)`, so each of an account's three votes
+lands on a different tile. A `before insert` trigger enforces the rest, and is
+the only place these rules can't be bypassed:
+
+- the week must be in its voting window, derived from its own timestamps;
+- the tile must be live, in that week, and posted by an account — guest tiles
+  are shown on the voting screen but can never be picked;
+- never your own tile;
+- at most three votes per account per week.
+
+The trigger takes a transaction-scoped advisory lock on `(week_id, user_id)`
+before counting. Without it three requests arriving together each read "two
+used" and each insert, and an account ends up with more votes than it has.
 
 ### `post_attempts`
 The per-device daily posting budget.

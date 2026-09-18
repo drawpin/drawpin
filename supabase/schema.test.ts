@@ -180,48 +180,160 @@ describe("tiles", () => {
 });
 
 describe("votes", () => {
-  it("allows three votes per device per week and refuses a fourth", async () => {
-    const { weekId, voterDeviceId, tileIds } = await seedBoard();
+  /**
+   * Puts the seeded week into its voting window relative to now, so these
+   * tests don't quietly start failing when the real date moves past the
+   * fixed timestamps seedBoard uses.
+   */
+  async function openVoting(weekId: string) {
+    await db.query(
+      `update weeks
+         set posting_ends_at = now() - interval '1 day',
+             voting_ends_at = now() + interval '6 days'
+       where id = $1`,
+      [weekId],
+    );
+  }
+
+  /** An account, and the tiles it posted, since only accounts compete. */
+  async function seedVoters() {
+    const board = await seedBoard();
+    await openVoting(board.weekId);
+
+    const artistId = crypto.randomUUID();
+    const voterId = crypto.randomUUID();
+    await db.exec(`
+      insert into auth.users (id, email) values
+        ('${artistId}', '${artistId}@example.com'),
+        ('${voterId}', '${voterId}@example.com');
+      insert into profiles (id, username) values
+        ('${artistId}', 'Artist'), ('${voterId}', 'Voter');
+    `);
+
+    // The artist's four tiles are votable; the voter's own tile is not.
+    await db.query(`update tiles set user_id = $1 where id = any($2::uuid[])`, [
+      artistId,
+      board.tileIds,
+    ]);
+    await db.query(`update tiles set user_id = $1 where id = $2`, [
+      voterId,
+      board.voterTileId,
+    ]);
+
+    return { ...board, artistId, voterId };
+  }
+
+  const vote = (weekId: string, tileId: string, userId: string) =>
+    db.query(
+      `insert into votes (week_id, tile_id, user_id) values ($1, $2, $3)`,
+      [weekId, tileId, userId],
+    );
+
+  it("allows three votes per account per week and refuses a fourth", async () => {
+    const { weekId, voterId, tileIds } = await seedVoters();
 
     for (const tileId of tileIds.slice(0, 3)) {
-      await db.exec(`insert into votes (week_id, tile_id, device_id)
-                     values ('${weekId}', '${tileId}', '${voterDeviceId}');`);
+      await vote(weekId, tileId, voterId);
     }
 
-    await expect(
-      db.exec(`insert into votes (week_id, tile_id, device_id)
-               values ('${weekId}', '${tileIds[3]}', '${voterDeviceId}');`),
-    ).rejects.toThrow(/already used its 3 votes/);
+    await expect(vote(weekId, tileIds[3], voterId)).rejects.toThrow(
+      /already used its 3 votes/,
+    );
+  });
+
+  it("counts an account's votes across every device it uses", async () => {
+    const { weekId, voterId, tileIds } = await seedVoters();
+
+    // Nothing here mentions a device: that's the point of the reshape.
+    await vote(weekId, tileIds[0], voterId);
+    const used = await db.query<{ count: number }>(
+      `select count(*)::int as count from votes where week_id = $1 and user_id = $2`,
+      [weekId, voterId],
+    );
+
+    expect(used.rows[0].count).toBe(1);
   });
 
   it("refuses a second vote on the same tile", async () => {
-    const { weekId, voterDeviceId, tileIds } = await seedBoard();
+    const { weekId, voterId, tileIds } = await seedVoters();
 
-    await db.exec(`insert into votes (week_id, tile_id, device_id)
-                   values ('${weekId}', '${tileIds[0]}', '${voterDeviceId}');`);
+    await vote(weekId, tileIds[0], voterId);
 
-    await expect(
-      db.exec(`insert into votes (week_id, tile_id, device_id)
-               values ('${weekId}', '${tileIds[0]}', '${voterDeviceId}');`),
-    ).rejects.toThrow();
+    await expect(vote(weekId, tileIds[0], voterId)).rejects.toThrow();
   });
 
   it("refuses a vote on your own tile", async () => {
-    const { weekId, voterDeviceId, voterTileId } = await seedBoard();
+    const { weekId, voterId, voterTileId } = await seedVoters();
 
-    await expect(
-      db.exec(`insert into votes (week_id, tile_id, device_id)
-               values ('${weekId}', '${voterTileId}', '${voterDeviceId}');`),
-    ).rejects.toThrow(/cannot vote on its own tile/);
+    await expect(vote(weekId, voterTileId, voterId)).rejects.toThrow(
+      /cannot vote on its own tile/,
+    );
+  });
+
+  it("refuses a vote on a guest tile", async () => {
+    const { weekId, voterId, tileIds } = await seedVoters();
+    await db.query(`update tiles set user_id = null where id = $1`, [
+      tileIds[0],
+    ]);
+
+    await expect(vote(weekId, tileIds[0], voterId)).rejects.toThrow(
+      /posted without an account/,
+    );
+  });
+
+  it("refuses a vote on a removed tile", async () => {
+    const { weekId, voterId, tileIds } = await seedVoters();
+    await db.query(`update tiles set status = 'removed' where id = $1`, [
+      tileIds[0],
+    ]);
+
+    await expect(vote(weekId, tileIds[0], voterId)).rejects.toThrow(
+      /is not live/,
+    );
   });
 
   it("refuses a vote filed under the wrong week", async () => {
-    const { nextWeekId, voterDeviceId, tileIds } = await seedBoard();
+    const { nextWeekId, voterId, tileIds } = await seedVoters();
+    await openVoting(nextWeekId);
 
-    await expect(
-      db.exec(`insert into votes (week_id, tile_id, device_id)
-               values ('${nextWeekId}', '${tileIds[0]}', '${voterDeviceId}');`),
-    ).rejects.toThrow(/does not match tile week_id/);
+    await expect(vote(nextWeekId, tileIds[0], voterId)).rejects.toThrow(
+      /does not match tile week_id/,
+    );
+  });
+
+  it("refuses a vote while the week is still taking posts", async () => {
+    const { weekId, voterId, tileIds } = await seedVoters();
+    await db.query(
+      `update weeks set posting_ends_at = now() + interval '1 day' where id = $1`,
+      [weekId],
+    );
+
+    await expect(vote(weekId, tileIds[0], voterId)).rejects.toThrow(
+      /still taking posts/,
+    );
+  });
+
+  it("refuses a vote after voting has closed", async () => {
+    const { weekId, voterId, tileIds } = await seedVoters();
+    await db.query(
+      `update weeks set voting_ends_at = now() - interval '1 minute' where id = $1`,
+      [weekId],
+    );
+
+    await expect(vote(weekId, tileIds[0], voterId)).rejects.toThrow(
+      /voting has closed/,
+    );
+  });
+
+  it("keeps votes out of reach of the API roles", async () => {
+    for (const role of ["anon", "authenticated"]) {
+      const result = await db.query<{ allowed: boolean }>(
+        `select has_table_privilege($1, 'public.votes', 'SELECT') as allowed`,
+        [role],
+      );
+      // Live counts stay hidden until voting closes (docs/PLAN.md).
+      expect(result.rows[0].allowed).toBe(false);
+    }
   });
 });
 
