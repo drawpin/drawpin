@@ -13,6 +13,8 @@ type TileFeedProps = {
   venueId: string;
   /** `null` until the board's first post of the week creates the week. */
   weekId: string | null;
+  /** When this week stops taking posts, so the board can roll itself over. */
+  postingEndsAt: string | null;
   initialTiles: Tile[];
   initialCursor: TileCursor | null;
 };
@@ -25,6 +27,7 @@ type TileFeedProps = {
 export function TileFeed({
   venueId,
   weekId,
+  postingEndsAt,
   initialTiles,
   initialCursor,
 }: TileFeedProps) {
@@ -62,6 +65,7 @@ export function TileFeed({
   useLiveBoard({
     venueId,
     weekId,
+    postingEndsAt,
     onTile: addLiveTile,
     onTileRemoved: dropRemovedTile,
   });

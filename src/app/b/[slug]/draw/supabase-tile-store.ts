@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { WeekBounds } from "@/lib/venue-time";
+import { isTakingPosts } from "@/lib/week-phase";
 import { TILES_BUCKET } from "../tiles";
 import type {
   DailyAttempt,
@@ -97,13 +98,21 @@ export class SupabaseTileStore implements TileStore {
 
     const { data, error } = await this.admin
       .from("weeks")
-      .select("id, status")
+      .select("id, starts_at, posting_ends_at, voting_ends_at")
       .eq("venue_id", venueId)
       .eq("starts_at", startsAt)
       .single();
 
     if (error) throw new Error(`ensurePostingWeek: ${error.message}`);
-    return data.status === "posting" ? data.id : null;
+
+    // Derived from the row's own timestamps (ADR-003): a week that has rolled
+    // over stops taking posts on the clock, with nothing to update.
+    const week = {
+      startsAt: data.starts_at,
+      postingEndsAt: data.posting_ends_at,
+      votingEndsAt: data.voting_ends_at,
+    };
+    return isTakingPosts(week, new Date()) ? data.id : null;
   }
 
   async claimDailyPost(
