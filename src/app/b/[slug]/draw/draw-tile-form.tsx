@@ -57,9 +57,12 @@ function useHydrated() {
 export function DrawTileForm({
   slug,
   turnstileSiteKey,
+  username,
 }: {
   slug: string;
   turnstileSiteKey: string;
+  /** The signed-in customer's name, or `null` when posting as a guest. */
+  username: string | null;
 }) {
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   // Before hydration the submit handler isn't attached, so a tap would do a
@@ -190,17 +193,25 @@ export function DrawTileForm({
         </Button>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="displayName">Name (optional)</Label>
-        <Input
-          ref={nameRef}
-          id="displayName"
-          name="displayName"
-          maxLength={40}
-          autoComplete="nickname"
-          placeholder="Leave blank to post anonymously"
-        />
-      </div>
+      {username ? (
+        // Signed in: the tile goes up under the name on their account, so
+        // there's nothing to ask and nothing to type.
+        <p className="text-muted-foreground text-sm">
+          Posting as <span className="font-medium">{username}</span>
+        </p>
+      ) : (
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="displayName">Name (optional)</Label>
+          <Input
+            ref={nameRef}
+            id="displayName"
+            name="displayName"
+            maxLength={40}
+            autoComplete="nickname"
+            placeholder="Leave blank to post anonymously"
+          />
+        </div>
+      )}
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="caption">Caption (optional)</Label>

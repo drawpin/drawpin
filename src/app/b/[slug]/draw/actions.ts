@@ -71,7 +71,9 @@ export async function postTileAction(
       {
         slug,
         deviceId,
-        displayName,
+        // A signed-in tile is posted under the account's name, whatever the
+        // form carried: the field isn't even rendered for them.
+        displayName: customer?.username ?? displayName,
         caption,
         image: new Uint8Array(await image.arrayBuffer()),
         ipHash: signals.ipHash,
@@ -82,7 +84,9 @@ export async function postTileAction(
         processImage: processTileImage,
         moderate: (content) =>
           moderateTile(content, { apiKey: env.OPENAI_API_KEY, blockedTerms }),
-        nameTag: (id, name) => nameTagFor(id, name, secret),
+        // Tags follow the account when there is one, so the same person
+        // gets the same tag on every device.
+        nameTag: (id, name) => nameTagFor(customer?.id ?? id, name, secret),
         newId: () => crypto.randomUUID(),
         now: () => new Date(),
         logError: console.error,

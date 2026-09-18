@@ -105,9 +105,7 @@ export function TileFeed({
               loading={index < ABOVE_THE_FOLD_TILES ? "eager" : "lazy"}
               alt={
                 tile.caption ??
-                (tile.author
-                  ? `Drawing by ${tile.author}`
-                  : "Anonymous drawing")
+                (tile.author ? `Drawing by ${tile.author}` : "Guest drawing")
               }
               width={512}
               height={512}
@@ -119,7 +117,8 @@ export function TileFeed({
               <p className="text-sm break-words">{tile.caption}</p>
             )}
             <p className="text-muted-foreground text-xs">
-              {tile.author ?? "Anonymous"}
+              {tile.author ?? "Guest"}
+              {tile.isGuest && tile.author && " · guest"}
             </p>
           </li>
         ))}

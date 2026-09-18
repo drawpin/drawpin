@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AccountBar } from "@/components/account-bar";
 import { buttonVariants } from "@/components/ui/button";
 import { connection } from "next/server";
+import { getCustomer } from "@/lib/customer";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getBoard, getPostingWeekId, listLiveTiles } from "./data";
 import { TileFeed } from "./tile-feed";
 
@@ -26,6 +29,7 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
 
   const weekId = await getPostingWeekId(board.id);
   const page = weekId ? await listLiveTiles(weekId) : null;
+  const customer = await getCustomer(createAdminClient());
 
   return (
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-6 px-4 py-6">
@@ -44,6 +48,8 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
           now.
         </p>
       )}
+
+      <AccountBar customer={customer} next={`/b/${slug}`} />
 
       <TileFeed
         // Tiles and the pagination cursor belong to one week; start fresh when
