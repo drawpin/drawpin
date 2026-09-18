@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { boardUrl, createBoardQrCode } from "@/lib/board";
+import { ensureDailyCode } from "@/lib/daily-code/ensure";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { serverEnv } from "@/lib/env";
 import { setBoardPaused, signOut } from "./actions";
 import { BoardTiles } from "./board-tiles";
@@ -15,9 +17,12 @@ export default async function AdminPage() {
 
   const venue = await requireOwnedVenue();
   const url = boardUrl(serverEnv().SITE_URL, venue.slug);
-  const [qr, tiles] = await Promise.all([
+  const [qr, tiles, code] = await Promise.all([
     createBoardQrCode(url),
     listBoardTiles(venue.id),
+    // Created on the first view of the day, so it exists before anyone is
+    // told it (ADR-003).
+    ensureDailyCode(createAdminClient(), venue),
   ]);
 
   return (
@@ -52,6 +57,17 @@ export default async function AdminPage() {
         >
           Download QR code to print
         </a>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h2 className="text-sm font-medium">Today&apos;s code</h2>
+        <p className="bg-muted rounded-lg px-3 py-2 text-center font-mono text-2xl tracking-[0.3em]">
+          {code}
+        </p>
+        <p className="text-muted-foreground text-xs">
+          Customers who can&apos;t scan can type this on the DrawPin home page.
+          It changes every morning at 4:00 AM.
+        </p>
       </section>
 
       <section className="flex flex-col gap-2">

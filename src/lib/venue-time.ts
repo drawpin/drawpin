@@ -17,6 +17,29 @@ export function localDayFor(now: Date, timeZone: string): string {
   return venueDate(now, timeZone).toString();
 }
 
+export type DayBounds = {
+  /** 4:00 AM venue time: the day, and today's join code, begin. */
+  startsAt: Date;
+  /** The next 4:00 AM: the code expires and a new one is generated. */
+  endsAt: Date;
+};
+
+/**
+ * The boundaries of the venue-local day containing `now`, used as the validity
+ * window of the daily join code (docs/PLAN.md, Joining).
+ *
+ * Found per date rather than by adding 24 hours, so a day that crosses a
+ * daylight saving change still runs 4:00 AM to 4:00 AM on the wall clock.
+ */
+export function dayBoundsFor(now: Date, timeZone: string): DayBounds {
+  const today = venueDate(now, timeZone);
+
+  return {
+    startsAt: resetMoment(today, timeZone),
+    endsAt: resetMoment(today.add({ days: 1 }), timeZone),
+  };
+}
+
 export type WeekBounds = {
   /** Monday 4:00 AM venue time: posting opens. */
   startsAt: Date;

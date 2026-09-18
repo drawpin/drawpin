@@ -11,6 +11,7 @@ export type OwnerVenue = {
   id: string;
   name: string;
   slug: string;
+  timezone: string;
   isPaused: boolean;
 };
 
@@ -24,7 +25,7 @@ export async function requireOwnedVenue(): Promise<OwnerVenue> {
 
   const { data, error } = await createAdminClient()
     .from("venues")
-    .select("id, name, slug, is_paused")
+    .select("id, name, slug, timezone, is_paused")
     .eq("owner_id", owner.id)
     .maybeSingle();
 
@@ -35,6 +36,7 @@ export async function requireOwnedVenue(): Promise<OwnerVenue> {
     id: data.id,
     name: data.name,
     slug: data.slug,
+    timezone: data.timezone,
     isPaused: data.is_paused,
   };
 }

@@ -46,7 +46,8 @@ The 8-digit code people type instead of scanning the QR, rotated daily.
 
 An exclusion constraint stops the same code being live at two venues at once,
 so a typed code always resolves to exactly one venue. The generator retries on
-conflict.
+conflict. A second constraint, `daily_codes_one_per_window`, allows only one
+code per venue per day, so two first views of `/admin` can't each create one.
 
 ### `weeks`
 A venue's weekly cycle: posting, then voting, then closed.
@@ -117,6 +118,19 @@ The per-device daily posting budget.
 
 Unique on `(venue_id, device_id, local_day)`.
 
+### `code_attempts`
+Wrong join-code guesses per network, so an 8-digit code can't be ground
+through. Only the hash of the address is stored.
+
+| Column | Type | Notes |
+|---|---|---|
+| `ip_hash` | `text` | PK with `window_start`; keyed hash |
+| `window_start` | `timestamptz` | start of the 10-minute window |
+| `attempts` | `integer` | wrong guesses in that window |
+
+Rows for windows that have rolled off are deleted whenever a guess is counted,
+so the table stays small without a scheduled job.
+
 ### `hall_of_fame`
 The frozen top 7 of a finished week, kept forever.
 
@@ -175,7 +189,7 @@ public board and the owner screen need:
 | `tiles` | anyone, `status = 'live'` only |
 | `owners` | the owner, their own row |
 | `daily_codes` | the owner, for their own venue |
-| `devices`, `votes`, `post_attempts` | nobody (service role only) |
+| `devices`, `votes`, `post_attempts`, `code_attempts` | nobody (service role only) |
 
 Live vote tallies stay unreadable on purpose — winners are only revealed once
 voting closes.
@@ -192,7 +206,7 @@ are granted explicitly, and RLS then narrows the rows:
 | `service_role` (server) | all | select, insert, update, delete |
 | `anon`, `authenticated` | `venues`, `weeks`, `tiles`, `hall_of_fame` | select |
 | `authenticated` (owners) | `owners`, `daily_codes` | select |
-| `anon`, `authenticated` | `devices`, `votes`, `post_attempts` | none |
+| `anon`, `authenticated` | `devices`, `votes`, `post_attempts`, `code_attempts` | none |
 
 Functions follow the same rule. `record_blocked_attempt(venue_id, device_id,
 local_day)` counts a moderation-blocked post and returns the day's new total in
@@ -200,7 +214,10 @@ one statement; execute is granted to `service_role` only, so `post_attempts`
 stays closed to the API roles. `count_recent_posts_from_ip(ip_hash, since)`
 counts recent posts from the devices last seen on one network, for burst
 protection; same grant, since neither `devices` nor `tiles` can be joined this
-way through the API.
+way through the API. `ensure_daily_code(venue_id, valid_from, valid_until)`
+returns the venue's code for that window, creating it on the first ask and
+retrying past codes live elsewhere, and `record_code_attempt(ip_hash,
+window_start)` counts a wrong guess; both are granted to `service_role` only.
 
 **A new table must grant its privileges in the migration that creates it**,
 or every query on it fails with `permission denied` (`42501`).

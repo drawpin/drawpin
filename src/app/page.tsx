@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
+import { JoinForm } from "./join/join-form";
 
 export default function Home() {
   return (
@@ -9,7 +10,14 @@ export default function Home() {
         Scan a QR code, draw a tile, and vote for the weekly winner at your
         local spot.
       </p>
-      <Link href="/login" className={buttonVariants({ size: "lg" })}>
+      <div className="w-full max-w-xs text-left">
+        <JoinForm />
+      </div>
+
+      <Link
+        href="/login"
+        className={buttonVariants({ variant: "ghost", size: "sm" })}
+      >
         Create a board for your venue
       </Link>
     </main>
