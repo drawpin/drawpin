@@ -382,6 +382,117 @@ describe("count_recent_posts_from_ip", () => {
   });
 });
 
+describe("ensure_daily_code", () => {
+  const WINDOW = ["2026-09-17T09:00:00Z", "2026-09-18T09:00:00Z"];
+
+  const ensure = async (venueId: string, window = WINDOW) => {
+    const result = await db.query<{ ensure_daily_code: string }>(
+      `select ensure_daily_code($1::uuid, $2::timestamptz, $3::timestamptz)`,
+      [venueId, ...window],
+    );
+    return result.rows[0].ensure_daily_code;
+  };
+
+  it("makes one 8-digit code and returns it again all day", async () => {
+    const { venueId } = await seedBoard();
+
+    const code = await ensure(venueId);
+
+    expect(code).toMatch(/^[0-9]{8}$/);
+    expect(await ensure(venueId)).toBe(code);
+  });
+
+  it("makes a new code for the next day", async () => {
+    const { venueId } = await seedBoard();
+
+    const today = await ensure(venueId);
+    const tomorrow = await ensure(venueId, [
+      "2026-09-18T09:00:00Z",
+      "2026-09-19T09:00:00Z",
+    ]);
+
+    expect(tomorrow).not.toBe(today);
+  });
+
+  it("gives two venues different codes for the same day", async () => {
+    const first = await seedBoard();
+    const second = await seedBoard();
+
+    expect(await ensure(first.venueId)).not.toBe(await ensure(second.venueId));
+  });
+
+  it("returns the code another request already created", async () => {
+    const { venueId } = await seedBoard();
+    await db.query(
+      `insert into daily_codes (venue_id, code, valid_from, valid_until)
+       values ($1, '00000042', $2::timestamptz, $3::timestamptz)`,
+      [venueId, ...WINDOW],
+    );
+
+    // Two first views of /admin race; the loser must not make a second code.
+    expect(await ensure(venueId)).toBe("00000042");
+  });
+
+  it("allows only one code per venue per day", async () => {
+    const { venueId } = await seedBoard();
+    await ensure(venueId);
+
+    await expect(
+      db.query(
+        `insert into daily_codes (venue_id, code, valid_from, valid_until)
+         values ($1, '00000043', $2::timestamptz, $3::timestamptz)`,
+        [venueId, ...WINDOW],
+      ),
+    ).rejects.toThrow(/daily_codes_one_per_window/);
+  });
+
+  it("is reachable by the server only", async () => {
+    const result = await db.query<{ grantee: string }>(
+      `select grantee from information_schema.role_routine_grants
+       where routine_name = 'ensure_daily_code' and grantee <> 'postgres'
+       order by grantee`,
+    );
+
+    expect(result.rows.map((row) => row.grantee)).toEqual(["service_role"]);
+  });
+});
+
+describe("record_code_attempt", () => {
+  const record = async (ipHash: string, windowStart: string) => {
+    const result = await db.query<{ record_code_attempt: number }>(
+      `select record_code_attempt($1::text, $2::timestamptz)`,
+      [ipHash, windowStart],
+    );
+    return result.rows[0].record_code_attempt;
+  };
+
+  it("counts guesses per network per window", async () => {
+    expect(await record("net-a", "2026-09-17T15:00:00Z")).toBe(1);
+    expect(await record("net-a", "2026-09-17T15:00:00Z")).toBe(2);
+    expect(await record("net-b", "2026-09-17T15:00:00Z")).toBe(1);
+  });
+
+  it("drops windows that have rolled off, so the table stays small", async () => {
+    await record("net-a", "2026-09-17T15:00:00Z");
+    await record("net-a", "2026-09-17T15:10:00Z");
+
+    const result = await db.query<{ window_start: Date }>(
+      `select window_start from code_attempts`,
+    );
+    expect(result.rows).toHaveLength(1);
+  });
+
+  it("is reachable by the server only", async () => {
+    const result = await db.query<{ grantee: string }>(
+      `select grantee from information_schema.role_routine_grants
+       where routine_name = 'record_code_attempt' and grantee <> 'postgres'
+       order by grantee`,
+    );
+
+    expect(result.rows.map((row) => row.grantee)).toEqual(["service_role"]);
+  });
+});
+
 describe("realtime publication", () => {
   it("streams tiles and weeks, and nothing private", async () => {
     const result = await db.query<{ tablename: string }>(
@@ -415,7 +526,7 @@ describe("data API grants", () => {
 
   const publicTables = ["venues", "weeks", "tiles", "hall_of_fame"];
   const ownerTables = ["owners", "daily_codes"];
-  const privateTables = ["devices", "votes", "post_attempts"];
+  const privateTables = ["devices", "votes", "post_attempts", "code_attempts"];
   const allTables = [...publicTables, ...ownerTables, ...privateTables];
 
   it.each(allTables)("lets the server read and write %s", async (table) => {

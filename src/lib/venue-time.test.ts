@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { localDayFor, weekBoundsFor } from "./venue-time";
+import { dayBoundsFor, localDayFor, weekBoundsFor } from "./venue-time";
 
 const at = (iso: string) => new Date(iso);
 const iso = (date: Date) => date.toISOString();
@@ -90,5 +90,36 @@ describe("weekBoundsFor", () => {
       "Pacific/Kiritimati",
     );
     expect(iso(bounds.startsAt)).toBe("2026-09-13T14:00:00.000Z");
+  });
+});
+
+describe("dayBoundsFor", () => {
+  it("runs 4:00 AM to 4:00 AM venue time", () => {
+    // Wednesday 10:00 AM in Chicago (CDT, UTC-5).
+    expect(dayBoundsFor(at("2026-09-16T15:00:00Z"), "America/Chicago")).toEqual(
+      {
+        startsAt: at("2026-09-16T09:00:00Z"),
+        endsAt: at("2026-09-17T09:00:00Z"),
+      },
+    );
+  });
+
+  it("keeps the small hours on the previous day's code", () => {
+    // 2:00 AM Thursday still belongs to Wednesday's window.
+    expect(dayBoundsFor(at("2026-09-17T07:00:00Z"), "America/Chicago")).toEqual(
+      {
+        startsAt: at("2026-09-16T09:00:00Z"),
+        endsAt: at("2026-09-17T09:00:00Z"),
+      },
+    );
+  });
+
+  it("stays at 4:00 AM across a daylight saving change", () => {
+    // Saturday 2026-10-31, the day US clocks go back overnight: 4:00 AM is
+    // CDT at the start and CST at the end, so the day runs 25 hours.
+    const bounds = dayBoundsFor(at("2026-10-31T18:00:00Z"), "America/Chicago");
+
+    expect(iso(bounds.startsAt)).toBe("2026-10-31T09:00:00.000Z");
+    expect(iso(bounds.endsAt)).toBe("2026-11-01T10:00:00.000Z");
   });
 });
