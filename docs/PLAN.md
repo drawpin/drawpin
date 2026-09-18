@@ -74,12 +74,20 @@ No charges for venues or users in v1.
 ## Back pocket (not v1)
 Weekly prompt mode, live jam mode, location checks, Google sign-in for owners, multi-location owners, wall display.
 
+**Optional customer accounts** (issue #37) are the biggest of these and the one
+most likely to change the shape of the product. v1 deliberately has no customer
+accounts, and everything that asks "is this the same person?" — the device
+cookie, the fingerprint, the hashed IP — is an approximation of what an account
+would answer outright, on top of making reporting, bans and cross-device voting
+straightforward. The likely shape is optional rather than required, so the "no
+app, no account" front door stays open. Decide after v1 is in real venues.
+
 ## Phases
 1. Owner signs in → creates board → customers open QR → username → draw tile → live feed on phones *(done)*
 2. Safety, before sharing the board publicly: moderation pipeline, owner Pause board + Remove tile, Turnstile, device limits, rotating daily join code
 3. Weekly cycle: lock, vote prompt, voting rules, weekly winner, monthly final and super winner, Hall of Fame, cleanup job
-4. UI pass: visual polish across customer and owner pages
-5. Back-pocket features
+4. UI pass: visual polish across customer and owner pages (issue #40, with #38 and #39)
+5. Back-pocket features, starting with optional customer accounts (#37)
 
 v6 changes: scheduling moved from an hourly cron to on-demand transitions plus a daily cleanup job (ADR-003, Vercel Hobby only allows daily cron); owner Pause/Remove moved from phase 4 into phase 2 as the moderation backstop; moderation-outage behavior defined; phase 4 is now the UI pass.
 
