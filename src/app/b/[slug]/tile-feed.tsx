@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useCallback, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { loadMoreTiles } from "./actions";
+import { ReportTile } from "./report-tile";
 import { mergeTiles, type Tile, type TileCursor } from "./tiles";
 import { useLiveBoard } from "./use-live-board";
 
@@ -11,6 +12,8 @@ const ABOVE_THE_FOLD_TILES = 4;
 
 type TileFeedProps = {
   venueId: string;
+  /** Only signed-in customers can report a drawing (docs/PLAN.md). */
+  canReport: boolean;
   /** `null` until the board's first post of the week creates the week. */
   weekId: string | null;
   /** When this week stops taking posts, so the board can roll itself over. */
@@ -28,6 +31,7 @@ export function TileFeed({
   venueId,
   weekId,
   postingEndsAt,
+  canReport,
   initialTiles,
   initialCursor,
 }: TileFeedProps) {
@@ -124,6 +128,7 @@ export function TileFeed({
               {tile.author ?? "Guest"}
               {tile.isGuest && tile.author && " · guest"}
             </p>
+            {canReport && !tile.isOwn && <ReportTile tileId={tile.id} />}
           </li>
         ))}
       </ul>

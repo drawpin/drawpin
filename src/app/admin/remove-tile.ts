@@ -13,6 +13,8 @@ export interface OwnerTileStore {
   deleteImage(imagePath: string): Promise<void>;
   /** Re-crowns the tile's week, in case the tile was its winner. */
   refinalizeWeek(weekId: string): Promise<void>;
+  /** Settles any reports against the tile; the owner has now acted. */
+  resolveReports(tileId: string): Promise<void>;
   /** Tells open boards to drop the tile; failures here aren't fatal. */
   announceRemoved(venueId: string, tileId: string): Promise<void>;
 }
@@ -58,6 +60,14 @@ export async function removeTile(
     await deps.store.deleteImage(tile.imagePath);
   } catch (error) {
     deps.logError("Removed the tile but couldn't delete its image", error);
+  }
+
+  try {
+    await deps.store.resolveReports(tileId);
+  } catch (error) {
+    // The tile is gone from the board either way; a stale report just leaves
+    // the owner something to dismiss.
+    deps.logError("Removed the tile but couldn't settle its reports", error);
   }
 
   try {

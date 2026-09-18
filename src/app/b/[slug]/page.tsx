@@ -31,10 +31,14 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
   const board = await getBoard(slug);
   if (!board) notFound();
 
-  const week = await getPostingWeek(board.id);
-  const page = week ? await listLiveTiles(week.id) : null;
   const admin = createAdminClient();
   const customer = await getCustomer(admin);
+  const week = await getPostingWeek(board.id);
+  // The viewer is passed so their own tiles are marked: nobody reports
+  // themselves, and nobody votes for themselves later.
+  const page = week
+    ? await listLiveTiles(week.id, undefined, undefined, customer?.id ?? null)
+    : null;
   const votingWeek = await getVotingWeek(board.id);
   const monthlyFinal = openFinal(
     await listWeekTimings(admin, board.id),
@@ -105,6 +109,7 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
         key={week?.id ?? "no-week"}
         venueId={board.id}
         weekId={week?.id ?? null}
+        canReport={customer !== null}
         postingEndsAt={week?.postingEndsAt ?? null}
         initialTiles={page?.tiles ?? []}
         initialCursor={page?.nextCursor ?? null}
