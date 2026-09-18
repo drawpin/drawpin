@@ -68,6 +68,20 @@ class FakeStore implements TileStore {
     return count;
   }
 
+  /** Days already claimed by an account, as `venue:user:day`. */
+  accountClaims = new Set<string>();
+
+  async claimAccountPost(venueId: string, userId: string, localDay: string) {
+    const key = `${venueId}:${userId}:${localDay}`;
+    if (this.accountClaims.has(key)) return false;
+    this.accountClaims.add(key);
+    return true;
+  }
+
+  async releaseAccountPost(venueId: string, userId: string, localDay: string) {
+    this.accountClaims.delete(`${venueId}:${userId}:${localDay}`);
+  }
+
   async claimDailyPost(venueId: string, deviceId: string, localDay: string) {
     const key = `${venueId}:${deviceId}:${localDay}`;
     if (this.claims.get(key)) return false;
@@ -114,6 +128,7 @@ const input = (overrides: Partial<PostTileInput> = {}): PostTileInput => ({
   caption: "hello",
   image: new Uint8Array([1, 2, 3]),
   ipHash: null,
+  userId: null,
   ...overrides,
 });
 
@@ -151,6 +166,7 @@ describe("postTile", () => {
         id: "tile-1",
         week_id: "week-1",
         device_id: "device-1",
+        user_id: null,
         display_name: "Ahmad",
         name_tag: "0014",
         caption: "hello",
@@ -413,5 +429,58 @@ describe("burst protection", () => {
 
     expect(spy).not.toHaveBeenCalled();
     expect(reasonOf(result)).toBeNull();
+  });
+});
+
+describe("signed-in posting", () => {
+  const userId = "user-1";
+
+  it("records the account on the tile", async () => {
+    await postTile(input({ userId }), deps);
+
+    expect(store.tiles[0].user_id).toBe(userId);
+  });
+
+  it("leaves a guest tile without one", async () => {
+    await postTile(input(), deps);
+
+    expect(store.tiles[0].user_id).toBeNull();
+  });
+
+  it("stops the same account posting again from another device", async () => {
+    await postTile(input({ userId, deviceId: "phone" }), deps);
+
+    const result = await postTile(input({ userId, deviceId: "laptop" }), deps);
+
+    expect(reasonOf(result)).toBe("already-posted");
+    expect(store.tiles).toHaveLength(1);
+  });
+
+  it("gives the device its day back when the account's is already used", async () => {
+    await postTile(input({ userId, deviceId: "phone" }), deps);
+    await postTile(input({ userId, deviceId: "laptop" }), deps);
+
+    // The laptop never posted, so it must not be left marked as having done so.
+    const attempt = await store.getDailyAttempt(
+      "venue-1",
+      "laptop",
+      "2026-09-16",
+    );
+    expect(attempt?.hasPosted ?? false).toBe(false);
+  });
+
+  it("releases both claims when saving fails", async () => {
+    store.failInsert = true;
+
+    await postTile(input({ userId }), deps);
+
+    expect(store.accountClaims.size).toBe(0);
+    expect(store.claims.get("venue-1:device-1:2026-09-16")).toBe(false);
+  });
+
+  it("still limits a guest by device alone", async () => {
+    await postTile(input(), deps);
+
+    expect(reasonOf(await postTile(input(), deps))).toBe("already-posted");
   });
 });

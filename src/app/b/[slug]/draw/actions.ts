@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { hashFingerprint, hashIpAddress, nameTagFor } from "@/lib/device-id";
+import { getCustomer } from "@/lib/customer";
 import { type DeviceSignals, ensureDeviceId } from "@/lib/device";
 import { FINGERPRINT_FIELD } from "@/lib/device-signals/field";
 import { clientIpFrom } from "@/lib/device-signals/request-ip";
@@ -62,6 +63,8 @@ export async function postTileAction(
     const secret = env.DEVICE_COOKIE_SECRET;
     const signals = await readDeviceSignals(formData, secret);
     const deviceId = await ensureDeviceId(admin, signals);
+    // Null for a guest, which is still a perfectly good way to post.
+    const customer = await getCustomer(admin);
     const blockedTerms = parseBlocklist(env.MODERATION_BLOCKLIST);
 
     const result = await postTile(
@@ -72,6 +75,7 @@ export async function postTileAction(
         caption,
         image: new Uint8Array(await image.arrayBuffer()),
         ipHash: signals.ipHash,
+        userId: customer?.id ?? null,
       },
       {
         store: new SupabaseTileStore(admin),
