@@ -11,8 +11,10 @@ class FakeStore implements OwnerTileStore {
   removed: string[] = [];
   deletedImages: string[] = [];
   announced: { venueId: string; tileId: string }[] = [];
+  refinalized: string[] = [];
   failImageDelete = false;
   failAnnounce = false;
+  failRefinalize = false;
 
   async findTile(tileId: string) {
     return this.tiles.get(tileId) ?? null;
@@ -20,6 +22,11 @@ class FakeStore implements OwnerTileStore {
 
   async markRemoved(tileId: string) {
     this.removed.push(tileId);
+  }
+
+  async refinalizeWeek(weekId: string) {
+    if (this.failRefinalize) throw new Error("finalize failed");
+    this.refinalized.push(weekId);
   }
 
   async deleteImage(imagePath: string) {
@@ -40,11 +47,13 @@ beforeEach(() => {
   store = new FakeStore();
   store.tiles.set("tile-1", {
     id: "tile-1",
+    weekId: "week-1",
     venueId: "venue-1",
     imagePath: "venue-1/week-1/tile-1.webp",
   });
   store.tiles.set("other-tile", {
     id: "other-tile",
+    weekId: "week-9",
     venueId: "venue-2",
     imagePath: "venue-2/week-9/other.webp",
   });
@@ -98,5 +107,30 @@ describe("removeTile", () => {
     expect(store.removed).toEqual(["tile-1"]);
     expect(store.deletedImages).toHaveLength(1);
     expect(deps.logError).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("removing a tile that won its week", () => {
+  it("re-crowns the week it belonged to", async () => {
+    await removeTile("venue-1", "tile-1", deps);
+
+    expect(store.refinalized).toEqual(["week-1"]);
+  });
+
+  it("still removes the tile when re-crowning fails", async () => {
+    store.failRefinalize = true;
+
+    await expect(removeTile("venue-1", "tile-1", deps)).resolves.toBe(
+      "removed",
+    );
+    // The next view of the Hall of Fame finalizes it anyway (ADR-003).
+    expect(store.removed).toEqual(["tile-1"]);
+    expect(deps.logError).toHaveBeenCalled();
+  });
+
+  it("doesn't touch another owner's week", async () => {
+    await removeTile("venue-1", "other-tile", deps);
+
+    expect(store.refinalized).toEqual([]);
   });
 });

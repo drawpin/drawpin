@@ -385,83 +385,236 @@ describe("daily posting budget", () => {
 });
 
 describe("hall of fame", () => {
-  it("only accepts ranks 1 through 7", async () => {
-    const { venueId, weekId, tileIds } = await seedBoard();
-
-    await db.exec(`insert into hall_of_fame (venue_id, week_id, tile_id, rank, vote_count)
-                   values ('${venueId}', '${weekId}', '${tileIds[0]}', 1, 12);`);
-
-    await expect(
-      db.exec(`insert into hall_of_fame (venue_id, week_id, tile_id, rank, vote_count)
-               values ('${venueId}', '${weekId}', '${tileIds[1]}', 8, 3);`),
-    ).rejects.toThrow();
-  });
-
-  it("protects a winning tile from the 30-day purge", async () => {
-    const { venueId, weekId, tileIds } = await seedBoard();
-
-    await db.exec(`insert into hall_of_fame (venue_id, week_id, tile_id, rank, vote_count)
-                   values ('${venueId}', '${weekId}', '${tileIds[0]}', 1, 12);`);
-
-    await expect(
-      db.exec(`delete from tiles where id = '${tileIds[0]}';`),
-    ).rejects.toThrow();
-
-    await expect(
-      db.exec(`delete from tiles where id = '${tileIds[1]}';`),
-    ).resolves.toBeDefined();
-  });
-});
-
-describe("tiles storage bucket", () => {
-  it("is public, WebP-only, and capped at 1 MB", async () => {
-    const result = await db.query(
-      `select public, file_size_limit, allowed_mime_types
-       from storage.buckets where id = 'tiles';`,
+  /** A week being voted on, whose tiles belong to accounts. */
+  async function seedVotedWeek() {
+    const board = await seedBoard();
+    await db.query(
+      `update weeks
+         set posting_ends_at = now() - interval '1 day',
+             voting_ends_at = now() + interval '6 days'
+       where id = $1`,
+      [board.weekId],
     );
 
-    expect(result.rows).toEqual([
-      {
-        public: true,
-        file_size_limit: 1048576,
-        allowed_mime_types: ["image/webp"],
-      },
+    const artistId = crypto.randomUUID();
+    const voterId = crypto.randomUUID();
+    await db.exec(`
+      insert into auth.users (id, email) values
+        ('${artistId}', '${artistId}@example.com'),
+        ('${voterId}', '${voterId}@example.com');
+      insert into profiles (id, username) values
+        ('${artistId}', 'Artist'), ('${voterId}', 'Voter');
+    `);
+    await db.query(`update tiles set user_id = $1 where id = any($2::uuid[])`, [
+      artistId,
+      board.tileIds,
+    ]);
+
+    return { ...board, artistId, voterId };
+  }
+
+  /** Closes voting, which is what makes a week ready to be judged. */
+  async function closeVoting(weekId: string) {
+    await db.query(
+      `update weeks set voting_ends_at = now() - interval '1 minute' where id = $1`,
+      [weekId],
+    );
+  }
+
+  /** Votes have to land while the week is still open, as real ones do. */
+  async function addVotes(weekId: string, tileId: string, count: number) {
+    for (let i = 0; i < count; i++) {
+      const voterId = crypto.randomUUID();
+      await db.exec(`
+        insert into auth.users (id, email) values ('${voterId}', '${voterId}@example.com');
+        insert into profiles (id, username) values ('${voterId}', 'Voter ${i}');
+      `);
+      await db.query(
+        `insert into votes (week_id, tile_id, user_id) values ($1, $2, $3)`,
+        [weekId, tileId, voterId],
+      );
+    }
+  }
+
+  const finalize = async (weekId: string) => {
+    const result = await db.query<{ finalize_week_winner: string | null }>(
+      `select finalize_week_winner($1::uuid)`,
+      [weekId],
+    );
+    return result.rows[0].finalize_week_winner;
+  };
+
+  const winnerOf = async (weekId: string) => {
+    const result = await db.query<{ tile_id: string; vote_count: number }>(
+      `select tile_id, vote_count from hall_of_fame where week_id = $1`,
+      [weekId],
+    );
+    return result.rows;
+  };
+
+  it("crowns the most-voted tile", async () => {
+    const { weekId, tileIds } = await seedVotedWeek();
+    await addVotes(weekId, tileIds[0], 1);
+    await addVotes(weekId, tileIds[1], 3);
+    await closeVoting(weekId);
+
+    expect(await finalize(weekId)).toBe(tileIds[1]);
+    expect(await winnerOf(weekId)).toEqual([
+      { tile_id: tileIds[1], vote_count: 3 },
     ]);
   });
-});
 
-describe("record_blocked_attempt", () => {
-  it("counts blocked attempts per device per venue-local day", async () => {
-    const { venueId, artistDeviceId, voterDeviceId } = await seedBoard();
-    const count = async (deviceId: string, day: string) => {
-      const result = await db.query<{ record_blocked_attempt: number }>(
-        `select record_blocked_attempt($1::uuid, $2::uuid, $3::date)`,
-        [venueId, deviceId, day],
-      );
-      return result.rows[0].record_blocked_attempt;
-    };
+  it("breaks a tie with the earlier post", async () => {
+    const { weekId, tileIds } = await seedVotedWeek();
+    await db.query(`update tiles set created_at = $2 where id = $1`, [
+      tileIds[0],
+      new Date("2026-09-08T10:00:00Z"),
+    ]);
+    await db.query(`update tiles set created_at = $2 where id = $1`, [
+      tileIds[1],
+      new Date("2026-09-08T11:00:00Z"),
+    ]);
+    await addVotes(weekId, tileIds[0], 2);
+    await addVotes(weekId, tileIds[1], 2);
+    await closeVoting(weekId);
 
-    expect(await count(artistDeviceId, "2026-09-16")).toBe(1);
-    expect(await count(artistDeviceId, "2026-09-16")).toBe(2);
-    // A different device and a different day each start over.
-    expect(await count(voterDeviceId, "2026-09-16")).toBe(1);
-    expect(await count(artistDeviceId, "2026-09-17")).toBe(1);
+    expect(await finalize(weekId)).toBe(tileIds[0]);
   });
 
-  it("leaves the daily post available", async () => {
-    const { venueId, artistDeviceId } = await seedBoard();
+  it("leaves a week with no votes uncrowned", async () => {
+    const { weekId } = await seedVotedWeek();
+    await closeVoting(weekId);
 
+    expect(await finalize(weekId)).toBeNull();
+    expect(await winnerOf(weekId)).toEqual([]);
+  });
+
+  it("never crowns a tile with no account behind it", async () => {
+    const { weekId, tileIds } = await seedVotedWeek();
+    await addVotes(weekId, tileIds[1], 5);
+    await addVotes(weekId, tileIds[0], 1);
+    await closeVoting(weekId);
+    // What deleting an account leaves behind: the drawing without its owner.
+    await db.query(`update tiles set user_id = null where id = $1`, [
+      tileIds[1],
+    ]);
+
+    expect(await finalize(weekId)).toBe(tileIds[0]);
+  });
+
+  it("never crowns a removed tile", async () => {
+    const { weekId, tileIds } = await seedVotedWeek();
+    await addVotes(weekId, tileIds[0], 5);
+    await addVotes(weekId, tileIds[1], 1);
+    await closeVoting(weekId);
+    await db.query(`update tiles set status = 'removed' where id = $1`, [
+      tileIds[0],
+    ]);
+
+    expect(await finalize(weekId)).toBe(tileIds[1]);
+  });
+
+  it("re-crowns when the owner removes the winner", async () => {
+    const { weekId, tileIds } = await seedVotedWeek();
+    await addVotes(weekId, tileIds[0], 5);
+    await addVotes(weekId, tileIds[1], 2);
+    await closeVoting(weekId);
+    await finalize(weekId);
+
+    await db.query(`update tiles set status = 'removed' where id = $1`, [
+      tileIds[0],
+    ]);
+
+    expect(await finalize(weekId)).toBe(tileIds[1]);
+    expect(await winnerOf(weekId)).toEqual([
+      { tile_id: tileIds[1], vote_count: 2 },
+    ]);
+  });
+
+  it("clears the entry when the removed winner was the only tile voted for", async () => {
+    const { weekId, tileIds } = await seedVotedWeek();
+    await addVotes(weekId, tileIds[0], 3);
+    await closeVoting(weekId);
+    await finalize(weekId);
+
+    await db.query(`update tiles set status = 'removed' where id = $1`, [
+      tileIds[0],
+    ]);
+
+    expect(await finalize(weekId)).toBeNull();
+    expect(await winnerOf(weekId)).toEqual([]);
+  });
+
+  it("is safe to call again", async () => {
+    const { weekId, tileIds } = await seedVotedWeek();
+    await addVotes(weekId, tileIds[0], 2);
+    await closeVoting(weekId);
+
+    await finalize(weekId);
+    await finalize(weekId);
+
+    // Two people opening the Hall of Fame must not crown the week twice.
+    expect(await winnerOf(weekId)).toHaveLength(1);
+  });
+
+  it("crowns nothing while voting is still open", async () => {
+    const { weekId, tileIds } = await seedVotedWeek();
+    await addVotes(weekId, tileIds[0], 2);
+
+    // Still inside the voting window, where counts stay hidden.
+    expect(await finalize(weekId)).toBeNull();
+    expect(await winnerOf(weekId)).toEqual([]);
+  });
+
+  it("brings a venue's whole Hall of Fame up to date at once", async () => {
+    const { venueId, weekId, nextWeekId, tileIds } = await seedVotedWeek();
+    await addVotes(weekId, tileIds[0], 1);
+    await closeVoting(weekId);
     await db.query(
-      `select record_blocked_attempt($1::uuid, $2::uuid, $3::date)`,
-      [venueId, artistDeviceId, "2026-09-16"],
+      `update weeks
+         set starts_at = now() - interval '22 days',
+             posting_ends_at = now() - interval '15 days',
+             voting_ends_at = now() - interval '8 days'
+       where id = $1`,
+      [nextWeekId],
     );
 
-    const result = await db.query<{ has_posted: boolean }>(
-      `select has_posted from post_attempts
-       where venue_id = $1 and device_id = $2 and local_day = '2026-09-16'`,
-      [venueId, artistDeviceId],
+    const result = await db.query<{ finalize_venue_winners: number }>(
+      `select finalize_venue_winners($1::uuid)`,
+      [venueId],
     );
-    expect(result.rows).toEqual([{ has_posted: false }]);
+
+    // Both closed weeks were considered; only the one with votes is crowned.
+    expect(result.rows[0].finalize_venue_winners).toBe(2);
+    expect(await winnerOf(weekId)).toHaveLength(1);
+    expect(await winnerOf(nextWeekId)).toEqual([]);
+  });
+
+  it("is reachable by the server only", async () => {
+    for (const routine of ["finalize_week_winner", "finalize_venue_winners"]) {
+      const result = await db.query<{ grantee: string }>(
+        `select grantee from information_schema.role_routine_grants
+         where routine_name = $1 and grantee <> 'postgres'
+         order by grantee`,
+        [routine],
+      );
+      expect(result.rows.map((row) => row.grantee)).toEqual(["service_role"]);
+    }
+  });
+
+  it("keeps one winner per week", async () => {
+    const { venueId, weekId, tileIds } = await seedVotedWeek();
+    await addVotes(weekId, tileIds[0], 1);
+    await closeVoting(weekId);
+    await finalize(weekId);
+
+    await expect(
+      db.query(
+        `insert into hall_of_fame (venue_id, week_id, tile_id, vote_count)
+         values ($1, $2, $3, 1)`,
+        [venueId, weekId, tileIds[1]],
+      ),
+    ).rejects.toThrow(/hall_of_fame_one_per_week/);
   });
 });
 
