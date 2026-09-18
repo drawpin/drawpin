@@ -1,6 +1,12 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { nameTagFor, signDeviceId, verifyDeviceCookie } from "./device-id";
+import {
+  hashFingerprint,
+  hashIpAddress,
+  nameTagFor,
+  signDeviceId,
+  verifyDeviceCookie,
+} from "./device-id";
 
 const secret = "test-secret-that-is-long-enough-000000";
 const deviceId = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
@@ -56,6 +62,49 @@ describe("nameTagFor", () => {
   it("depends on the secret", () => {
     expect(nameTagFor(deviceId, "Ahmad", secret)).not.toBe(
       nameTagFor(deviceId, "Ahmad", "another-secret-000000000000000000"),
+    );
+  });
+});
+
+describe("hashFingerprint", () => {
+  it("is stable for the same fingerprint and secret", () => {
+    expect(hashFingerprint("visitor-1", secret)).toBe(
+      hashFingerprint("visitor-1", secret),
+    );
+  });
+
+  it("differs per fingerprint and per secret", () => {
+    expect(hashFingerprint("visitor-1", secret)).not.toBe(
+      hashFingerprint("visitor-2", secret),
+    );
+    expect(hashFingerprint("visitor-1", secret)).not.toBe(
+      hashFingerprint("visitor-1", `${secret}-other`),
+    );
+  });
+
+  it("never stores the fingerprint itself", () => {
+    expect(hashFingerprint("visitor-1", secret)).not.toContain("visitor-1");
+  });
+});
+
+describe("hashIpAddress", () => {
+  it("is stable per address and differs per address", () => {
+    expect(hashIpAddress("203.0.113.7", secret)).toBe(
+      hashIpAddress("203.0.113.7", secret),
+    );
+    expect(hashIpAddress("203.0.113.7", secret)).not.toBe(
+      hashIpAddress("203.0.113.8", secret),
+    );
+  });
+
+  it("never stores the address itself", () => {
+    expect(hashIpAddress("203.0.113.7", secret)).not.toContain("203.0.113.7");
+  });
+
+  it("doesn't reuse the fingerprint hash for the same string", () => {
+    // Both are keyed with one secret, so the purpose has to keep them apart.
+    expect(hashIpAddress("same-value", secret)).not.toBe(
+      hashFingerprint("same-value", secret),
     );
   });
 });

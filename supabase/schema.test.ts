@@ -336,6 +336,52 @@ describe("record_blocked_attempt", () => {
   });
 });
 
+describe("count_recent_posts_from_ip", () => {
+  const countSince = async (ipHash: string, since: string) => {
+    const result = await db.query<{ count_recent_posts_from_ip: number }>(
+      `select count_recent_posts_from_ip($1::text, $2::timestamptz)`,
+      [ipHash, since],
+    );
+    return result.rows[0].count_recent_posts_from_ip;
+  };
+
+  it("counts posts from the devices last seen on one network", async () => {
+    const { artistDeviceId, voterDeviceId } = await seedBoard();
+    await db.query(`update devices set last_ip_hash = 'net-a' where id = $1`, [
+      artistDeviceId,
+    ]);
+    await db.query(`update devices set last_ip_hash = 'net-b' where id = $1`, [
+      voterDeviceId,
+    ]);
+
+    // seedBoard gives the artist four tiles and the voter one.
+    expect(await countSince("net-a", "2000-01-01T00:00:00Z")).toBe(4);
+    expect(await countSince("net-b", "2000-01-01T00:00:00Z")).toBe(1);
+    expect(await countSince("net-c", "2000-01-01T00:00:00Z")).toBe(0);
+  });
+
+  it("only counts posts inside the window", async () => {
+    const { artistDeviceId } = await seedBoard();
+    await db.query(`update devices set last_ip_hash = 'net-d' where id = $1`, [
+      artistDeviceId,
+    ]);
+
+    expect(await countSince("net-d", "2100-01-01T00:00:00Z")).toBe(0);
+  });
+
+  it("is reachable by the server only", async () => {
+    const result = await db.query<{ grantee: string }>(
+      `select grantee from information_schema.role_routine_grants
+       where routine_name = 'count_recent_posts_from_ip'
+         and grantee <> 'postgres'
+       order by grantee`,
+    );
+
+    // The browser-facing roles can't call it; only the server can.
+    expect(result.rows.map((row) => row.grantee)).toEqual(["service_role"]);
+  });
+});
+
 describe("realtime publication", () => {
   it("streams tiles and weeks, and nothing private", async () => {
     const result = await db.query<{ tablename: string }>(

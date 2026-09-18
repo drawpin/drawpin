@@ -1,8 +1,11 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { nameTagFor } from "@/lib/device-id";
-import { ensureDeviceId } from "@/lib/device";
+import { hashFingerprint, hashIpAddress, nameTagFor } from "@/lib/device-id";
+import { type DeviceSignals, ensureDeviceId } from "@/lib/device";
+import { FINGERPRINT_FIELD } from "@/lib/device-signals/field";
+import { clientIpFrom } from "@/lib/device-signals/request-ip";
 import { serverEnv } from "@/lib/env";
 import { TURNSTILE_FIELD } from "@/lib/turnstile/field";
 import { parseBlocklist } from "@/lib/moderation/blocklist";
@@ -22,6 +25,8 @@ const FAILURE_MESSAGES: Record<PostTileFailure, string> = {
   blocked: "This couldn't be posted. It didn't use up your post for today.",
   locked:
     "Too many posts couldn't be posted today. You can try again after 4:00 AM.",
+  burst:
+    "This network has posted a lot in the last few minutes. Try again shortly — this didn't use up your post.",
   "moderation-unavailable":
     "We couldn't check your drawing right now. Try again in a minute — this didn't use up your post.",
   "week-closed": "Posting is closed for this week.",
@@ -53,9 +58,10 @@ export async function postTileAction(
   const admin = createAdminClient();
 
   try {
-    const deviceId = await ensureDeviceId(admin);
     const env = serverEnv();
     const secret = env.DEVICE_COOKIE_SECRET;
+    const signals = await readDeviceSignals(formData, secret);
+    const deviceId = await ensureDeviceId(admin, signals);
     const blockedTerms = parseBlocklist(env.MODERATION_BLOCKLIST);
 
     const result = await postTile(
@@ -65,6 +71,7 @@ export async function postTileAction(
         displayName,
         caption,
         image: new Uint8Array(await image.arrayBuffer()),
+        ipHash: signals.ipHash,
       },
       {
         store: new SupabaseTileStore(admin),
@@ -87,4 +94,25 @@ export async function postTileAction(
   }
 
   redirect(`/b/${slug}`);
+}
+
+/**
+ * Hashes what we know about the visitor's browser and network. Both are
+ * optional: a blocked fingerprint agent or a missing proxy header just leaves
+ * the device cookie doing the work on its own.
+ */
+async function readDeviceSignals(
+  formData: FormData,
+  secret: string,
+): Promise<DeviceSignals> {
+  const fingerprint = formData.get(FINGERPRINT_FIELD);
+  const ip = clientIpFrom(await headers());
+
+  return {
+    fingerprintHash:
+      typeof fingerprint === "string" && fingerprint
+        ? hashFingerprint(fingerprint, secret)
+        : null,
+    ipHash: ip ? hashIpAddress(ip, secret) : null,
+  };
 }

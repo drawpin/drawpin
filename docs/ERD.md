@@ -68,9 +68,9 @@ stored — never a raw IP or fingerprint.
 | Column | Type | Notes |
 |---|---|---|
 | `id` | `uuid` | PK, the value the cookie carries |
-| `fingerprint_hash` | `text` | nullable |
-| `last_ip_hash` | `text` | nullable |
-| `first_seen_at` | `timestamptz` | |
+| `fingerprint_hash` | `text` | nullable; keyed hash, set the first time a fingerprint arrives and never overwritten. Indexed: with no valid cookie, a match reconnects a visitor to their device |
+| `last_ip_hash` | `text` | nullable; keyed hash of the network last seen, indexed. Used only to spot bursts, never one post per IP |
+| `first_seen_at` | `timestamptz` | oldest row wins when a fingerprint matches more than one device |
 
 ### `tiles`
 A drawing plus optional caption and username, posted to one week.
@@ -197,7 +197,10 @@ are granted explicitly, and RLS then narrows the rows:
 Functions follow the same rule. `record_blocked_attempt(venue_id, device_id,
 local_day)` counts a moderation-blocked post and returns the day's new total in
 one statement; execute is granted to `service_role` only, so `post_attempts`
-stays closed to the API roles.
+stays closed to the API roles. `count_recent_posts_from_ip(ip_hash, since)`
+counts recent posts from the devices last seen on one network, for burst
+protection; same grant, since neither `devices` nor `tiles` can be joined this
+way through the API.
 
 **A new table must grant its privileges in the migration that creates it**,
 or every query on it fails with `permission denied` (`42501`).
