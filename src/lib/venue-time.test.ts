@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { dayBoundsFor, localDayFor, weekBoundsFor } from "./venue-time";
+import {
+  dayBoundsFor,
+  finalBoundsFor,
+  localDayFor,
+  monthOfWeek,
+  weekBoundsFor,
+} from "./venue-time";
 
 const at = (iso: string) => new Date(iso);
 const iso = (date: Date) => date.toISOString();
@@ -121,5 +127,47 @@ describe("dayBoundsFor", () => {
 
     expect(iso(bounds.startsAt)).toBe("2026-10-31T09:00:00.000Z");
     expect(iso(bounds.endsAt)).toBe("2026-11-01T10:00:00.000Z");
+  });
+});
+
+describe("monthOfWeek", () => {
+  it("uses the month the week's Monday falls in", () => {
+    // Monday 2026-09-28 4:00 AM Chicago: a week that runs into October.
+    expect(monthOfWeek(at("2026-09-28T09:00:00Z"), "America/Chicago")).toBe(
+      "2026-09-01",
+    );
+  });
+
+  it("uses venue time, not UTC", () => {
+    // Monday 2026-10-05 00:30 Chicago is already the 5th there, but the 5th
+    // at 05:30 UTC — the same month either way; this one isn't.
+    // 2026-11-01 03:00 Chicago is still Saturday the 31st of October by the
+    // 4:00 AM rule, so the week belongs to October.
+    expect(monthOfWeek(at("2026-11-01T08:00:00Z"), "America/Chicago")).toBe(
+      "2026-10-01",
+    );
+  });
+});
+
+describe("finalBoundsFor", () => {
+  it("runs the week after the month's last voting ends", () => {
+    const bounds = finalBoundsFor(
+      at("2026-10-12T09:00:00Z"),
+      "America/Chicago",
+    );
+
+    expect(iso(bounds.startsAt)).toBe("2026-10-12T09:00:00.000Z");
+    expect(iso(bounds.endsAt)).toBe("2026-10-19T09:00:00.000Z");
+  });
+
+  it("stays at 4:00 AM across a daylight saving change", () => {
+    // The final that opens the Monday before US clocks go back.
+    const bounds = finalBoundsFor(
+      at("2026-10-26T09:00:00Z"),
+      "America/Chicago",
+    );
+
+    // CDT to CST, so the week is 169 hours and still ends at 4:00 AM local.
+    expect(iso(bounds.endsAt)).toBe("2026-11-02T10:00:00.000Z");
   });
 });

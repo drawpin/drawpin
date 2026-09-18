@@ -156,6 +156,50 @@ this account already posted to this venue today.
 | `local_day` | `date` | venue-local day, 4:00 AM boundary |
 | `created_at` | `timestamptz` | |
 
+### `monthly_finals`
+A month's run-off between its weekly winners, and the super winner it crowns
+(docs/PLAN.md, Monthly super winner).
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | `uuid` | PK |
+| `venue_id` | `uuid` | FK → `venues`, unique with `month` |
+| `month` | `date` | first day of the venue-local month being judged |
+| `starts_at` / `ends_at` | `timestamptz` | the one-week window, `ends_at > starts_at` |
+| `winner_tile_id` | `uuid` | FK → `tiles`, null until it closes, or if nothing wins |
+| `winner_vote_count` | `int` | votes the super winner had |
+
+The window itself is **derived from the venue's weeks**, not stored first: a
+week belongs to the month its Monday falls in, and the final opens when the
+last of that month's weeks finishes voting, then runs a week
+(`src/lib/monthly-final.ts`). The row is created the first time someone opens
+the final, by `ensure_monthly_final(venue_id, month, starts_at, ends_at)`,
+which returns the existing row on a conflict so two first views open one final.
+
+`list_finalists(final_id)` returns that month's weekly winners, up to four,
+most-voted in their own weeks first and ties to the earlier post. A tile the
+owner has since removed drops out.
+
+`finalize_super_winner(final_id)` crowns the month once the window has passed:
+the most final votes wins, ties to the earlier post, a lone finalist wins
+without a vote, and a real contest nobody voted in crowns nobody. It takes an
+advisory lock and is safe to call again, like the weekly equivalent.
+
+### `final_votes`
+One vote per account per final.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | `uuid` | PK |
+| `final_id` | `uuid` | FK → `monthly_finals`, unique with `user_id` |
+| `tile_id` | `uuid` | FK → `tiles` |
+| `user_id` | `uuid` | FK → `profiles` |
+| `created_at` | `timestamptz` | |
+
+Unlike weekly voting there is nothing to count, so the unique pair is the whole
+limit and no lock is needed. A `before insert` trigger adds the rest: the final
+must be open, the tile must be one of its finalists, and never your own.
+
 ### `code_attempts`
 Wrong join-code guesses per network, so an 8-digit code can't be ground
 through. Only the hash of the address is stored.
@@ -234,11 +278,11 @@ public board and the owner screen need:
 
 | Table | Readable by |
 |---|---|
-| `venues`, `weeks`, `hall_of_fame`, `profiles` | anyone |
+| `venues`, `weeks`, `hall_of_fame`, `profiles`, `monthly_finals` | anyone |
 | `tiles` | anyone, `status = 'live'` only |
 | `owners` | the owner, their own row |
 | `daily_codes` | the owner, for their own venue |
-| `devices`, `votes`, `post_attempts`, `code_attempts`, `account_posts` | nobody (service role only) |
+| `devices`, `votes`, `final_votes`, `post_attempts`, `code_attempts`, `account_posts` | nobody (service role only) |
 
 Live vote tallies stay unreadable on purpose — winners are only revealed once
 voting closes.
@@ -253,9 +297,9 @@ are granted explicitly, and RLS then narrows the rows:
 | Role | Tables | Privileges |
 |---|---|---|
 | `service_role` (server) | all | select, insert, update, delete |
-| `anon`, `authenticated` | `venues`, `weeks`, `tiles`, `hall_of_fame`, `profiles` | select |
+| `anon`, `authenticated` | `venues`, `weeks`, `tiles`, `hall_of_fame`, `profiles`, `monthly_finals` | select |
 | `authenticated` (owners) | `owners`, `daily_codes` | select |
-| `anon`, `authenticated` | `devices`, `votes`, `post_attempts`, `code_attempts`, `account_posts` | none |
+| `anon`, `authenticated` | `devices`, `votes`, `final_votes`, `post_attempts`, `code_attempts`, `account_posts` | none |
 
 Functions follow the same rule. `record_blocked_attempt(venue_id, device_id,
 local_day)` counts a moderation-blocked post and returns the day's new total in

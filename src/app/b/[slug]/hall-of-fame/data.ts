@@ -1,5 +1,18 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { closedFinals } from "@/lib/monthly-final";
+import { ensureFinal, listWeekTimings, type SuperWinner } from "../final/data";
 import { TILES_BUCKET } from "../tiles";
+
+type SuperWinnerRow = {
+  month: string;
+  winner_vote_count: number | null;
+  tiles: {
+    display_name: string | null;
+    name_tag: string | null;
+    caption: string | null;
+    image_path: string;
+  } | null;
+};
 
 /** A week's winning tile, as the Hall of Fame shows it. */
 export type Winner = {
@@ -75,4 +88,58 @@ export async function listWinners(
     }))
     .sort((a, b) => b.weekStartsAt.localeCompare(a.weekStartsAt))
     .slice(0, limit);
+}
+
+/**
+ * A venue's monthly super winners, newest first.
+ *
+ * Like weekly winners, a final is judged the first time someone asks for the
+ * result (ADR-003): each closed final is created if it doesn't exist yet, then
+ * finalized, which is idempotent.
+ */
+export async function listSuperWinners(
+  admin: SupabaseClient,
+  venueId: string,
+  timeZone: string,
+  limit = 12,
+): Promise<SuperWinner[]> {
+  const weeks = await listWeekTimings(admin, venueId);
+  const finished = closedFinals(weeks, timeZone, new Date()).slice(0, limit);
+
+  for (const window of finished) {
+    const finalId = await ensureFinal(admin, venueId, window);
+    const { error } = await admin.rpc("finalize_super_winner", {
+      p_final_id: finalId,
+    });
+    if (error) {
+      throw new Error(`Could not finalize the final: ${error.message}`);
+    }
+  }
+
+  const { data, error } = await admin
+    .from("monthly_finals")
+    .select(
+      "month, winner_vote_count, tiles (display_name, name_tag, caption, image_path)",
+    )
+    .eq("venue_id", venueId)
+    .not("winner_tile_id", "is", null)
+    .order("month", { ascending: false })
+    .limit(limit)
+    .returns<SuperWinnerRow[]>();
+
+  if (error) throw new Error(`Could not load super winners: ${error.message}`);
+
+  const storage = admin.storage.from(TILES_BUCKET);
+  return data
+    .filter((row) => row.tiles !== null)
+    .map((row) => ({
+      month: row.month,
+      author:
+        row.tiles!.display_name && row.tiles!.name_tag
+          ? `${row.tiles!.display_name}#${row.tiles!.name_tag}`
+          : null,
+      caption: row.tiles!.caption,
+      imageUrl: storage.getPublicUrl(row.tiles!.image_path).data.publicUrl,
+      voteCount: row.winner_vote_count ?? 0,
+    }));
 }
