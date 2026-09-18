@@ -80,6 +80,37 @@ export async function getPostingWeek(
   return data ? { id: data.id, postingEndsAt: data.posting_ends_at } : null;
 }
 
+/** The week a board is voting on: the one that has stopped taking posts. */
+export type VotingWeek = {
+  id: string;
+  /** When voting closes, so a screen left open can refresh itself. */
+  votingEndsAt: string;
+};
+
+/**
+ * Returns the venue's week that is open for voting right now — week N during
+ * week N+1 — or `null` if there isn't one (docs/PLAN.md, Weekly cycle).
+ *
+ * Like the posting week, it's selected by the range its timestamps describe
+ * rather than a stored status (ADR-003).
+ */
+export async function getVotingWeek(
+  venueId: string,
+  now: Date = new Date(),
+): Promise<VotingWeek | null> {
+  const moment = now.toISOString();
+  const { data, error } = await createPublicClient()
+    .from("weeks")
+    .select("id, voting_ends_at")
+    .eq("venue_id", venueId)
+    .lte("posting_ends_at", moment)
+    .gt("voting_ends_at", moment)
+    .maybeSingle();
+
+  if (error) throw new Error(`Could not load voting week: ${error.message}`);
+  return data ? { id: data.id, votingEndsAt: data.voting_ends_at } : null;
+}
+
 /**
  * Lists a week's live tiles, newest first, one page at a time.
  *
@@ -90,6 +121,7 @@ export async function listLiveTiles(
   weekId: string,
   cursor?: TileCursor,
   supabase: SupabaseClient = createPublicClient(),
+  viewerId: string | null = null,
 ): Promise<TilePage> {
   let query = supabase
     .from("tiles")
@@ -112,7 +144,11 @@ export async function listLiveTiles(
   const tiles = data
     .slice(0, TILE_PAGE_SIZE)
     .map((row) =>
-      toTile(row, (path) => storage.getPublicUrl(path).data.publicUrl),
+      toTile(
+        row,
+        (path) => storage.getPublicUrl(path).data.publicUrl,
+        viewerId,
+      ),
     );
 
   const last = tiles.at(-1);
