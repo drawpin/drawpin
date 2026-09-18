@@ -71,6 +71,7 @@ async function seedBoard() {
 
   await db.exec(`
     insert into auth.users (id, email) values ('${ids.ownerId}', '${ids.ownerId}@example.com');
+    insert into owners (id, email) values ('${ids.ownerId}', '${ids.ownerId}@example.com');
     insert into venues (id, owner_id, name, slug, timezone)
       values ('${ids.venueId}', '${ids.ownerId}', 'Test Cafe', '${ids.slug}', 'America/Chicago');
     insert into weeks (id, venue_id, starts_at, posting_ends_at, voting_ends_at, status)
@@ -100,17 +101,33 @@ beforeAll(async () => {
 }, 30_000);
 
 describe("owners", () => {
-  it("are created automatically when a user signs up", async () => {
+  it("are not created just by signing in", async () => {
     const userId = crypto.randomUUID();
 
     await db.exec(
       `insert into auth.users (id, email) values ('${userId}', 'new@example.com');`,
     );
 
-    const result = await db.query<{ email: string }>(
-      `select email from owners where id = '${userId}';`,
+    // Customers sign in too (ADR-004); becoming an owner happens at setup.
+    const result = await db.query(
+      `select id from owners where id = '${userId}';`,
     );
-    expect(result.rows).toEqual([{ email: "new@example.com" }]);
+    expect(result.rows).toEqual([]);
+  });
+
+  it("are required before a venue can reference them", async () => {
+    const userId = crypto.randomUUID();
+    await db.exec(
+      `insert into auth.users (id, email) values ('${userId}', 'new@example.com');`,
+    );
+
+    await expect(
+      db.query(
+        `insert into venues (owner_id, name, slug, timezone)
+         values ($1, 'Test Cafe', 'cafe-orphan', 'America/Chicago')`,
+        [userId],
+      ),
+    ).rejects.toThrow(/venues_owner_id_fkey/);
   });
 });
 

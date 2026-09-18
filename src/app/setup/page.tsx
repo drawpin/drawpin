@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { requireOwner } from "@/lib/auth";
+import { isOwnerAccount, requireOwner } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { listTimeZones } from "@/lib/timezones";
 import { SetupForm } from "./setup-form";
@@ -9,6 +9,8 @@ export const metadata: Metadata = { title: "Set up your board · DrawPin" };
 
 export default async function SetupPage() {
   const owner = await requireOwner();
+  // Customers are signed in too (ADR-004); only owner accounts set up boards.
+  if (!isOwnerAccount(owner)) redirect("/");
 
   const supabase = await createClient();
   const { data: venue, error } = await supabase
