@@ -330,6 +330,14 @@ returns the venue's code for that window, creating it on the first ask and
 retrying past codes live elsewhere, and `record_code_attempt(ip_hash,
 window_start)` counts a wrong guess; both are granted to `service_role` only.
 
+The daily cleanup (issue #31) uses three more: `list_expired_weeks(before)`
+returns weeks past retention that still hold something deletable — a week down
+to its winner is left out, so the job converges instead of re-sweeping years of
+history every night; `list_purgeable_tiles(week_id)` returns the tiles nothing
+is keeping, excluding weekly winners and monthly super winners; and
+`delete_unused_devices(before)` forgets devices that left no tiles or votes
+behind. All three are `service_role` only.
+
 **A new table must grant its privileges in the migration that creates it**,
 or every query on it fails with `permission denied` (`42501`).
 `supabase/schema.test.ts` checks this matrix and fails when a table is added

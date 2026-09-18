@@ -11,6 +11,11 @@ const serverEnvSchema = z.object({
   TURNSTILE_SECRET_KEY: z.string().min(1),
   /** Optional extra blocked words, comma-separated. Kept out of the repo. */
   MODERATION_BLOCKLIST: z.string().optional(),
+  /**
+   * Bearer token Vercel Cron sends to the daily cleanup. Optional so the app
+   * runs without it; the endpoint refuses to do anything while it is unset.
+   */
+  CRON_SECRET: z.string().min(1).optional(),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
