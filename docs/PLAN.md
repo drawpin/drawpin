@@ -91,8 +91,10 @@ No charges for venues or users in v1.
 Weekly prompt mode ("challenges"), live jam mode, location checks, Google
 sign-in for owners, multi-location owners, wall display.
 
-Accounts open a few more: a customer's saved drawings and history, blocking an
-account from a board, and Apple sign-in alongside Google. None are v1.
+Accounts open a few more: a customer's saved drawings and history (#44),
+blocking an account from a board, and more ways to sign in — Facebook, Apple,
+email codes, passkeys (#50). Google is the only provider in v1; anyone without
+one can still draw as a guest. None of these are v1.
 
 ## Phases
 1. Owner signs in → creates board → customers open QR → username → draw tile → live feed on phones *(done)*
