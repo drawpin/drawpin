@@ -889,6 +889,218 @@ describe("account_posts", () => {
   });
 });
 
+describe("monthly final", () => {
+  /**
+   * A venue with `weekCount` finished weeks in one month, each won by its own
+   * artist, and a final that is already open.
+   */
+  async function seedFinal(weekCount: number) {
+    const board = await seedBoard();
+    // seedBoard's own weeks would join the month and confuse the counts.
+    await db.query(`delete from weeks where venue_id = $1`, [board.venueId]);
+
+    const finalists: { tileId: string; artistId: string; votes: number }[] = [];
+
+    for (let i = 0; i < weekCount; i++) {
+      const weekId = crypto.randomUUID();
+      const tileId = crypto.randomUUID();
+      const artistId = crypto.randomUUID();
+      const votes = weekCount - i; // The first week's winner won by the most.
+
+      await db.exec(`
+        insert into auth.users (id, email) values ('${artistId}', '${artistId}@example.com');
+        insert into profiles (id, username) values ('${artistId}', 'Artist ${i}');
+        insert into weeks (id, venue_id, starts_at, posting_ends_at, voting_ends_at)
+          values ('${weekId}', '${board.venueId}',
+                  '2026-09-0${i + 1}T09:00:00Z',
+                  '2026-09-0${i + 1}T10:00:00Z',
+                  '2026-09-0${i + 1}T11:00:00Z');
+        insert into tiles (id, week_id, device_id, user_id, image_path)
+          values ('${tileId}', '${weekId}', '${board.artistDeviceId}', '${artistId}', 'final/${i}.webp');
+        insert into hall_of_fame (venue_id, week_id, tile_id, vote_count)
+          values ('${board.venueId}', '${weekId}', '${tileId}', ${votes});
+      `);
+
+      finalists.push({ tileId, artistId, votes });
+    }
+
+    const finalId = (
+      await db.query<{ ensure_monthly_final: string }>(
+        `select ensure_monthly_final($1::uuid, $2::date, now() - interval '1 day', now() + interval '6 days')`,
+        [board.venueId, "2026-09-01"],
+      )
+    ).rows[0].ensure_monthly_final;
+
+    return { ...board, finalId, finalists };
+  }
+
+  /** An account that can vote in the final. */
+  async function seedVoter() {
+    const id = crypto.randomUUID();
+    await db.exec(`
+      insert into auth.users (id, email) values ('${id}', '${id}@example.com');
+      insert into profiles (id, username) values ('${id}', 'Voter');
+    `);
+    return id;
+  }
+
+  const listFinalists = async (finalId: string) => {
+    const result = await db.query<{ tile_id: string }>(
+      `select tile_id from list_finalists($1::uuid)`,
+      [finalId],
+    );
+    return result.rows.map((row) => row.tile_id);
+  };
+
+  const vote = (finalId: string, tileId: string, userId: string) =>
+    db.query(
+      `insert into final_votes (final_id, tile_id, user_id) values ($1, $2, $3)`,
+      [finalId, tileId, userId],
+    );
+
+  const close = (finalId: string) =>
+    db.query(
+      `update monthly_finals set ends_at = now() - interval '1 minute' where id = $1`,
+      [finalId],
+    );
+
+  const crown = async (finalId: string) => {
+    const result = await db.query<{ finalize_super_winner: string | null }>(
+      `select finalize_super_winner($1::uuid)`,
+      [finalId],
+    );
+    return result.rows[0].finalize_super_winner;
+  };
+
+  it("takes only the four best-supported winners of a five-week month", async () => {
+    const { finalId, finalists } = await seedFinal(5);
+
+    const running = await listFinalists(finalId);
+
+    expect(running).toHaveLength(4);
+    // The fifth week's winner, with the fewest votes of its own, misses out.
+    expect(running).not.toContain(finalists[4].tileId);
+  });
+
+  it("creates one final per venue per month", async () => {
+    const { venueId, finalId } = await seedFinal(2);
+
+    const again = await db.query<{ ensure_monthly_final: string }>(
+      `select ensure_monthly_final($1::uuid, $2::date, now(), now() + interval '7 days')`,
+      [venueId, "2026-09-01"],
+    );
+
+    // Two first views must not open two finals.
+    expect(again.rows[0].ensure_monthly_final).toBe(finalId);
+  });
+
+  it("allows one vote per account, whatever it is cast on", async () => {
+    const { finalId, finalists } = await seedFinal(3);
+    const voterId = await seedVoter();
+
+    await vote(finalId, finalists[0].tileId, voterId);
+
+    await expect(vote(finalId, finalists[1].tileId, voterId)).rejects.toThrow(
+      /final_votes_final_id_user_id_key/,
+    );
+  });
+
+  it("refuses a vote on your own tile", async () => {
+    const { finalId, finalists } = await seedFinal(2);
+
+    await expect(
+      vote(finalId, finalists[0].tileId, finalists[0].artistId),
+    ).rejects.toThrow(/cannot vote on its own tile/);
+  });
+
+  it("refuses a vote on a tile that isn't in the final", async () => {
+    const { finalId } = await seedFinal(2);
+    const other = await seedFinal(1);
+    const voterId = await seedVoter();
+
+    await expect(
+      vote(finalId, other.finalists[0].tileId, voterId),
+    ).rejects.toThrow(/is not a finalist/);
+  });
+
+  it("refuses a vote after the final closes", async () => {
+    const { finalId, finalists } = await seedFinal(2);
+    const voterId = await seedVoter();
+    await close(finalId);
+
+    await expect(vote(finalId, finalists[0].tileId, voterId)).rejects.toThrow(
+      /has closed/,
+    );
+  });
+
+  it("crowns the most-voted finalist", async () => {
+    const { finalId, finalists } = await seedFinal(3);
+    const first = await seedVoter();
+    const second = await seedVoter();
+    await vote(finalId, finalists[1].tileId, first);
+    await vote(finalId, finalists[1].tileId, second);
+    await vote(finalId, finalists[0].tileId, await seedVoter());
+    await close(finalId);
+
+    expect(await crown(finalId)).toBe(finalists[1].tileId);
+  });
+
+  it("crowns a lone finalist without a vote", async () => {
+    const { finalId, finalists } = await seedFinal(1);
+    await close(finalId);
+
+    expect(await crown(finalId)).toBe(finalists[0].tileId);
+  });
+
+  it("crowns nobody when a real final drew no votes", async () => {
+    const { finalId } = await seedFinal(3);
+    await close(finalId);
+
+    expect(await crown(finalId)).toBeNull();
+  });
+
+  it("crowns nothing while the final is still running", async () => {
+    const { finalId, finalists } = await seedFinal(2);
+    await vote(finalId, finalists[0].tileId, await seedVoter());
+
+    expect(await crown(finalId)).toBeNull();
+  });
+
+  it("is safe to crown twice", async () => {
+    const { finalId, finalists } = await seedFinal(2);
+    await vote(finalId, finalists[0].tileId, await seedVoter());
+    await close(finalId);
+
+    await crown(finalId);
+    await crown(finalId);
+
+    const result = await db.query<{ winner_tile_id: string }>(
+      `select winner_tile_id from monthly_finals where id = $1`,
+      [finalId],
+    );
+    expect(result.rows).toEqual([{ winner_tile_id: finalists[0].tileId }]);
+  });
+
+  it("drops a finalist whose tile the owner removed", async () => {
+    const { finalId, finalists } = await seedFinal(3);
+    await db.query(`update tiles set status = 'removed' where id = $1`, [
+      finalists[0].tileId,
+    ]);
+
+    expect(await listFinalists(finalId)).not.toContain(finalists[0].tileId);
+  });
+
+  it("keeps final votes out of reach of the API roles", async () => {
+    for (const role of ["anon", "authenticated"]) {
+      const result = await db.query<{ allowed: boolean }>(
+        `select has_table_privilege($1, 'public.final_votes', 'SELECT') as allowed`,
+        [role],
+      );
+      expect(result.rows[0].allowed).toBe(false);
+    }
+  });
+});
+
 describe("realtime publication", () => {
   it("streams tiles and weeks, and nothing private", async () => {
     const result = await db.query<{ tablename: string }>(
@@ -920,7 +1132,14 @@ describe("data API grants", () => {
     return result.rows.map((row) => row.privilege);
   }
 
-  const publicTables = ["venues", "weeks", "tiles", "hall_of_fame", "profiles"];
+  const publicTables = [
+    "venues",
+    "weeks",
+    "tiles",
+    "hall_of_fame",
+    "profiles",
+    "monthly_finals",
+  ];
   const ownerTables = ["owners", "daily_codes"];
   const privateTables = [
     "devices",
@@ -928,6 +1147,7 @@ describe("data API grants", () => {
     "post_attempts",
     "code_attempts",
     "account_posts",
+    "final_votes",
   ];
   const allTables = [...publicTables, ...ownerTables, ...privateTables];
 

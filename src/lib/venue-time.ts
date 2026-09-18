@@ -84,3 +84,38 @@ function resetMoment(date: Temporal.PlainDate, timeZone: string): Date {
   });
   return new Date(zoned.epochMilliseconds);
 }
+
+/** The venue-local month a week belongs to, as `YYYY-MM-01`. */
+export function monthOfWeek(startsAt: Date, timeZone: string): string {
+  const date = venueDate(startsAt, timeZone);
+  return date.with({ day: 1 }).toString();
+}
+
+export type FinalBounds = {
+  /** Monday 4:00 AM, when the last of the month's weeks finishes voting. */
+  startsAt: Date;
+  /** The following Monday 4:00 AM. */
+  endsAt: Date;
+};
+
+/**
+ * The one-week window in which a month's finalists are voted on.
+ *
+ * It opens when the last of that month's weeks finishes voting — about two
+ * weeks into the next month — and runs a week (docs/PLAN.md, Monthly super
+ * winner). Every boundary in the cycle is a Monday 4:00 AM, so this one is
+ * too, found per date rather than by adding 7 × 24 hours.
+ *
+ * @param lastVotingEndsAt - The latest `voting_ends_at` among the month's weeks.
+ */
+export function finalBoundsFor(
+  lastVotingEndsAt: Date,
+  timeZone: string,
+): FinalBounds {
+  const opensOn = venueDate(lastVotingEndsAt, timeZone);
+
+  return {
+    startsAt: lastVotingEndsAt,
+    endsAt: resetMoment(opensOn.add({ weeks: 1 }), timeZone),
+  };
+}

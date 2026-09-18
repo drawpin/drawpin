@@ -5,8 +5,10 @@ import { AccountBar } from "@/components/account-bar";
 import { buttonVariants } from "@/components/ui/button";
 import { connection } from "next/server";
 import { getCustomer } from "@/lib/customer";
+import { openFinal } from "@/lib/monthly-final";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getBoard, getPostingWeek, getVotingWeek, listLiveTiles } from "./data";
+import { listWeekTimings } from "./final/data";
 import { VOTES_PER_WEEK } from "./vote/cast-votes";
 import { SupabaseVoteStore } from "./vote/supabase-vote-store";
 import { TileFeed } from "./tile-feed";
@@ -34,6 +36,11 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
   const admin = createAdminClient();
   const customer = await getCustomer(admin);
   const votingWeek = await getVotingWeek(board.id);
+  const monthlyFinal = openFinal(
+    await listWeekTimings(admin, board.id),
+    board.timezone,
+    new Date(),
+  );
   // A signed-out visitor sees the prompt too: they can sign in from there.
   const votesLeft =
     votingWeek && customer
@@ -78,6 +85,15 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
         >
           Vote for last week&apos;s best — {votesLeft}{" "}
           {votesLeft === 1 ? "vote" : "votes"} left
+        </Link>
+      )}
+
+      {monthlyFinal && (
+        <Link
+          href={`/b/${slug}/final`}
+          className="bg-muted rounded-lg px-3 py-2 text-sm underline underline-offset-4"
+        >
+          Vote for this month&apos;s super winner
         </Link>
       )}
 
