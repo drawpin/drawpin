@@ -28,7 +28,7 @@ describe("moderateTile", () => {
     expect(check.mock.calls[0][0]).toEqual({
       text: "Ahmad\nmy cat",
       image: {
-        dataUrl: `data:image/webp;base64,${content.image.toString("base64")}`,
+        dataUrl: `data:image/webp;base64,${content.image!.toString("base64")}`,
       },
     });
   });
@@ -88,5 +88,34 @@ describe("moderateTile", () => {
     await expect(
       moderateTile(content, { apiKey: "sk", blockedTerms: [], check }),
     ).rejects.toBeInstanceOf(ModerationUnavailableError);
+  });
+});
+
+describe("checking a username on its own", () => {
+  it("sends the name with no image", async () => {
+    const check = vi.fn(async () => ({ flagged: false, categories: [] }));
+
+    const decision = await moderateTile(
+      { displayName: "Ahmad", caption: null, image: null },
+      { apiKey: "sk-test", blockedTerms: [], check },
+    );
+
+    expect(decision).toEqual({ allowed: true });
+    expect(check).toHaveBeenCalledWith(
+      { text: "Ahmad", image: null },
+      "sk-test",
+    );
+  });
+
+  it("still applies the blocklist", async () => {
+    const check = vi.fn(async () => ({ flagged: false, categories: [] }));
+
+    const decision = await moderateTile(
+      { displayName: "visit example.com", caption: null, image: null },
+      { apiKey: "sk-test", blockedTerms: [], check },
+    );
+
+    expect(decision).toMatchObject({ allowed: false });
+    expect(check).not.toHaveBeenCalled();
   });
 });

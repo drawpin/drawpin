@@ -4,8 +4,8 @@ import { checkWithOpenAi, type ModerationInput } from "./openai";
 export type TileContent = {
   displayName: string | null;
   caption: string | null;
-  /** The processed WebP tile image. */
-  image: Buffer;
+  /** The processed WebP tile image, or `null` when checking text alone. */
+  image: Buffer | null;
 };
 
 export type ModerationDecision =
@@ -21,7 +21,8 @@ export type ModerationDeps = {
 
 /**
  * Checks a post before it's published: the blocklist first (instant, free),
- * then OpenAI on the name, caption and drawing together.
+ * then OpenAI on the name, caption and drawing together. Also used for a
+ * username on its own, where there's no drawing to check.
  *
  * @throws {ModerationUnavailableError} If OpenAI couldn't be reached, so the
  * caller can refuse the post without using up the visitor's daily post.
@@ -46,7 +47,7 @@ export async function moderateTile(
 
   const input: ModerationInput = {
     text: text || null,
-    image: { dataUrl: toDataUrl(content.image) },
+    image: content.image ? { dataUrl: toDataUrl(content.image) } : null,
   };
 
   const check = deps.check ?? checkWithOpenAi;

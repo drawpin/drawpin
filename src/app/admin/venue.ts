@@ -67,7 +67,9 @@ export async function listBoardTiles(venueId: string): Promise<AdminTile[]> {
 
   const { data, error } = await admin
     .from("tiles")
-    .select("id, display_name, name_tag, caption, image_path, created_at")
+    .select(
+      "id, user_id, display_name, name_tag, caption, image_path, created_at",
+    )
     .eq("week_id", week.id)
     .eq("status", "live")
     .order("created_at", { ascending: false })

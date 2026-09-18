@@ -6,8 +6,10 @@ export const TILE_PAGE_SIZE = 30;
 /** A tile as shown on the board. */
 export type Tile = {
   id: string;
-  /** e.g. `"Ahmad#4821"`, or `null` when posted anonymously. */
+  /** e.g. `"Ahmad#4821"`, or `null` when posted without a name. */
   author: string | null;
+  /** Posted without an account: shown, but not in the running (ADR-004). */
+  isGuest: boolean;
   caption: string | null;
   imageUrl: string;
   /** Postgres timestamp string, kept as-is so no microseconds are lost. */
@@ -28,6 +30,7 @@ export type TilePage = { tiles: Tile[]; nextCursor: TileCursor | null };
 
 export type TileRow = {
   id: string;
+  user_id: string | null;
   display_name: string | null;
   name_tag: string | null;
   caption: string | null;
@@ -57,6 +60,7 @@ export function toTile(
   return {
     id: row.id,
     author: formatAuthor(row.display_name, row.name_tag),
+    isGuest: row.user_id === null,
     caption: row.caption,
     imageUrl: publicUrlFor(row.image_path),
     createdAt: row.created_at,
@@ -69,6 +73,7 @@ export function toTile(
  */
 export const liveTileRowSchema = z.object({
   id: z.guid(),
+  user_id: z.guid().nullable(),
   display_name: z.string().nullable(),
   name_tag: z.string().nullable(),
   caption: z.string().nullable(),

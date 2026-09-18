@@ -80,7 +80,9 @@ export async function listLiveTiles(
 ): Promise<TilePage> {
   let query = supabase
     .from("tiles")
-    .select("id, display_name, name_tag, caption, image_path, created_at")
+    .select(
+      "id, user_id, display_name, name_tag, caption, image_path, created_at",
+    )
     .eq("week_id", weekId)
     .eq("status", "live")
     .order("created_at", { ascending: false })

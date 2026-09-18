@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
+import { getCustomer } from "@/lib/customer";
 import { readDeviceId } from "@/lib/device";
 import { serverEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -69,6 +70,7 @@ export default async function DrawPage({
     </Link>
   );
 
+  const customer = await getCustomer(createAdminClient());
   const blocked = board.isPaused
     ? "This board is paused, so posting is off right now."
     : await todaysBlocker(board);
@@ -89,6 +91,7 @@ export default async function DrawPage({
         <DrawTileForm
           slug={slug}
           turnstileSiteKey={serverEnv().NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+          username={customer?.username ?? null}
         />
       )}
     </main>
