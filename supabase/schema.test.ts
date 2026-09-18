@@ -1211,6 +1211,137 @@ describe("tile reports", () => {
   });
 });
 
+describe("cleanup queries", () => {
+  const expiredWeeks = async (before: string) => {
+    const result = await db.query<{ week_id: string }>(
+      `select week_id from list_expired_weeks($1::timestamptz)`,
+      [before],
+    );
+    return result.rows.map((row) => row.week_id);
+  };
+
+  const purgeable = async (weekId: string) => {
+    const result = await db.query<{ tile_id: string }>(
+      `select tile_id from list_purgeable_tiles($1::uuid)`,
+      [weekId],
+    );
+    return result.rows.map((row) => row.tile_id);
+  };
+
+  it("finds weeks whose voting closed before the cut-off", async () => {
+    const { weekId, nextWeekId } = await seedBoard();
+    await db.query(
+      `update weeks
+         set starts_at = now() - interval '45 days',
+             posting_ends_at = now() - interval '38 days',
+             voting_ends_at = now() - interval '31 days'
+       where id = $1`,
+      [weekId],
+    );
+
+    const expired = await expiredWeeks(
+      new Date(Date.now() - 30 * 86400000).toISOString(),
+    );
+
+    expect(expired).toContain(weekId);
+    expect(expired).not.toContain(nextWeekId);
+  });
+
+  it("leaves an emptied week out, so it isn't swept again", async () => {
+    const { weekId } = await seedBoard();
+    await db.query(
+      `update weeks
+         set starts_at = now() - interval '45 days',
+             posting_ends_at = now() - interval '38 days',
+             voting_ends_at = now() - interval '31 days'
+       where id = $1`,
+      [weekId],
+    );
+    await db.query(`delete from tiles where week_id = $1`, [weekId]);
+
+    expect(
+      await expiredWeeks(new Date(Date.now() - 30 * 86400000).toISOString()),
+    ).not.toContain(weekId);
+  });
+
+  it("spares a week's winner", async () => {
+    const { venueId, weekId, tileIds } = await seedBoard();
+    await db.query(
+      `insert into hall_of_fame (venue_id, week_id, tile_id, vote_count)
+       values ($1, $2, $3, 3)`,
+      [venueId, weekId, tileIds[0]],
+    );
+
+    const doomed = await purgeable(weekId);
+
+    // Winners are kept forever (docs/PLAN.md, Data retention).
+    expect(doomed).not.toContain(tileIds[0]);
+    expect(doomed).toContain(tileIds[1]);
+  });
+
+  it("spares a month's super winner", async () => {
+    const { venueId, weekId, tileIds } = await seedBoard();
+    await db.query(
+      `insert into monthly_finals (venue_id, month, starts_at, ends_at, winner_tile_id, winner_vote_count)
+       values ($1, '2026-09-01', now() - interval '8 days', now() - interval '1 day', $2, 2)`,
+      [venueId, tileIds[1]],
+    );
+
+    expect(await purgeable(weekId)).not.toContain(tileIds[1]);
+  });
+
+  it("forgets a device that left nothing behind", async () => {
+    const id = crypto.randomUUID();
+    await db.query(
+      `insert into devices (id, first_seen_at) values ($1, now() - interval '100 days')`,
+      [id],
+    );
+
+    const result = await db.query<{ delete_unused_devices: number }>(
+      `select delete_unused_devices($1::timestamptz)`,
+      [new Date(Date.now() - 90 * 86400000).toISOString()],
+    );
+
+    expect(result.rows[0].delete_unused_devices).toBeGreaterThanOrEqual(1);
+    const left = await db.query(`select id from devices where id = $1`, [id]);
+    expect(left.rows).toEqual([]);
+  });
+
+  it("keeps a device that posted, however old it is", async () => {
+    const { artistDeviceId } = await seedBoard();
+    await db.query(
+      `update devices set first_seen_at = now() - interval '200 days' where id = $1`,
+      [artistDeviceId],
+    );
+
+    await db.query(`select delete_unused_devices($1::timestamptz)`, [
+      new Date(Date.now() - 90 * 86400000).toISOString(),
+    ]);
+
+    // Its tiles still point at it.
+    const left = await db.query(`select id from devices where id = $1`, [
+      artistDeviceId,
+    ]);
+    expect(left.rows).toHaveLength(1);
+  });
+
+  it("is reachable by the server only", async () => {
+    for (const routine of [
+      "list_expired_weeks",
+      "list_purgeable_tiles",
+      "delete_unused_devices",
+    ]) {
+      const result = await db.query<{ grantee: string }>(
+        `select grantee from information_schema.role_routine_grants
+         where routine_name = $1 and grantee <> 'postgres'
+         order by grantee`,
+        [routine],
+      );
+      expect(result.rows.map((row) => row.grantee)).toEqual(["service_role"]);
+    }
+  });
+});
+
 describe("realtime publication", () => {
   it("streams tiles and weeks, and nothing private", async () => {
     const result = await db.query<{ tablename: string }>(

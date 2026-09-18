@@ -94,6 +94,7 @@ output of `npx supabase start`.
 | `MODERATION_BLOCKLIST`           | no       | Extra blocked words, comma-separated. Links, emails and phone numbers are always blocked                                                                           |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | yes      | Cloudflare Turnstile site key, rendered in the page. Cloudflare test key `1x00000000000000000000AA` works locally                                                  |
 | `TURNSTILE_SECRET_KEY`           | yes      | Turnstile secret, used to verify tokens server-side. Posting and owner sign-in are refused while it is missing. Test secret: `1x0000000000000000000000000000000AA` |
+| `CRON_SECRET`                    | no       | Bearer token Vercel Cron sends to the daily cleanup. The endpoint refuses to run while it is unset, which is what you want outside production                      |
 
 ## Contributing
 
