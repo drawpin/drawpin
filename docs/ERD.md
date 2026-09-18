@@ -200,6 +200,24 @@ Unlike weekly voting there is nothing to count, so the unique pair is the whole
 limit and no lock is needed. A `before insert` trigger adds the rest: the final
 must be open, the tile must be one of its finalists, and never your own.
 
+### `tile_reports`
+Tiles customers have flagged for the owner (docs/PLAN.md, Moderation).
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | `uuid` | PK |
+| `tile_id` | `uuid` | FK → `tiles`, unique with `user_id` |
+| `user_id` | `uuid` | FK → `profiles` — reporting needs an account |
+| `reason` | `report_reason` | offensive, sexual, violent, spam, other |
+| `created_at` | `timestamptz` | |
+| `resolved_at` | `timestamptz` | null until the owner removes the tile or dismisses it |
+
+A report is a flag, not a takedown: nothing is hidden automatically, so a
+handful of accounts cannot bury a drawing they simply dislike. The unique pair
+means one account can report a tile once, and `record_tile_report` turns down
+an account that has filed ten reports in a day, since a flooded queue is as
+good as no queue.
+
 ### `code_attempts`
 Wrong join-code guesses per network, so an 8-digit code can't be ground
 through. Only the hash of the address is stored.
@@ -282,7 +300,7 @@ public board and the owner screen need:
 | `tiles` | anyone, `status = 'live'` only |
 | `owners` | the owner, their own row |
 | `daily_codes` | the owner, for their own venue |
-| `devices`, `votes`, `final_votes`, `post_attempts`, `code_attempts`, `account_posts` | nobody (service role only) |
+| `devices`, `votes`, `final_votes`, `post_attempts`, `code_attempts`, `account_posts`, `tile_reports` | nobody (service role only) |
 
 Live vote tallies stay unreadable on purpose — winners are only revealed once
 voting closes.
@@ -299,7 +317,7 @@ are granted explicitly, and RLS then narrows the rows:
 | `service_role` (server) | all | select, insert, update, delete |
 | `anon`, `authenticated` | `venues`, `weeks`, `tiles`, `hall_of_fame`, `profiles`, `monthly_finals` | select |
 | `authenticated` (owners) | `owners`, `daily_codes` | select |
-| `anon`, `authenticated` | `devices`, `votes`, `final_votes`, `post_attempts`, `code_attempts`, `account_posts` | none |
+| `anon`, `authenticated` | `devices`, `votes`, `final_votes`, `post_attempts`, `code_attempts`, `account_posts`, `tile_reports` | none |
 
 Functions follow the same rule. `record_blocked_attempt(venue_id, device_id,
 local_day)` counts a moderation-blocked post and returns the day's new total in

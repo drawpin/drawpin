@@ -12,6 +12,8 @@ class FakeStore implements OwnerTileStore {
   deletedImages: string[] = [];
   announced: { venueId: string; tileId: string }[] = [];
   refinalized: string[] = [];
+  resolvedReports: string[] = [];
+  failResolveReports = false;
   failImageDelete = false;
   failAnnounce = false;
   failRefinalize = false;
@@ -22,6 +24,11 @@ class FakeStore implements OwnerTileStore {
 
   async markRemoved(tileId: string) {
     this.removed.push(tileId);
+  }
+
+  async resolveReports(tileId: string) {
+    if (this.failResolveReports) throw new Error("reports unavailable");
+    this.resolvedReports.push(tileId);
   }
 
   async refinalizeWeek(weekId: string) {
@@ -132,5 +139,23 @@ describe("removing a tile that won its week", () => {
     await removeTile("venue-1", "other-tile", deps);
 
     expect(store.refinalized).toEqual([]);
+  });
+});
+
+describe("removing a reported tile", () => {
+  it("settles the reports against it", async () => {
+    await removeTile("venue-1", "tile-1", deps);
+
+    expect(store.resolvedReports).toEqual(["tile-1"]);
+  });
+
+  it("still removes the tile when settling them fails", async () => {
+    store.failResolveReports = true;
+
+    await expect(removeTile("venue-1", "tile-1", deps)).resolves.toBe(
+      "removed",
+    );
+    expect(store.removed).toEqual(["tile-1"]);
+    expect(deps.logError).toHaveBeenCalled();
   });
 });

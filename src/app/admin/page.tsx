@@ -7,7 +7,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { serverEnv } from "@/lib/env";
 import { setBoardPaused, signOut } from "./actions";
 import { BoardTiles } from "./board-tiles";
-import { listBoardTiles, requireOwnedVenue } from "./venue";
+import { ReportedTiles } from "./reported-tiles";
+import { listBoardTiles, listReportedTiles, requireOwnedVenue } from "./venue";
 
 export const metadata: Metadata = { title: "Your board · DrawPin" };
 
@@ -17,12 +18,13 @@ export default async function AdminPage() {
 
   const venue = await requireOwnedVenue();
   const url = boardUrl(serverEnv().SITE_URL, venue.slug);
-  const [qr, tiles, code] = await Promise.all([
+  const [qr, tiles, code, reported] = await Promise.all([
     createBoardQrCode(url),
     listBoardTiles(venue.id),
     // Created on the first view of the day, so it exists before anyone is
     // told it (ADR-003).
     ensureDailyCode(createAdminClient(), venue),
+    listReportedTiles(venue.id),
   ]);
 
   return (
@@ -58,6 +60,10 @@ export default async function AdminPage() {
           Download QR code to print
         </a>
       </section>
+
+      {/* First thing on the screen when there is one: it is the only part
+          that needs the owner to do something. */}
+      <ReportedTiles tiles={reported} />
 
       <section className="flex flex-col gap-2">
         <h2 className="text-sm font-medium">Today&apos;s code</h2>

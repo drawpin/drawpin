@@ -6,7 +6,12 @@ import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { removeTile } from "./remove-tile";
-import { requireOwnedVenue, SupabaseOwnerTileStore } from "./venue";
+import {
+  listReportedTiles,
+  requireOwnedVenue,
+  resolveReports,
+  SupabaseOwnerTileStore,
+} from "./venue";
 
 /** Signs the owner out on this device and returns them to the login page. */
 export async function signOut(): Promise<void> {
@@ -67,6 +72,28 @@ export async function removeTileAction(
     return { status: "error", message: "We couldn't remove that tile." };
   }
 
+  revalidatePath("/admin");
+  return { status: "idle" };
+}
+
+/** Dismisses the reports against a tile, leaving the tile where it is. */
+export async function dismissReportsAction(
+  _previous: RemoveTileState,
+  formData: FormData,
+): Promise<RemoveTileState> {
+  const venue = await requireOwnedVenue();
+  const parsed = removeSchema.safeParse({ tileId: formData.get("tileId") });
+  if (!parsed.success) {
+    return { status: "error", message: "We couldn't dismiss those reports." };
+  }
+
+  // Only the owner's own board: a tile elsewhere isn't theirs to dismiss.
+  const reported = await listReportedTiles(venue.id);
+  if (!reported.some((tile) => tile.id === parsed.data.tileId)) {
+    return { status: "error", message: "We couldn't dismiss those reports." };
+  }
+
+  await resolveReports(parsed.data.tileId);
   revalidatePath("/admin");
   return { status: "idle" };
 }

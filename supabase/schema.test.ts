@@ -1101,6 +1101,116 @@ describe("monthly final", () => {
   });
 });
 
+describe("tile reports", () => {
+  async function seedReporter(name = "Reporter") {
+    const id = crypto.randomUUID();
+    await db.exec(`
+      insert into auth.users (id, email) values ('${id}', '${id}@example.com');
+      insert into profiles (id, username) values ('${id}', '${name}');
+    `);
+    return id;
+  }
+
+  const report = async (
+    tileId: string,
+    userId: string,
+    reason = "offensive",
+  ) => {
+    const result = await db.query<{ record_tile_report: string }>(
+      `select record_tile_report($1::uuid, $2::uuid, $3::report_reason)`,
+      [tileId, userId, reason],
+    );
+    return result.rows[0].record_tile_report;
+  };
+
+  it("records a report", async () => {
+    const { tileIds } = await seedBoard();
+    const reporterId = await seedReporter();
+
+    expect(await report(tileIds[0], reporterId)).toBe("recorded");
+  });
+
+  it("turns down a second report of the same tile from one account", async () => {
+    const { tileIds } = await seedBoard();
+    const reporterId = await seedReporter();
+
+    await report(tileIds[0], reporterId);
+
+    // Clearing cookies is no help: reporting is tied to the account.
+    expect(await report(tileIds[0], reporterId, "spam")).toBe(
+      "already-reported",
+    );
+  });
+
+  it("counts reports from different accounts separately", async () => {
+    const { tileIds } = await seedBoard();
+
+    await report(tileIds[0], await seedReporter("One"));
+    await report(tileIds[0], await seedReporter("Two"));
+
+    const result = await db.query<{ count: number }>(
+      `select count(*)::int as count from tile_reports where tile_id = $1`,
+      [tileIds[0]],
+    );
+    expect(result.rows[0].count).toBe(2);
+  });
+
+  it("stops one account flooding the queue", async () => {
+    const board = await seedBoard();
+    const reporterId = await seedReporter();
+
+    // Ten tiles reported in a day is plenty; the eleventh waits.
+    for (let i = 0; i < 10; i++) {
+      const tileId = crypto.randomUUID();
+      await db.query(
+        `insert into tiles (id, week_id, device_id, image_path)
+         values ($1::uuid, $2::uuid, $3::uuid, $4)`,
+        [tileId, board.weekId, board.artistDeviceId, `spam/${tileId}.webp`],
+      );
+      expect(await report(tileId, reporterId)).toBe("recorded");
+    }
+
+    expect(await report(board.tileIds[0], reporterId)).toBe("rate-limited");
+  });
+
+  it("lets yesterday's reports roll off", async () => {
+    const { tileIds } = await seedBoard();
+    const reporterId = await seedReporter();
+    await report(tileIds[0], reporterId);
+    await db.query(
+      `update tile_reports set created_at = now() - interval '2 days'
+       where user_id = $1`,
+      [reporterId],
+    );
+
+    expect(await report(tileIds[1], reporterId)).toBe("recorded");
+  });
+
+  it("goes away with the tile", async () => {
+    const { tileIds } = await seedBoard();
+    await report(tileIds[0], await seedReporter());
+
+    await db.query(`delete from tiles where id = $1`, [tileIds[0]]);
+
+    const result = await db.query(
+      `select id from tile_reports where tile_id = $1`,
+      [tileIds[0]],
+    );
+    expect(result.rows).toEqual([]);
+  });
+
+  it("keeps reports out of reach of the API roles", async () => {
+    for (const role of ["anon", "authenticated"]) {
+      const result = await db.query<{ allowed: boolean }>(
+        `select has_table_privilege($1, 'public.tile_reports', 'SELECT') as allowed`,
+        [role],
+      );
+      // A report names the account that filed it.
+      expect(result.rows[0].allowed).toBe(false);
+    }
+  });
+});
+
 describe("realtime publication", () => {
   it("streams tiles and weeks, and nothing private", async () => {
     const result = await db.query<{ tablename: string }>(
@@ -1148,6 +1258,7 @@ describe("data API grants", () => {
     "code_attempts",
     "account_posts",
     "final_votes",
+    "tile_reports",
   ];
   const allTables = [...publicTables, ...ownerTables, ...privateTables];
 

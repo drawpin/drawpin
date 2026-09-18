@@ -131,6 +131,10 @@ export class SupabaseOwnerTileStore implements OwnerTileStore {
     if (error) throw new Error(`markRemoved: ${error.message}`);
   }
 
+  async resolveReports(tileId: string): Promise<void> {
+    await resolveReports(tileId);
+  }
+
   async refinalizeWeek(weekId: string): Promise<void> {
     // A no-op while the week is still being voted on.
     const { error } = await this.admin.rpc("finalize_week_winner", {
@@ -151,4 +155,81 @@ export class SupabaseOwnerTileStore implements OwnerTileStore {
   async announceRemoved(venueId: string, tileId: string): Promise<void> {
     await broadcastToBoard(venueId, TILE_REMOVED_EVENT, { tileId });
   }
+}
+
+/** A tile customers have flagged, with what they said about it. */
+export type ReportedTile = AdminTile & {
+  reportCount: number;
+  /** The distinct reasons given, most recent first. */
+  reasons: string[];
+};
+
+type ReportRow = {
+  reason: string;
+  created_at: string;
+  tiles: TileRow & { weeks: { venue_id: string } };
+};
+
+/**
+ * Tiles on this venue's board with reports nobody has dealt with yet, most
+ * reported first. Any week, not just the current one: a drawing can be
+ * reported long after the week it was posted in.
+ */
+export async function listReportedTiles(
+  venueId: string,
+): Promise<ReportedTile[]> {
+  const admin = createAdminClient();
+
+  const { data, error } = await admin
+    .from("tile_reports")
+    .select(
+      "reason, created_at, tiles!inner (id, user_id, display_name, name_tag, caption, image_path, created_at, status, weeks!inner (venue_id))",
+    )
+    .is("resolved_at", null)
+    .eq("tiles.status", "live")
+    .eq("tiles.weeks.venue_id", venueId)
+    .order("created_at", { ascending: false })
+    .returns<ReportRow[]>();
+
+  if (error) throw new Error(`listReportedTiles: ${error.message}`);
+
+  const storage = admin.storage.from(TILES_BUCKET);
+  const byTile = new Map<string, ReportedTile>();
+
+  for (const row of data) {
+    const existing = byTile.get(row.tiles.id);
+    if (existing) {
+      existing.reportCount += 1;
+      if (!existing.reasons.includes(row.reason)) {
+        existing.reasons.push(row.reason);
+      }
+      continue;
+    }
+
+    const tile = toTile(
+      row.tiles,
+      (path) => storage.getPublicUrl(path).data.publicUrl,
+    );
+    byTile.set(row.tiles.id, {
+      id: tile.id,
+      author: tile.author,
+      caption: tile.caption,
+      imageUrl: tile.imageUrl,
+      reportCount: 1,
+      reasons: [row.reason],
+    });
+  }
+
+  return [...byTile.values()].sort((a, b) => b.reportCount - a.reportCount);
+}
+
+/** Marks every open report on a tile as dealt with. */
+export async function resolveReports(tileId: string): Promise<void> {
+  const { error } = await createAdminClient()
+    .from("tile_reports")
+    .update({ resolved_at: new Date().toISOString() })
+    .eq("tile_id", tileId)
+    .is("resolved_at", null);
+
+  if (error) throw new Error(`resolveReports: ${error.message}`);
 }
