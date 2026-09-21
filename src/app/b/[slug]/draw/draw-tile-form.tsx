@@ -33,17 +33,39 @@ const COLORS = [
   { name: "Brown", value: "#92400e" },
 ];
 
-const SIZES = [
-  { name: "Thin", value: 8 },
-  { name: "Medium", value: 18 },
-  { name: "Thick", value: 36 },
-];
+/** Brush sizes in tile units, so they mean the same on any screen. */
+const MIN_SIZE = 4;
+const MAX_SIZE = 64;
+const DEFAULT_SIZE = 18;
+
+const SIZE_STORAGE_KEY = "drawpin:brush-size";
+const COLOR_STORAGE_KEY = "drawpin:brush-color";
+const GRID_STORAGE_KEY = "drawpin:show-grid";
 
 const NAME_STORAGE_KEY = "drawpin:display-name";
 
 const initialState: PostTileState = { status: "idle" };
 
 const subscribeToNothing = () => () => {};
+
+/**
+ * A value saved from a previous drawing, or `null` on the server and before
+ * hydration. Nothing here is important enough to survive private browsing
+ * refusing to store it.
+ */
+function useStored(key: string): string | null {
+  return useSyncExternalStore(
+    subscribeToNothing,
+    () => {
+      try {
+        return localStorage.getItem(key);
+      } catch {
+        return null;
+      }
+    },
+    () => null,
+  );
+}
 
 /** `false` in the server HTML, `true` once React has hydrated in the browser. */
 function useHydrated() {
@@ -73,8 +95,26 @@ export function DrawTileForm({
     initialState,
   );
   const [strokes, setStrokes] = useState<Stroke[]>([]);
-  const [color, setColor] = useState(COLORS[0].value);
-  const [size, setSize] = useState(SIZES[1].value);
+  // What they used last time, read the same way the hydration flag is: the
+  // server has no storage, so its snapshot is null and the first client
+  // render matches the HTML it's hydrating.
+  const storedColor = useStored(COLOR_STORAGE_KEY);
+  const storedSize = Number(useStored(SIZE_STORAGE_KEY));
+  const storedGrid = useStored(GRID_STORAGE_KEY);
+
+  const [pickedColor, setColor] = useState<string | null>(null);
+  const [pickedSize, setSize] = useState<number | null>(null);
+  const [pickedGrid, setShowGrid] = useState<boolean | null>(null);
+
+  const color = pickedColor ?? storedColor ?? COLORS[0].value;
+  const size =
+    pickedSize ??
+    (storedSize >= MIN_SIZE && storedSize <= MAX_SIZE
+      ? storedSize
+      : DEFAULT_SIZE);
+  const showGrid = pickedGrid ?? storedGrid === "true";
+  // Drawings undone but not yet replaced, newest last.
+  const [undone, setUndone] = useState<Stroke[]>([]);
   const [localError, setLocalError] = useState<string | null>(null);
   const canvasRef = useRef<DrawingCanvasHandle>(null);
   const nameRef = useRef<HTMLInputElement>(null);
@@ -121,6 +161,37 @@ export function DrawTileForm({
     startTransition(() => formAction(formData));
   }
 
+  /** Remembers a choice so the next drawing starts where this one left off. */
+  function remember(key: string, value: string) {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      // Private browsing refuses to store anything; the drawing still works.
+    }
+  }
+
+  function addStroke(stroke: Stroke) {
+    setStrokes((current) => [...current, stroke]);
+    // A new stroke is a new branch: what was undone can't come back.
+    setUndone([]);
+  }
+
+  function undo() {
+    setStrokes((current) => {
+      const last = current.at(-1);
+      if (last) setUndone((redoable) => [...redoable, last]);
+      return current.slice(0, -1);
+    });
+  }
+
+  function redo() {
+    setUndone((current) => {
+      const last = current.at(-1);
+      if (last) setStrokes((drawn) => [...drawn, last]);
+      return current.slice(0, -1);
+    });
+  }
+
   const error = localError ?? (state.status === "error" ? state.message : null);
 
   return (
@@ -138,8 +209,9 @@ export function DrawTileForm({
         strokes={strokes}
         color={color}
         size={size}
+        showGrid={showGrid}
         disabled={pending}
-        onStrokeEnd={(stroke) => setStrokes((current) => [...current, stroke])}
+        onStrokeEnd={addStroke}
       />
 
       <fieldset className="flex flex-wrap gap-2" disabled={pending}>
@@ -150,35 +222,67 @@ export function DrawTileForm({
             type="button"
             aria-label={option.name}
             aria-pressed={color === option.value}
-            onClick={() => setColor(option.value)}
+            onClick={() => {
+              setColor(option.value);
+              remember(COLOR_STORAGE_KEY, option.value);
+            }}
             className="size-9 rounded-full border-2 aria-pressed:border-black aria-pressed:ring-2 aria-pressed:ring-offset-2"
             style={{ backgroundColor: option.value }}
           />
         ))}
       </fieldset>
 
+      <div className="flex items-center gap-3">
+        <Label htmlFor="brush-size" className="text-muted-foreground text-xs">
+          Size
+        </Label>
+        <input
+          id="brush-size"
+          type="range"
+          min={MIN_SIZE}
+          max={MAX_SIZE}
+          value={size}
+          disabled={pending}
+          onChange={(event) => {
+            const next = Number(event.target.value);
+            setSize(next);
+            remember(SIZE_STORAGE_KEY, String(next));
+          }}
+          className="flex-1 accent-black"
+        />
+        {/* A dot the size of the brush says more than a number does. */}
+        <span
+          aria-hidden
+          className="shrink-0 rounded-full"
+          style={{
+            width: `${Math.max(size / 3, 4)}px`,
+            height: `${Math.max(size / 3, 4)}px`,
+            backgroundColor: color,
+          }}
+        />
+      </div>
+
       <div className="flex flex-wrap items-center gap-2">
-        <fieldset className="flex gap-2" disabled={pending}>
-          <legend className="sr-only">Brush size</legend>
-          {SIZES.map((option) => (
-            <Button
-              key={option.value}
-              type="button"
-              variant={size === option.value ? "default" : "outline"}
-              size="sm"
-              aria-pressed={size === option.value}
-              onClick={() => setSize(option.value)}
-            >
-              {option.name}
-            </Button>
-          ))}
-        </fieldset>
+        <Button
+          type="button"
+          variant={showGrid ? "default" : "outline"}
+          size="sm"
+          aria-pressed={showGrid}
+          disabled={pending}
+          onClick={() => {
+            const next = !showGrid;
+            setShowGrid(next);
+            remember(GRID_STORAGE_KEY, String(next));
+          }}
+        >
+          Grid
+        </Button>
         <Button
           type="button"
           variant="ghost"
           size="sm"
           disabled={pending || strokes.length === 0}
-          onClick={() => setStrokes((current) => current.slice(0, -1))}
+          onClick={undo}
         >
           Undo
         </Button>
@@ -186,8 +290,20 @@ export function DrawTileForm({
           type="button"
           variant="ghost"
           size="sm"
+          disabled={pending || undone.length === 0}
+          onClick={redo}
+        >
+          Redo
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
           disabled={pending || strokes.length === 0}
-          onClick={() => setStrokes([])}
+          onClick={() => {
+            setStrokes([]);
+            setUndone([]);
+          }}
         >
           Clear
         </Button>
