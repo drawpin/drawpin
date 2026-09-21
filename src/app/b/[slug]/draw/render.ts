@@ -11,13 +11,95 @@ export const TILE_SIZE = 768;
 /** Lines in the guide grid, across and down. */
 export const GRID_CELLS = 8;
 
+/** What the stroke was drawn with. */
+export type Brush = "pen" | "marker" | "spray";
+
 export type Stroke = {
   points: [x: number, y: number, pressure: number][];
   color: string;
   size: number;
+  brush: Brush;
+  /**
+   * Fixes the scatter of a spray stroke. Drawings are re-rendered constantly —
+   * on undo, on zoom, on every frame of a stroke — so the dots have to land in
+   * the same places every time or the drawing shimmers.
+   */
+  seed: number;
   /** Mice and fingers report no real pressure, so it's simulated from speed. */
   simulatePressure: boolean;
 };
+
+/**
+ * Dots per fill. Small enough that passing over the same place twice in one
+ * stroke darkens it, large enough that a long stroke is still a few dozen
+ * fills rather than a few thousand.
+ */
+const SPRAY_BATCH = 40;
+
+/** A dot of spray, in tile coordinates. */
+export type SprayDot = { x: number; y: number; radius: number };
+
+/** Small, fast, and identical everywhere: the same seed gives the same dots. */
+function seededRandom(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(state ^ (state >>> 15), 1 | state);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * Where an airbrush would have put paint along a stroke.
+ *
+ * Dots are spaced by brush size rather than by point, so a long stroke costs
+ * no more per pixel than a short one and the whole path stays one fill.
+ */
+export function sprayDots(
+  points: [number, number, number][],
+  size: number,
+  seed: number,
+): SprayDot[] {
+  const random = seededRandom(seed);
+  const spread = size / 2;
+  const dotRadius = Math.max(size / 16, 0.7);
+  const spacing = Math.max(size / 10, 1.5);
+  const dots: SprayDot[] = [];
+
+  const scatter = (x: number, y: number) => {
+    for (let n = 0; n < 3; n++) {
+      const angle = random() * Math.PI * 2;
+      // Square-rooted so dots spread evenly over the circle rather than
+      // bunching in the middle.
+      const distance = Math.sqrt(random()) * spread;
+      dots.push({
+        x: x + Math.cos(angle) * distance,
+        y: y + Math.sin(angle) * distance,
+        radius: dotRadius,
+      });
+    }
+  };
+
+  if (points.length === 1) {
+    scatter(points[0][0], points[0][1]);
+    return dots;
+  }
+
+  for (let i = 1; i < points.length; i++) {
+    const [fromX, fromY] = points[i - 1];
+    const [toX, toY] = points[i];
+    const length = Math.hypot(toX - fromX, toY - fromY);
+    const steps = Math.max(Math.floor(length / spacing), 1);
+
+    for (let step = 0; step < steps; step++) {
+      const along = step / steps;
+      scatter(fromX + (toX - fromX) * along, fromY + (toY - fromY) * along);
+    }
+  }
+
+  return dots;
+}
 
 export type Scene = {
   strokes: Stroke[];
@@ -28,16 +110,47 @@ export type Scene = {
 };
 
 function drawStroke(context: CanvasRenderingContext2D, stroke: Stroke) {
+  if (stroke.brush === "spray") {
+    const dots = sprayDots(stroke.points, stroke.size, stroke.seed);
+
+    context.save();
+    context.globalAlpha = 0.35;
+    context.fillStyle = stroke.color;
+
+    // Drawn in batches rather than one path or one dot at a time. One path
+    // would be flat wherever it crossed itself, and one fill per dot would
+    // stutter on a phone; each batch lingers into the next, so hovering in one
+    // place builds up the way an airbrush does.
+    for (let start = 0; start < dots.length; start += SPRAY_BATCH) {
+      const path = new Path2D();
+      for (const dot of dots.slice(start, start + SPRAY_BATCH)) {
+        path.moveTo(dot.x + dot.radius, dot.y);
+        path.arc(dot.x, dot.y, dot.radius, 0, Math.PI * 2);
+      }
+      context.fill(path);
+    }
+
+    context.restore();
+    return;
+  }
+
+  // A marker has no pressure at all — an even line is what makes a shaky one
+  // look deliberate — and enough transparency that crossing an earlier stroke
+  // darkens where they meet.
+  const isMarker = stroke.brush === "marker";
   const outline = getStroke(stroke.points, {
     size: stroke.size,
-    thinning: 0.5,
-    smoothing: 0.5,
-    streamline: 0.5,
-    simulatePressure: stroke.simulatePressure,
+    thinning: isMarker ? 0 : 0.5,
+    smoothing: isMarker ? 0.6 : 0.5,
+    streamline: isMarker ? 0.6 : 0.5,
+    simulatePressure: isMarker ? false : stroke.simulatePressure,
   });
 
+  context.save();
+  if (isMarker) context.globalAlpha = 0.85;
   context.fillStyle = stroke.color;
   context.fill(new Path2D(strokeToSvgPath(outline)));
+  context.restore();
 }
 
 /**
