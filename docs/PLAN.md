@@ -109,8 +109,24 @@ as it stands.
 1. Owner signs in → creates board → customers open QR → username → draw tile → live feed on phones *(done)*
 2. Safety, before sharing the board publicly: moderation pipeline, owner Pause board + Remove tile, Turnstile, device limits, rotating daily join code
 3. Accounts and the weekly cycle: Google sign-in and profiles, then week status from timestamps, voting, weekly winner, Hall of Fame, monthly final and super winner, reporting, cleanup job
-4. UI pass: visual polish across customer and owner pages (issue #40, with #38 and #39)
-5. Back-pocket features, starting with optional customer accounts (#37)
+4. **Fully functional first** (issue #67), then the UI pass (#40, with #38 and #39)
+5. Back-pocket features, starting with downloading your own drawings (#57)
+
+### Fully functional before the UI pass
+The product is feature-complete and not yet usable by anyone but us. These come
+before any styling, so the UI pass has a finished product to dress rather than a
+moving target. Tracked in issue #67:
+
+- **It runs by itself**: the cleanup job has its secret (#60), and a quiet
+  Supabase project doesn't pause and take the boards with it (#62).
+- **We stop testing against live data**: preview deployments point at their own
+  database, not production (#61).
+- **Customers can sign in**: a domain and custom SMTP (#41), and the Google app
+  published (#63) — until then only listed test users can vote, win or report.
+- **We find out when it breaks**: every failure path is deliberately quiet, so
+  an outage looks like a slow evening (#64).
+- **It is proven in production**: the whole cycle run on a real phone (#65),
+  including the devices a QR scan actually lands on (#66).
 
 v6 changes: scheduling moved from an hourly cron to on-demand transitions plus a daily cleanup job (ADR-003, Vercel Hobby only allows daily cron); owner Pause/Remove moved from phase 4 into phase 2 as the moderation backstop; moderation-outage behavior defined; phase 4 is now the UI pass.
 
