@@ -1,6 +1,5 @@
 "use client";
 
-import { getStroke } from "perfect-freehand";
 import {
   forwardRef,
   type PointerEvent,
@@ -8,22 +7,20 @@ import {
   useEffect,
   useImperativeHandle,
   useRef,
+  useState,
 } from "react";
-import { strokeToSvgPath } from "./stroke-path";
+import {
+  backingSizeFor,
+  renderScene,
+  renderTile,
+  type Stroke,
+  TILE_SIZE,
+} from "./render";
 
-/** Drawing resolution; the server resizes to the stored tile size. */
-const CANVAS_SIZE = 768;
-
-export type Stroke = {
-  points: [x: number, y: number, pressure: number][];
-  color: string;
-  size: number;
-  /** Mice and fingers report no real pressure, so it's simulated from speed. */
-  simulatePressure: boolean;
-};
+export type { Stroke } from "./render";
 
 export type DrawingCanvasHandle = {
-  /** Exports the drawing as a PNG on a white background. */
+  /** Exports the drawing as a PNG on a white background, at tile size. */
   toBlob: () => Promise<Blob>;
 };
 
@@ -31,47 +28,68 @@ type DrawingCanvasProps = {
   strokes: Stroke[];
   color: string;
   size: number;
+  showGrid: boolean;
   disabled?: boolean;
   onStrokeEnd: (stroke: Stroke) => void;
 };
 
-function drawStroke(context: CanvasRenderingContext2D, stroke: Stroke) {
-  const outline = getStroke(stroke.points, {
-    size: stroke.size,
-    thinning: 0.5,
-    smoothing: 0.5,
-    streamline: 0.5,
-    simulatePressure: stroke.simulatePressure,
-  });
-  context.fillStyle = stroke.color;
-  context.fill(new Path2D(strokeToSvgPath(outline)));
-}
-
 export const DrawingCanvas = forwardRef<
   DrawingCanvasHandle,
   DrawingCanvasProps
->(function DrawingCanvas({ strokes, color, size, disabled, onStrokeEnd }, ref) {
+>(function DrawingCanvas(
+  { strokes, color, size, showGrid, disabled, onStrokeEnd },
+  ref,
+) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const activeStroke = useRef<Stroke | null>(null);
+  // Held in state rather than read on each paint: changing it resizes the
+  // backing store, which clears the canvas, so it has to drive a redraw.
+  const [backingSize, setBackingSize] = useState(TILE_SIZE);
 
   const redraw = useCallback(() => {
-    const context = canvasRef.current?.getContext("2d");
-    if (!context) return;
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
+    if (!canvas || !context) return;
 
-    // Paint the background explicitly so the exported PNG isn't transparent.
-    context.fillStyle = "#ffffff";
-    context.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-    for (const stroke of strokes) drawStroke(context, stroke);
-    if (activeStroke.current) drawStroke(context, activeStroke.current);
-  }, [strokes]);
+    // Everything below draws in tile units; this is the only place that knows
+    // how many device pixels one of those is worth.
+    const scale = canvas.width / TILE_SIZE;
+    context.setTransform(scale, 0, 0, scale, 0, 0);
 
-  useEffect(redraw, [redraw]);
+    renderScene(context, {
+      strokes,
+      activeStroke: activeStroke.current,
+      showGrid,
+    });
+  }, [strokes, showGrid]);
+
+  useEffect(redraw, [redraw, backingSize]);
+
+  // The canvas is as wide as its container, which changes with the window and
+  // when a phone is turned.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const measure = () => {
+      const width = canvas.getBoundingClientRect().width;
+      if (width > 0) {
+        setBackingSize(backingSizeFor(width, window.devicePixelRatio));
+      }
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, []);
 
   useImperativeHandle(ref, () => ({
     toBlob: () =>
       new Promise((resolve, reject) => {
-        redraw();
-        canvasRef.current?.toBlob(
+        // Rendered fresh at tile size: what's on screen is bigger, and has a
+        // grid on it that nobody else should see.
+        renderTile(strokes).toBlob(
           (blob) =>
             blob ? resolve(blob) : reject(new Error("Canvas export failed")),
           "image/png",
@@ -79,11 +97,12 @@ export const DrawingCanvas = forwardRef<
       }),
   }));
 
-  function toCanvasPoint(
-    event: PointerEvent<HTMLCanvasElement>,
+  /** Screen coordinates to tile coordinates. */
+  function toTilePoint(
+    event: { clientX: number; clientY: number; pressure: number },
+    rect: DOMRect,
   ): [number, number, number] {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const scale = CANVAS_SIZE / rect.width;
+    const scale = TILE_SIZE / rect.width;
     return [
       (event.clientX - rect.left) * scale,
       (event.clientY - rect.top) * scale,
@@ -95,7 +114,7 @@ export const DrawingCanvas = forwardRef<
     if (disabled || !event.isPrimary) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     activeStroke.current = {
-      points: [toCanvasPoint(event)],
+      points: [toTilePoint(event, event.currentTarget.getBoundingClientRect())],
       color,
       size,
       simulatePressure: event.pointerType !== "pen",
@@ -107,21 +126,16 @@ export const DrawingCanvas = forwardRef<
     const stroke = activeStroke.current;
     if (!stroke || !event.isPrimary) return;
 
+    const rect = event.currentTarget.getBoundingClientRect();
     // Coalesced events recover the points the browser batched between
     // frames, which keeps fast strokes from looking jagged.
-    const events = event.nativeEvent.getCoalescedEvents?.() ?? [];
-    if (events.length > 0) {
-      const rect = event.currentTarget.getBoundingClientRect();
-      const scale = CANVAS_SIZE / rect.width;
-      for (const coalesced of events) {
-        stroke.points.push([
-          (coalesced.clientX - rect.left) * scale,
-          (coalesced.clientY - rect.top) * scale,
-          coalesced.pressure || 0.5,
-        ]);
+    const coalesced = event.nativeEvent.getCoalescedEvents?.() ?? [];
+    if (coalesced.length > 0) {
+      for (const point of coalesced) {
+        stroke.points.push(toTilePoint(point, rect));
       }
     } else {
-      stroke.points.push(toCanvasPoint(event));
+      stroke.points.push(toTilePoint(event, rect));
     }
     redraw();
   }
@@ -136,8 +150,8 @@ export const DrawingCanvas = forwardRef<
   return (
     <canvas
       ref={canvasRef}
-      width={CANVAS_SIZE}
-      height={CANVAS_SIZE}
+      width={backingSize}
+      height={backingSize}
       aria-label="Drawing area"
       // Stops the page from scrolling or zooming while drawing with a finger.
       className="aspect-square w-full touch-none rounded-lg border bg-white"
