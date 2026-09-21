@@ -98,9 +98,12 @@ one can still draw as a guest. None of these are v1.
 
 **Downloading your own drawings** (#57) is the one worth pulling forward
 soonest: everything but a winner is deleted 30 days after voting, image and
-all, so today a screenshot is the only way anyone keeps what they drew. A save
-link on your own tile is a URL change and a link; a whole week as a zip is a
-day's work. Not v1 as it stands.
+all, so today a screenshot is the only way anyone keeps what they drew.
+Downloading would need an account — a guest sees the option and is asked to
+sign in when they tap it, since that is the moment an account is worth
+something to them. The catch to solve first is that signing in does not make a
+guest tile theirs, so the account has to adopt what the device posted. Not v1
+as it stands.
 
 ## Phases
 1. Owner signs in → creates board → customers open QR → username → draw tile → live feed on phones *(done)*
