@@ -20,6 +20,7 @@ import {
   type DrawingCanvasHandle,
   type Stroke,
 } from "./drawing-canvas";
+import type { Brush } from "./render";
 import type { PostTileState } from "./schema";
 
 const COLORS = [
@@ -38,6 +39,14 @@ const MIN_SIZE = 4;
 const MAX_SIZE = 64;
 const DEFAULT_SIZE = 18;
 
+/** Pen first: it's what most people reach for, and what they already know. */
+const BRUSHES: { value: Brush; name: string }[] = [
+  { value: "pen", name: "Pen" },
+  { value: "marker", name: "Marker" },
+  { value: "spray", name: "Spray" },
+];
+
+const BRUSH_STORAGE_KEY = "drawpin:brush";
 const SIZE_STORAGE_KEY = "drawpin:brush-size";
 const COLOR_STORAGE_KEY = "drawpin:brush-color";
 const GRID_STORAGE_KEY = "drawpin:show-grid";
@@ -98,14 +107,21 @@ export function DrawTileForm({
   // What they used last time, read the same way the hydration flag is: the
   // server has no storage, so its snapshot is null and the first client
   // render matches the HTML it's hydrating.
+  const storedBrush = useStored(BRUSH_STORAGE_KEY);
   const storedColor = useStored(COLOR_STORAGE_KEY);
   const storedSize = Number(useStored(SIZE_STORAGE_KEY));
   const storedGrid = useStored(GRID_STORAGE_KEY);
 
+  const [pickedBrush, setBrush] = useState<Brush | null>(null);
   const [pickedColor, setColor] = useState<string | null>(null);
   const [pickedSize, setSize] = useState<number | null>(null);
   const [pickedGrid, setShowGrid] = useState<boolean | null>(null);
 
+  const brush =
+    pickedBrush ??
+    (BRUSHES.some((option) => option.value === storedBrush)
+      ? (storedBrush as Brush)
+      : "pen");
   const color = pickedColor ?? storedColor ?? COLORS[0].value;
   const size =
     pickedSize ??
@@ -223,6 +239,7 @@ export function DrawTileForm({
         strokes={strokes}
         color={color}
         size={size}
+        brush={brush}
         showGrid={showGrid}
         disabled={pending}
         onStrokeEnd={addStroke}
@@ -230,6 +247,25 @@ export function DrawTileForm({
 
       {step === "drawing" ? (
         <>
+          <fieldset className="flex gap-2" disabled={pending}>
+            <legend className="sr-only">Brush</legend>
+            {BRUSHES.map((option) => (
+              <Button
+                key={option.value}
+                type="button"
+                variant={brush === option.value ? "default" : "outline"}
+                size="sm"
+                aria-pressed={brush === option.value}
+                onClick={() => {
+                  setBrush(option.value);
+                  remember(BRUSH_STORAGE_KEY, option.value);
+                }}
+              >
+                {option.name}
+              </Button>
+            ))}
+          </fieldset>
+
           <fieldset className="flex flex-wrap gap-2" disabled={pending}>
             <legend className="sr-only">Colour</legend>
             {COLORS.map((option) => (

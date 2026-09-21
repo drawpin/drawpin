@@ -5,6 +5,7 @@ import {
   clampView,
   MAX_ZOOM,
   screenToTile,
+  sprayDots,
   TILE_SIZE,
   WHOLE_TILE,
   zoomAround,
@@ -98,5 +99,66 @@ describe("zoomAround", () => {
     const back = zoomAround(zoomed, 1, 200, 200, 343);
 
     expect(back).toEqual(WHOLE_TILE);
+  });
+});
+
+describe("sprayDots", () => {
+  const line: [number, number, number][] = [
+    [100, 100, 0.5],
+    [300, 100, 0.5],
+  ];
+
+  it("puts the same dots in the same places for the same stroke", () => {
+    // Drawings are re-rendered on every frame, every undo and every zoom; a
+    // spray that scattered differently each time would shimmer.
+    expect(sprayDots(line, 20, 42)).toEqual(sprayDots(line, 20, 42));
+  });
+
+  it("scatters differently for a different stroke", () => {
+    expect(sprayDots(line, 20, 42)).not.toEqual(sprayDots(line, 20, 43));
+  });
+
+  it("keeps every dot within the brush's reach of the line", () => {
+    const dots = sprayDots(line, 40, 7);
+
+    for (const dot of dots) {
+      // The line runs along y = 100 between x = 100 and x = 300.
+      const nearestX = Math.min(Math.max(dot.x, 100), 300);
+      expect(Math.hypot(dot.x - nearestX, dot.y - 100)).toBeLessThanOrEqual(20);
+    }
+  });
+
+  it("costs about the same per pixel however long the stroke is", () => {
+    const short = sprayDots(
+      [
+        [0, 0, 0.5],
+        [100, 0, 0.5],
+      ],
+      20,
+      1,
+    );
+    const long = sprayDots(
+      [
+        [0, 0, 0.5],
+        [400, 0, 0.5],
+      ],
+      20,
+      1,
+    );
+
+    // Four times the length, roughly four times the dots — not sixteen.
+    expect(long.length / short.length).toBeGreaterThan(3);
+    expect(long.length / short.length).toBeLessThan(5);
+  });
+
+  it("thins out as the brush grows, so a fat spray isn't thousands of dots", () => {
+    const fine = sprayDots(line, 8, 3).length;
+    const fat = sprayDots(line, 64, 3).length;
+
+    expect(fat).toBeLessThan(fine);
+  });
+
+  it("still marks the paper on a single tap", () => {
+    expect(sprayDots([[50, 50, 0.5]], 20, 5).length).toBeGreaterThan(0);
   });
 });

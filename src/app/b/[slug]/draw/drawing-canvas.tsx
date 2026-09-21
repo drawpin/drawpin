@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   backingSizeFor,
+  type Brush,
   clampView,
   renderScene,
   renderTile,
@@ -34,6 +35,7 @@ type DrawingCanvasProps = {
   strokes: Stroke[];
   color: string;
   size: number;
+  brush: Brush;
   showGrid: boolean;
   disabled?: boolean;
   onStrokeEnd: (stroke: Stroke) => void;
@@ -57,7 +59,7 @@ export const DrawingCanvas = forwardRef<
   DrawingCanvasHandle,
   DrawingCanvasProps
 >(function DrawingCanvas(
-  { strokes, color, size, showGrid, disabled, onStrokeEnd },
+  { strokes, color, size, brush, showGrid, disabled, onStrokeEnd },
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -177,6 +179,9 @@ export const DrawingCanvas = forwardRef<
       points: [toTilePoint(event, rect)],
       color,
       size,
+      brush,
+      // Fixed now so the spray lands in the same places on every redraw.
+      seed: Math.floor(Math.random() * 2 ** 31),
       simulatePressure: event.pointerType !== "pen",
     };
     redraw();
