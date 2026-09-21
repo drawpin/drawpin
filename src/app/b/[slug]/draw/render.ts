@@ -12,7 +12,10 @@ export const TILE_SIZE = 768;
 export const GRID_CELLS = 8;
 
 /** What the stroke was drawn with. */
-export type Brush = "pen" | "marker" | "spray";
+export type Brush = "pen" | "marker" | "spray" | "eraser";
+
+/** The tile's paper, and so what the eraser paints back onto it. */
+export const PAPER = "#ffffff";
 
 export type Stroke = {
   points: [x: number, y: number, pressure: number][];
@@ -136,19 +139,22 @@ function drawStroke(context: CanvasRenderingContext2D, stroke: Stroke) {
 
   // A marker has no pressure at all — an even line is what makes a shaky one
   // look deliberate — and enough transparency that crossing an earlier stroke
-  // darkens where they meet.
+  // darkens where they meet. An eraser is the same shape in the colour of the
+  // paper: the tile is always white underneath, so there's nothing to reveal.
   const isMarker = stroke.brush === "marker";
+  const isEraser = stroke.brush === "eraser";
+  const evenWidth = isMarker || isEraser;
   const outline = getStroke(stroke.points, {
     size: stroke.size,
-    thinning: isMarker ? 0 : 0.5,
-    smoothing: isMarker ? 0.6 : 0.5,
-    streamline: isMarker ? 0.6 : 0.5,
-    simulatePressure: isMarker ? false : stroke.simulatePressure,
+    thinning: evenWidth ? 0 : 0.5,
+    smoothing: evenWidth ? 0.6 : 0.5,
+    streamline: evenWidth ? 0.6 : 0.5,
+    simulatePressure: evenWidth ? false : stroke.simulatePressure,
   });
 
   context.save();
   if (isMarker) context.globalAlpha = 0.85;
-  context.fillStyle = stroke.color;
+  context.fillStyle = isEraser ? PAPER : stroke.color;
   context.fill(new Path2D(strokeToSvgPath(outline)));
   context.restore();
 }

@@ -44,10 +44,14 @@ const BRUSHES: { value: Brush; name: string }[] = [
   { value: "pen", name: "Pen" },
   { value: "marker", name: "Marker" },
   { value: "spray", name: "Spray" },
+  { value: "eraser", name: "Eraser" },
 ];
 
 const BRUSH_STORAGE_KEY = "drawpin:brush";
 const SIZE_STORAGE_KEY = "drawpin:brush-size";
+const ERASER_SIZE_STORAGE_KEY = "drawpin:eraser-size";
+/** Erasing is usually coarser work than drawing, so it starts bigger. */
+const DEFAULT_ERASER_SIZE = 36;
 const COLOR_STORAGE_KEY = "drawpin:brush-color";
 const GRID_STORAGE_KEY = "drawpin:show-grid";
 
@@ -110,11 +114,13 @@ export function DrawTileForm({
   const storedBrush = useStored(BRUSH_STORAGE_KEY);
   const storedColor = useStored(COLOR_STORAGE_KEY);
   const storedSize = Number(useStored(SIZE_STORAGE_KEY));
+  const storedEraserSize = Number(useStored(ERASER_SIZE_STORAGE_KEY));
   const storedGrid = useStored(GRID_STORAGE_KEY);
 
   const [pickedBrush, setBrush] = useState<Brush | null>(null);
   const [pickedColor, setColor] = useState<string | null>(null);
   const [pickedSize, setSize] = useState<number | null>(null);
+  const [pickedEraserSize, setEraserSize] = useState<number | null>(null);
   const [pickedGrid, setShowGrid] = useState<boolean | null>(null);
 
   const brush =
@@ -123,11 +129,21 @@ export function DrawTileForm({
       ? (storedBrush as Brush)
       : "pen");
   const color = pickedColor ?? storedColor ?? COLORS[0].value;
-  const size =
+  const isErasing = brush === "eraser";
+
+  // The eraser keeps its own size: switching to it to rub something out
+  // shouldn't cost you the brush size you'd settled on.
+  const brushSize =
     pickedSize ??
     (storedSize >= MIN_SIZE && storedSize <= MAX_SIZE
       ? storedSize
       : DEFAULT_SIZE);
+  const eraserSize =
+    pickedEraserSize ??
+    (storedEraserSize >= MIN_SIZE && storedEraserSize <= MAX_SIZE
+      ? storedEraserSize
+      : DEFAULT_ERASER_SIZE);
+  const size = isErasing ? eraserSize : brushSize;
   const showGrid = pickedGrid ?? storedGrid === "true";
   // Drawings undone but not yet replaced, newest last.
   const [undone, setUndone] = useState<Stroke[]>([]);
@@ -301,7 +317,7 @@ export function DrawTileForm({
                   y1="12"
                   x2="50"
                   y2="12"
-                  stroke={color}
+                  stroke={isErasing ? "#d1d5db" : color}
                   strokeWidth={Math.max(size / 3, 2)}
                   strokeLinecap="round"
                 />
@@ -359,7 +375,7 @@ export function DrawTileForm({
                 htmlFor="brush-size"
                 className="text-muted-foreground text-xs"
               >
-                Size
+                {isErasing ? "Eraser" : "Size"}
               </Label>
               <input
                 id="brush-size"
@@ -370,8 +386,13 @@ export function DrawTileForm({
                 disabled={pending}
                 onChange={(event) => {
                   const next = Number(event.target.value);
-                  setSize(next);
-                  remember(SIZE_STORAGE_KEY, String(next));
+                  if (isErasing) {
+                    setEraserSize(next);
+                    remember(ERASER_SIZE_STORAGE_KEY, String(next));
+                  } else {
+                    setSize(next);
+                    remember(SIZE_STORAGE_KEY, String(next));
+                  }
                 }}
                 className="flex-1 accent-black"
                 autoFocus
