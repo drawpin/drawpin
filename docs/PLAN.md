@@ -109,7 +109,7 @@ as it stands.
 1. Owner signs in → creates board → customers open QR → username → draw tile → live feed on phones *(done)*
 2. Safety, before sharing the board publicly: moderation pipeline, owner Pause board + Remove tile, Turnstile, device limits, rotating daily join code
 3. Accounts and the weekly cycle: Google sign-in and profiles, then week status from timestamps, voting, weekly winner, Hall of Fame, monthly final and super winner, reporting, cleanup job
-4. **Fully functional first** (issue #67), then the UI pass (#40, with #38 and #39)
+4. **Fully functional first** (issue #67), then the UI pass (#40, with #39) — including showing a real board on the home page rather than describing one
 5. Back-pocket features, starting with downloading your own drawings (#57)
 
 ### Fully functional before the UI pass
