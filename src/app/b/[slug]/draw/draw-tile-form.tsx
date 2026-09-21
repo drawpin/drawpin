@@ -17,8 +17,8 @@ import { TURNSTILE_FIELD } from "@/lib/turnstile/field";
 import { postTileAction } from "./actions";
 import {
   DrawingCanvas,
+  type DrawOp,
   type DrawingCanvasHandle,
-  type Stroke,
 } from "./drawing-canvas";
 import type { Brush } from "./render";
 import type { PostTileState } from "./schema";
@@ -107,7 +107,8 @@ export function DrawTileForm({
     postTileAction,
     initialState,
   );
-  const [strokes, setStrokes] = useState<Stroke[]>([]);
+  const [ops, setOps] = useState<DrawOp[]>([]);
+  const [filling, setFilling] = useState(false);
   // What they used last time, read the same way the hydration flag is: the
   // server has no storage, so its snapshot is null and the first client
   // render matches the HTML it's hydrating.
@@ -145,8 +146,8 @@ export function DrawTileForm({
       : DEFAULT_ERASER_SIZE);
   const size = isErasing ? eraserSize : brushSize;
   const showGrid = pickedGrid ?? storedGrid === "true";
-  // Drawings undone but not yet replaced, newest last.
-  const [undone, setUndone] = useState<Stroke[]>([]);
+  // Things undone but not yet replaced, newest last.
+  const [undone, setUndone] = useState<DrawOp[]>([]);
   // Drawing comes first and alone; who you are and what to call it are asked
   // once there's something to post.
   const [step, setStep] = useState<"drawing" | "details">("drawing");
@@ -172,7 +173,7 @@ export function DrawTileForm({
     event.preventDefault();
     setLocalError(null);
 
-    if (strokes.length === 0) {
+    if (ops.length === 0) {
       setLocalError("Draw something first.");
       return;
     }
@@ -206,14 +207,14 @@ export function DrawTileForm({
     }
   }
 
-  function addStroke(stroke: Stroke) {
-    setStrokes((current) => [...current, stroke]);
-    // A new stroke is a new branch: what was undone can't come back.
+  function addOp(op: DrawOp) {
+    setOps((current) => [...current, op]);
+    // Doing something new is a new branch: what was undone can't come back.
     setUndone([]);
   }
 
   function undo() {
-    setStrokes((current) => {
+    setOps((current) => {
       const last = current.at(-1);
       if (last) setUndone((redoable) => [...redoable, last]);
       return current.slice(0, -1);
@@ -223,13 +224,13 @@ export function DrawTileForm({
   function redo() {
     setUndone((current) => {
       const last = current.at(-1);
-      if (last) setStrokes((drawn) => [...drawn, last]);
+      if (last) setOps((drawn) => [...drawn, last]);
       return current.slice(0, -1);
     });
   }
 
   function goToDetails() {
-    if (strokes.length === 0) {
+    if (ops.length === 0) {
       setLocalError("Draw something first.");
       return;
     }
@@ -252,13 +253,14 @@ export function DrawTileForm({
 
       <DrawingCanvas
         ref={canvasRef}
-        strokes={strokes}
+        ops={ops}
         color={color}
         size={size}
         brush={brush}
+        filling={filling}
         showGrid={showGrid}
         disabled={pending}
-        onStrokeEnd={addStroke}
+        onDraw={addOp}
       />
 
       {step === "drawing" ? (
@@ -269,17 +271,29 @@ export function DrawTileForm({
               <Button
                 key={option.value}
                 type="button"
-                variant={brush === option.value ? "default" : "outline"}
+                variant={
+                  !filling && brush === option.value ? "default" : "outline"
+                }
                 size="sm"
-                aria-pressed={brush === option.value}
+                aria-pressed={!filling && brush === option.value}
                 onClick={() => {
                   setBrush(option.value);
+                  setFilling(false);
                   remember(BRUSH_STORAGE_KEY, option.value);
                 }}
               >
                 {option.name}
               </Button>
             ))}
+            <Button
+              type="button"
+              variant={filling ? "default" : "outline"}
+              size="sm"
+              aria-pressed={filling}
+              onClick={() => setFilling((current) => !current)}
+            >
+              Fill
+            </Button>
           </fieldset>
 
           <fieldset className="flex flex-wrap gap-2" disabled={pending}>
@@ -341,7 +355,7 @@ export function DrawTileForm({
               type="button"
               variant="ghost"
               size="sm"
-              disabled={pending || strokes.length === 0}
+              disabled={pending || ops.length === 0}
               onClick={undo}
             >
               Undo
@@ -359,9 +373,9 @@ export function DrawTileForm({
               type="button"
               variant="ghost"
               size="sm"
-              disabled={pending || strokes.length === 0}
+              disabled={pending || ops.length === 0}
               onClick={() => {
-                setStrokes([]);
+                setOps([]);
                 setUndone([]);
               }}
             >

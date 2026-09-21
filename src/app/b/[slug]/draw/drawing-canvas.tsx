@@ -14,6 +14,8 @@ import {
   backingSizeFor,
   type Brush,
   clampView,
+  type DrawOp,
+  fillAt,
   renderScene,
   renderTile,
   screenToTile,
@@ -24,7 +26,7 @@ import {
   zoomAround,
 } from "./render";
 
-export type { Stroke } from "./render";
+export type { DrawOp, Stroke } from "./render";
 
 export type DrawingCanvasHandle = {
   /** Exports the drawing as a PNG on a white background, at tile size. */
@@ -32,13 +34,15 @@ export type DrawingCanvasHandle = {
 };
 
 type DrawingCanvasProps = {
-  strokes: Stroke[];
+  ops: DrawOp[];
   color: string;
   size: number;
   brush: Brush;
+  /** Tapping fills the area under the finger instead of drawing. */
+  filling: boolean;
   showGrid: boolean;
   disabled?: boolean;
-  onStrokeEnd: (stroke: Stroke) => void;
+  onDraw: (op: DrawOp) => void;
 };
 
 /** Where a finger is, in CSS pixels within the canvas. */
@@ -59,7 +63,7 @@ export const DrawingCanvas = forwardRef<
   DrawingCanvasHandle,
   DrawingCanvasProps
 >(function DrawingCanvas(
-  { strokes, color, size, brush, showGrid, disabled, onStrokeEnd },
+  { ops, color, size, brush, filling, showGrid, disabled, onDraw },
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -92,11 +96,11 @@ export const DrawingCanvas = forwardRef<
     context.clearRect(0, 0, canvas.width, canvas.height);
 
     renderScene(context, {
-      strokes,
+      ops,
       activeStroke: activeStroke.current,
       showGrid,
     });
-  }, [strokes, showGrid, view]);
+  }, [ops, showGrid, view]);
 
   useEffect(redraw, [redraw, backingSize]);
 
@@ -124,7 +128,7 @@ export const DrawingCanvas = forwardRef<
       new Promise((resolve, reject) => {
         // Rendered fresh at tile size, whole and without a grid: zooming in
         // is a way of looking at the drawing, not part of it.
-        renderTile(strokes).toBlob(
+        renderTile(ops).toBlob(
           (blob) =>
             blob ? resolve(blob) : reject(new Error("Canvas export failed")),
           "image/png",
@@ -175,7 +179,16 @@ export const DrawingCanvas = forwardRef<
       return;
     }
 
+    if (filling) {
+      // A bucket is a tap, not a stroke: work out the area now and keep it.
+      const [x, y] = toTilePoint(event, rect);
+      const fill = fillAt(ops, x, y, color);
+      if (fill) onDraw(fill);
+      return;
+    }
+
     activeStroke.current = {
+      kind: "stroke",
       points: [toTilePoint(event, rect)],
       color,
       size,
@@ -246,7 +259,7 @@ export const DrawingCanvas = forwardRef<
     // down; anything else was a gesture.
     if (!stroke || fingers.current.size > 0) return;
     activeStroke.current = null;
-    onStrokeEnd(stroke);
+    onDraw(stroke);
   }
 
   /** Zooming with a wheel, for anyone drawing with a mouse or trackpad. */
