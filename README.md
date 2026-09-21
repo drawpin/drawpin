@@ -96,6 +96,17 @@ output of `npx supabase start`.
 | `TURNSTILE_SECRET_KEY`           | yes      | Turnstile secret, used to verify tokens server-side. Posting and owner sign-in are refused while it is missing. Test secret: `1x0000000000000000000000000000000AA` |
 | `CRON_SECRET`                    | no       | Bearer token Vercel Cron sends to the daily cleanup. The endpoint refuses to run while it is unset, which is what you want outside production                      |
 
+## Health checks
+
+`GET /api/health` is public and cheap: one database round trip, nothing else.
+Point an uptime monitor at it.
+
+`GET /api/cron/health` runs daily and asks the things that fail silently —
+whether OpenAI still accepts our key, whether Cloudflare still accepts our
+Turnstile secret, and whether the database and storage answer. It needs the
+`CRON_SECRET` bearer token, and returns 503 when anything is wrong so the run
+shows as failed in Vercel.
+
 ## Contributing
 
 - One branch → one pull request. Branches: `type/short-name`, with an issue number when there is one.
