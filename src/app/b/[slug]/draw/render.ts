@@ -1,4 +1,5 @@
 import { getStroke } from "perfect-freehand";
+import { floodFill } from "./flood-fill";
 import { strokeToSvgPath } from "./stroke-path";
 
 /**
@@ -18,6 +19,7 @@ export type Brush = "pen" | "marker" | "spray" | "eraser";
 export const PAPER = "#ffffff";
 
 export type Stroke = {
+  kind: "stroke";
   points: [x: number, y: number, pressure: number][];
   color: string;
   size: number;
@@ -104,11 +106,28 @@ export function sprayDots(
   return dots;
 }
 
+/**
+ * An area coloured in by the bucket.
+ *
+ * The shape is worked out once, when the bucket is tapped, and kept as a
+ * picture of just that area. Everything drawn before it can never change
+ * afterwards — undo only ever removes from the end — so there's nothing to
+ * recompute, and replaying a fill is a single paste.
+ */
+export type Fill = {
+  kind: "fill";
+  color: string;
+  mask: { canvas: HTMLCanvasElement; x: number; y: number };
+};
+
+/** One thing someone did to the tile, in the order they did it. */
+export type DrawOp = Stroke | Fill;
+
 export type Scene = {
-  strokes: Stroke[];
+  ops: DrawOp[];
   /** The stroke being drawn right now, if any. */
   activeStroke: Stroke | null;
-  /** Drawn under the strokes, and never part of the exported tile. */
+  /** Drawn under the drawing, and never part of the exported tile. */
   showGrid: boolean;
 };
 
@@ -199,7 +218,14 @@ export function renderScene(
 
   if (scene.showGrid) drawGrid(context);
 
-  for (const stroke of scene.strokes) drawStroke(context, stroke);
+  for (const op of scene.ops) {
+    if (op.kind === "fill") {
+      context.drawImage(op.mask.canvas, op.mask.x, op.mask.y);
+    } else {
+      drawStroke(context, op);
+    }
+  }
+
   if (scene.activeStroke) drawStroke(context, scene.activeStroke);
 }
 
@@ -209,7 +235,7 @@ export function renderScene(
  * Separate from what's on screen so the two can never drift: the canvas the
  * visitor draws on is sized to their display, which is usually larger.
  */
-export function renderTile(strokes: Stroke[]): HTMLCanvasElement {
+export function renderTile(ops: DrawOp[]): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
   canvas.width = TILE_SIZE;
   canvas.height = TILE_SIZE;
@@ -217,8 +243,67 @@ export function renderTile(strokes: Stroke[]): HTMLCanvasElement {
   const context = canvas.getContext("2d");
   if (!context) throw new Error("Canvas is unavailable");
 
-  renderScene(context, { strokes, activeStroke: null, showGrid: false });
+  renderScene(context, { ops, activeStroke: null, showGrid: false });
   return canvas;
+}
+
+/**
+ * Colours in the area around a point, the way a paint bucket does.
+ *
+ * Worked out against the whole tile at its own resolution rather than against
+ * what happens to be on screen, so a fill made while zoomed in covers exactly
+ * what it would have covered zoomed out.
+ *
+ * @returns The fill, or `null` if there was nothing to colour in.
+ */
+export function fillAt(
+  ops: DrawOp[],
+  x: number,
+  y: number,
+  color: string,
+): Fill | null {
+  const tile = renderTile(ops);
+  const context = tile.getContext("2d");
+  if (!context) return null;
+
+  const region = floodFill(
+    context.getImageData(0, 0, TILE_SIZE, TILE_SIZE),
+    x,
+    y,
+  );
+  if (!region) return null;
+
+  const mask = document.createElement("canvas");
+  mask.width = region.width;
+  mask.height = region.height;
+
+  const maskContext = mask.getContext("2d");
+  if (!maskContext) return null;
+
+  const image = maskContext.createImageData(region.width, region.height);
+  const [red, green, blue] = toRgb(color);
+
+  for (let index = 0; index < region.pixels.length; index++) {
+    if (!region.pixels[index]) continue;
+    const offset = index * 4;
+    image.data[offset] = red;
+    image.data[offset + 1] = green;
+    image.data[offset + 2] = blue;
+    image.data[offset + 3] = 255;
+  }
+
+  maskContext.putImageData(image, 0, 0);
+  return {
+    kind: "fill",
+    color,
+    mask: { canvas: mask, x: region.x, y: region.y },
+  };
+}
+
+/** `#rrggbb` to its three parts. */
+function toRgb(color: string): [number, number, number] {
+  const value = Number.parseInt(color.replace("#", ""), 16);
+  return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
 }
 
 /**
