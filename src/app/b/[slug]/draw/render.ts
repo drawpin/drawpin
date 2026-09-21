@@ -116,3 +116,81 @@ export function backingSizeFor(cssWidth: number, pixelRatio: number): number {
   const ratio = Math.min(Math.max(pixelRatio, 1), 3);
   return Math.max(Math.round(cssWidth * ratio), TILE_SIZE);
 }
+
+/** How far in someone can zoom while drawing. */
+export const MAX_ZOOM = 8;
+
+/**
+ * Which part of the tile is on screen.
+ *
+ * The drawing itself never changes when this does — only the window onto it —
+ * so a tile drawn zoomed in is the same picture as one drawn zoomed out.
+ */
+export type View = {
+  /** 1 shows the whole tile; 8 shows an eighth of it across. */
+  scale: number;
+  /** Tile coordinates of the top-left corner on screen. */
+  offsetX: number;
+  offsetY: number;
+};
+
+export const WHOLE_TILE: View = { scale: 1, offsetX: 0, offsetY: 0 };
+
+/**
+ * Keeps a view over the tile: never further out than the whole thing, never
+ * so far in that the drawing leaves the screen.
+ */
+export function clampView(view: View): View {
+  const scale = Math.min(Math.max(view.scale, 1), MAX_ZOOM);
+  const visible = TILE_SIZE / scale;
+  const furthest = TILE_SIZE - visible;
+
+  return {
+    scale,
+    offsetX: Math.min(Math.max(view.offsetX, 0), furthest),
+    offsetY: Math.min(Math.max(view.offsetY, 0), furthest),
+  };
+}
+
+/**
+ * The point on the tile under a position on screen.
+ *
+ * @param cssX - Position within the canvas element, in CSS pixels.
+ * @param cssSize - The canvas element's width in CSS pixels; it's square.
+ */
+export function screenToTile(
+  view: View,
+  cssX: number,
+  cssY: number,
+  cssSize: number,
+): [number, number] {
+  const visible = TILE_SIZE / view.scale;
+  return [
+    view.offsetX + (cssX / cssSize) * visible,
+    view.offsetY + (cssY / cssSize) * visible,
+  ];
+}
+
+/**
+ * Zooms to `scale` while holding one point still under the fingers.
+ *
+ * Anchoring is what makes a pinch feel attached to the drawing rather than to
+ * the screen: the spot between someone's fingers is the spot that stays put.
+ */
+export function zoomAround(
+  view: View,
+  scale: number,
+  anchorCssX: number,
+  anchorCssY: number,
+  cssSize: number,
+): View {
+  const [tileX, tileY] = screenToTile(view, anchorCssX, anchorCssY, cssSize);
+  const clamped = Math.min(Math.max(scale, 1), MAX_ZOOM);
+  const visible = TILE_SIZE / clamped;
+
+  return clampView({
+    scale: clamped,
+    offsetX: tileX - (anchorCssX / cssSize) * visible,
+    offsetY: tileY - (anchorCssY / cssSize) * visible,
+  });
+}
