@@ -115,6 +115,10 @@ export function DrawTileForm({
   const showGrid = pickedGrid ?? storedGrid === "true";
   // Drawings undone but not yet replaced, newest last.
   const [undone, setUndone] = useState<Stroke[]>([]);
+  // Drawing comes first and alone; who you are and what to call it are asked
+  // once there's something to post.
+  const [step, setStep] = useState<"drawing" | "details">("drawing");
+  const [sizeOpen, setSizeOpen] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const canvasRef = useRef<DrawingCanvasHandle>(null);
   const nameRef = useRef<HTMLInputElement>(null);
@@ -192,6 +196,16 @@ export function DrawTileForm({
     });
   }
 
+  function goToDetails() {
+    if (strokes.length === 0) {
+      setLocalError("Draw something first.");
+      return;
+    }
+    setLocalError(null);
+    setSizeOpen(false);
+    setStep("details");
+  }
+
   const error = localError ?? (state.status === "error" ? state.message : null);
 
   return (
@@ -214,145 +228,195 @@ export function DrawTileForm({
         onStrokeEnd={addStroke}
       />
 
-      <fieldset className="flex flex-wrap gap-2" disabled={pending}>
-        <legend className="sr-only">Colour</legend>
-        {COLORS.map((option) => (
-          <button
-            key={option.value}
+      {step === "drawing" ? (
+        <>
+          <fieldset className="flex flex-wrap gap-2" disabled={pending}>
+            <legend className="sr-only">Colour</legend>
+            {COLORS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                aria-label={option.name}
+                aria-pressed={color === option.value}
+                onClick={() => {
+                  setColor(option.value);
+                  remember(COLOR_STORAGE_KEY, option.value);
+                }}
+                className="size-9 rounded-full border-2 aria-pressed:border-black aria-pressed:ring-2 aria-pressed:ring-offset-2"
+                style={{ backgroundColor: option.value }}
+              />
+            ))}
+          </fieldset>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* The control is a stroke of the current brush: pressing it opens
+              the slider, so the size only takes room when it's being changed. */}
+            <button
+              type="button"
+              onClick={() => setSizeOpen((open) => !open)}
+              aria-expanded={sizeOpen}
+              aria-label={`Brush size, ${size}`}
+              disabled={pending}
+              className="flex h-9 w-16 items-center justify-center rounded-md border aria-expanded:border-2 aria-expanded:border-black"
+            >
+              <svg viewBox="0 0 56 24" className="h-6 w-12" aria-hidden>
+                <line
+                  x1="6"
+                  y1="12"
+                  x2="50"
+                  y2="12"
+                  stroke={color}
+                  strokeWidth={Math.max(size / 3, 2)}
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
+            <Button
+              type="button"
+              variant={showGrid ? "default" : "outline"}
+              size="sm"
+              aria-pressed={showGrid}
+              disabled={pending}
+              onClick={() => {
+                const next = !showGrid;
+                setShowGrid(next);
+                remember(GRID_STORAGE_KEY, String(next));
+              }}
+            >
+              Grid
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={pending || strokes.length === 0}
+              onClick={undo}
+            >
+              Undo
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={pending || undone.length === 0}
+              onClick={redo}
+            >
+              Redo
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={pending || strokes.length === 0}
+              onClick={() => {
+                setStrokes([]);
+                setUndone([]);
+              }}
+            >
+              Clear
+            </Button>
+          </div>
+
+          {sizeOpen && (
+            <div className="flex items-center gap-3">
+              <Label
+                htmlFor="brush-size"
+                className="text-muted-foreground text-xs"
+              >
+                Size
+              </Label>
+              <input
+                id="brush-size"
+                type="range"
+                min={MIN_SIZE}
+                max={MAX_SIZE}
+                value={size}
+                disabled={pending}
+                onChange={(event) => {
+                  const next = Number(event.target.value);
+                  setSize(next);
+                  remember(SIZE_STORAGE_KEY, String(next));
+                }}
+                className="flex-1 accent-black"
+                autoFocus
+              />
+            </div>
+          )}
+
+          {error && (
+            <p role="alert" className="text-destructive text-sm">
+              {error}
+            </p>
+          )}
+
+          {/* Nothing is asked about the drawing until there is one. */}
+          <Button
             type="button"
-            aria-label={option.name}
-            aria-pressed={color === option.value}
-            onClick={() => {
-              setColor(option.value);
-              remember(COLOR_STORAGE_KEY, option.value);
-            }}
-            className="size-9 rounded-full border-2 aria-pressed:border-black aria-pressed:ring-2 aria-pressed:ring-offset-2"
-            style={{ backgroundColor: option.value }}
-          />
-        ))}
-      </fieldset>
-
-      <div className="flex items-center gap-3">
-        <Label htmlFor="brush-size" className="text-muted-foreground text-xs">
-          Size
-        </Label>
-        <input
-          id="brush-size"
-          type="range"
-          min={MIN_SIZE}
-          max={MAX_SIZE}
-          value={size}
-          disabled={pending}
-          onChange={(event) => {
-            const next = Number(event.target.value);
-            setSize(next);
-            remember(SIZE_STORAGE_KEY, String(next));
-          }}
-          className="flex-1 accent-black"
-        />
-        {/* A dot the size of the brush says more than a number does. */}
-        <span
-          aria-hidden
-          className="shrink-0 rounded-full"
-          style={{
-            width: `${Math.max(size / 3, 4)}px`,
-            height: `${Math.max(size / 3, 4)}px`,
-            backgroundColor: color,
-          }}
-        />
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <Button
-          type="button"
-          variant={showGrid ? "default" : "outline"}
-          size="sm"
-          aria-pressed={showGrid}
-          disabled={pending}
-          onClick={() => {
-            const next = !showGrid;
-            setShowGrid(next);
-            remember(GRID_STORAGE_KEY, String(next));
-          }}
-        >
-          Grid
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          disabled={pending || strokes.length === 0}
-          onClick={undo}
-        >
-          Undo
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          disabled={pending || undone.length === 0}
-          onClick={redo}
-        >
-          Redo
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          disabled={pending || strokes.length === 0}
-          onClick={() => {
-            setStrokes([]);
-            setUndone([]);
-          }}
-        >
-          Clear
-        </Button>
-      </div>
-
-      {username ? (
-        // Signed in: the tile goes up under the name on their account, so
-        // there's nothing to ask and nothing to type.
-        <p className="text-muted-foreground text-sm">
-          Posting as <span className="font-medium">{username}</span>
-        </p>
+            size="lg"
+            disabled={!hydrated || pending}
+            onClick={goToDetails}
+          >
+            Post my tile
+          </Button>
+        </>
       ) : (
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="displayName">Name (optional)</Label>
-          <Input
-            ref={nameRef}
-            id="displayName"
-            name="displayName"
-            maxLength={40}
-            autoComplete="nickname"
-            placeholder="Leave blank to post anonymously"
-          />
-        </div>
+        <>
+          {username ? (
+            // Signed in: the tile goes up under the name on their account, so
+            // there's nothing to ask and nothing to type.
+            <p className="text-muted-foreground text-sm">
+              Posting as <span className="font-medium">{username}</span>
+            </p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="displayName">Name (optional)</Label>
+              <Input
+                ref={nameRef}
+                id="displayName"
+                name="displayName"
+                maxLength={40}
+                autoComplete="nickname"
+                placeholder="Leave blank to post anonymously"
+              />
+            </div>
+          )}
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="caption">Caption (optional)</Label>
+            <Input id="caption" name="caption" maxLength={80} />
+          </div>
+
+          {error && (
+            <p role="alert" className="text-destructive text-sm">
+              {error}
+            </p>
+          )}
+
+          <Turnstile siteKey={turnstileSiteKey} onToken={setTurnstileToken} />
+
+          <Button
+            type="submit"
+            size="lg"
+            disabled={!hydrated || pending || !turnstileToken}
+          >
+            {pending
+              ? "Posting…"
+              : turnstileToken
+                ? "Post my tile"
+                : "Checking your browser…"}
+          </Button>
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={pending}
+            onClick={() => setStep("drawing")}
+          >
+            Back to drawing
+          </Button>
+        </>
       )}
-
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="caption">Caption (optional)</Label>
-        <Input id="caption" name="caption" maxLength={80} />
-      </div>
-
-      {error && (
-        <p role="alert" className="text-destructive text-sm">
-          {error}
-        </p>
-      )}
-
-      <Turnstile siteKey={turnstileSiteKey} onToken={setTurnstileToken} />
-
-      <Button
-        type="submit"
-        size="lg"
-        disabled={!hydrated || pending || !turnstileToken}
-      >
-        {pending
-          ? "Posting…"
-          : turnstileToken
-            ? "Post my tile"
-            : "Checking your browser…"}
-      </Button>
     </form>
   );
 }
