@@ -96,6 +96,12 @@ blocking an account from a board, and more ways to sign in — Facebook, Apple,
 email codes, passkeys (#50). Google is the only provider in v1; anyone without
 one can still draw as a guest. None of these are v1.
 
+**Downloading your own drawings** (#57) is the one worth pulling forward
+soonest: everything but a winner is deleted 30 days after voting, image and
+all, so today a screenshot is the only way anyone keeps what they drew. A save
+link on your own tile is a URL change and a link; a whole week as a zip is a
+day's work. Not v1 as it stands.
+
 ## Phases
 1. Owner signs in → creates board → customers open QR → username → draw tile → live feed on phones *(done)*
 2. Safety, before sharing the board publicly: moderation pipeline, owner Pause board + Remove tile, Turnstile, device limits, rotating daily join code
