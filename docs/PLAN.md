@@ -38,7 +38,7 @@ Drawing needs no account. **Competing does.**
 - **3 blocked attempts in a day locks the device until the next 4:00 AM reset.**
 - If moderation can't be reached, the post is refused with "try again in a minute" and does **not** use up the daily post. It's never published unchecked, and posting works again as soon as moderation is back.
 - No staff approval. Signed-in customers can **report a tile**, which flags it for the owner; reporting needs an account so a report is attributable and not endlessly repeatable.
-- The owner's "Remove tile" is the backstop — image moderation doesn't cover every category (e.g. drawn hate symbols), so it ships alongside moderation in phase 2.
+- The owner's "Remove tile" is the backstop — image moderation doesn't cover every category (e.g. drawn hate symbols, or crude schematic nudity that reads as obviously offensive to a person but not to a classifier trained on photos/art — confirmed empirically, ADR-005), so it ships alongside moderation in phase 2.
 
 ### Weekly cycle
 - Week runs **Monday 4:00 AM → next Monday 4:00 AM**, venue local time.
