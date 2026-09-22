@@ -105,7 +105,7 @@ export function TileFeed({
     <div className="flex flex-col gap-4">
       <ul className="grid grid-cols-2 gap-3">
         {visibleTiles.map((tile, index) => (
-          <li key={tile.id} className="flex flex-col gap-1">
+          <li key={tile.id} className="flex flex-col items-start gap-1">
             <Image
               src={tile.imageUrl}
               // The first rows are on screen at load; lazy-loading them delays
@@ -121,10 +121,12 @@ export function TileFeed({
               unoptimized
               className="aspect-square w-full rounded-lg border bg-white object-cover"
             />
+            {/* Clamped so one chatty caption doesn't push its neighbour's
+                drawing halfway down the screen. */}
             {tile.caption && (
-              <p className="text-sm break-words">{tile.caption}</p>
+              <p className="line-clamp-2 text-sm break-words">{tile.caption}</p>
             )}
-            <p className="text-muted-foreground text-xs">
+            <p className="text-muted-foreground truncate text-xs">
               {tile.author ?? "Guest"}
               {tile.isGuest && tile.author && " · guest"}
             </p>

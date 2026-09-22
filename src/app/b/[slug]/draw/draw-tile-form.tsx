@@ -316,7 +316,13 @@ export function DrawTileForm({
             </Button>
           </fieldset>
 
-          <fieldset className="flex flex-wrap gap-2" disabled={pending}>
+          {/* One scrolling row rather than a wrap: eight swatches and the
+              picker never fit a phone, and a lone "+" on its own line looks
+              like a mistake. */}
+          <fieldset
+            className="flex gap-2 overflow-x-auto pb-1"
+            disabled={pending}
+          >
             <legend className="sr-only">Colour</legend>
             {BASE_COLORS.map((option) => (
               <button
@@ -353,13 +359,13 @@ export function DrawTileForm({
                 onPointerCancel={cancelHold}
                 // A long press on a phone would otherwise offer to copy it.
                 onContextMenu={(event) => event.preventDefault()}
-                className="size-9 rounded-full border-2 aria-pressed:border-black aria-pressed:ring-2 aria-pressed:ring-offset-2"
+                className="size-9 shrink-0 rounded-full border-2 aria-pressed:border-black aria-pressed:ring-2 aria-pressed:ring-offset-2"
                 style={{ backgroundColor: option.value }}
               />
             ))}
 
             <label
-              className="text-muted-foreground flex size-9 cursor-pointer items-center justify-center rounded-full border-2 border-dashed text-xs"
+              className="text-muted-foreground flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 border-dashed text-xs"
               aria-label="More colours"
             >
               +

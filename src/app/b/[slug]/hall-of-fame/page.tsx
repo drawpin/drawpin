@@ -87,8 +87,14 @@ export default async function HallOfFamePage({
                   <p className="text-sm break-words">{winner.caption}</p>
                 )}
                 <p className="text-muted-foreground text-xs">
-                  {winner.author} · {winner.voteCount}{" "}
-                  {winner.voteCount === 1 ? "vote" : "votes"} in the final
+                  {winner.author} ·{" "}
+                  {/* A month with one finalist crowns it without a vote, and
+                      "0 votes" reads like something went wrong. */}
+                  {winner.voteCount === 0
+                    ? "unopposed"
+                    : `${winner.voteCount} ${
+                        winner.voteCount === 1 ? "vote" : "votes"
+                      } in the final`}
                 </p>
               </li>
             ))}
