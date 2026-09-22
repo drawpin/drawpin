@@ -11,6 +11,13 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
-    exclude: ["node_modules", "e2e", ".next"],
+    // Globbed rather than named: a git worktree under .claude carries its
+    // own node_modules and .next, which a bare name does not match.
+    exclude: [
+      "**/node_modules/**",
+      "**/e2e/**",
+      "**/.next/**",
+      "**/.claude/**",
+    ],
   },
 });
