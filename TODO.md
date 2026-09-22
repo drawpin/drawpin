@@ -130,9 +130,17 @@ worth pulling forward.
       adopt what the device posted.
 - [ ] **#44 — saved drawings and profile history.** Follows directly from the
       same adoption problem.
-- [ ] **#50 — more ways to sign in.** Facebook, Apple, email codes, passkeys.
-      Google is the only provider in v1; anyone without one still draws as a
-      guest.
+- [ ] **#50 — more ways to sign in.** Facebook, Apple, email codes,
+      passkeys. Google is the only provider in v1; anyone without one still
+      draws as a guest, which means they can't be voted for, win, vote or
+      report — the whole competition is closed to them.
+- [ ] **Sign in with any email address, not just Google.** The most inclusive
+      of those, and now the cheapest: #41 put working custom SMTP in place, so
+      an emailed code needs no third-party provider, no consent screen and no
+      review. Worth pulling ahead of Facebook and Apple for that reason alone.
+      (A Google account doesn't require a Gmail address — any address can
+      become one — but "go make a Google account first" is still where people
+      give up.)
 - [ ] Weekly prompt mode ("challenges"), live jam mode, location checks, Google
       sign-in for owners, multi-location owners, a wall display.
 
