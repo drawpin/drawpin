@@ -13,7 +13,7 @@
 
 ---
 
-## What it is
+## What is DrawPin
 
 Coffee shops and restaurants print a QR code for their table. Anyone who
 scans it can draw one small tile a day — a doodle, a joke, a tiny piece of
@@ -45,28 +45,31 @@ in production is a different discipline from correctness on a whiteboard.
 
 ## What I learned
 
-- **System design under real constraints, not on paper.** Modeling a weekly
-  voting cycle, deriving a week's status from timestamps instead of storing
-  it, and building "on-demand" jobs that are idempotent and race-safe instead
+During this project, I learned:
+
+- **System design under real constraints, not on paper.** I modeled a weekly
+  voting cycle, derived a week's status from timestamps instead of storing
+  it, and built "on-demand" jobs that are idempotent and race-safe instead
   of a cron I couldn't actually run on a free hosting tier ([ADR-003](docs/adr/003-on-demand-venue-time-transitions.md)).
-- **Trust and safety at a small scale.** Layering automated moderation (a
+- **Trust and safety at a small scale.** I layered automated moderation (a
   vendor API, a curated blocklist, and eventually a self-hosted ML model)
-  with a human backstop, and learning the hard way that off-the-shelf tools
+  with a human backstop, and learned the hard way that off-the-shelf tools
   have real, specific blind spots you only find by testing them, not by
   assuming they work ([ADR-005](docs/adr/005-nsfw-drawing-classifier.md)).
-- **Shipping ML in a real product, not a notebook.** What actually gets
-  bundled and deployed matters as much as the model itself — chasing a
-  dependency down from 38 MB to 3.5 MB, and a "missing file" bug that only
-  showed up in a production build, never in local testing.
+- **Shipping ML in a real product, not a notebook.** I learned that what
+  actually gets bundled and deployed matters as much as the model itself —
+  chasing a dependency down from 38 MB to 3.5 MB, and a "missing file" bug
+  that only showed up in a production build, never in local testing.
 - **Trunk-based development and CI/CD, end to end.** Every merge to `main`
-  deploys, so small PRs, fast checks, and being comfortable shipping
+  deploys, so I got comfortable with small PRs, fast checks, and shipping
   continuously instead of batching up changes.
 - **Working within real platform limits instead of ignoring them.** A
-  free-tier cron schedule, a magic-link email provider that can't be fully
-  customized without paid infrastructure, a bot-protection widget with a
-  hostname allowlist that quietly breaks the moment a domain changes.
-- **Writing decisions down.** ADRs mean a call made once — and the reasons
-  for it — doesn't have to be re-litigated or rediscovered months later.
+  free-tier cron schedule, a magic-link email provider I couldn't fully
+  customize without paid infrastructure, a bot-protection widget with a
+  hostname allowlist that quietly broke the moment I changed domains.
+- **Writing decisions down.** I started keeping ADRs so a call I made
+  once — and the reasons for it — didn't have to be re-litigated or
+  rediscovered months later.
 
 I can't wait to see this used in restaurants, cafes, friend groups, and
 anywhere something as simple as a doodle can make a difference.
