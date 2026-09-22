@@ -104,8 +104,11 @@ export function TileFeed({
   return (
     <div className="flex flex-col gap-4">
       <ul className="grid grid-cols-2 gap-3">
+        {/* The list items stretch across their column on purpose: the caption
+            and the name need that width to clip against, and the Report button
+            sets its own. */}
         {visibleTiles.map((tile, index) => (
-          <li key={tile.id} className="flex flex-col items-start gap-1">
+          <li key={tile.id} className="flex flex-col gap-1">
             <Image
               src={tile.imageUrl}
               // The first rows are on screen at load; lazy-loading them delays
