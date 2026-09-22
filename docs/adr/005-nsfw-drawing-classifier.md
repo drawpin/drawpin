@@ -87,10 +87,34 @@ built function's `.nft.json` file list after `npm run build`.
   concurrently with the OpenAI call rather than after it, this doesn't add
   to every request — only cold ones, and only up to whichever check is
   slower.
-- `FLAG_THRESHOLD` has no DrawPin-specific data behind it yet. It should be
-  revisited once reported/removed tiles give a real signal — see the `nsfw-
-  drawing:<label>` reason logged for a blocked post, and the "Neutral"/
-  "Drawing"-labeled near-misses that weren't blocked.
 - Any future model swap (a different drawing-aware classifier, a higher-
   resolution model) only touches `nsfw-drawing.ts`; `moderate-tile.ts` just
   calls `classifyDrawing` and reads back `{ flagged, label }`.
+
+## Known limitation: crude schematic doodles
+On 2026-09-22, a genital doodle drawn on the live board — plain geometric
+shapes (a rounded rectangle, a couple of circles), not a detailed or
+anatomically realistic drawing — passed both OpenAI's check and this one.
+Reproducing it locally (a similar shape, both as thin outlines and as solid
+filled shapes, matching `perfect-freehand`'s actual rendering) confirms why:
+MobileNetV2 scores it ~91–96% **Neutral**, with `Porn + Hentai` combined
+around 0.06–0.09%. It reads as an abstract line drawing, not nudity, because
+nothing in NSFWJS's training data (photos, and stylized-but-detailed
+drawn/anime art) looks like a primitive geometric doodle — the model has
+never learned that association, the way a person immediately does from
+shape and context alone.
+
+This means **no `FLAG_THRESHOLD` value fixes this case** — the signal isn't
+faintly present, it's absent. Lowering the threshold enough to catch a
+~0.09% score would flag a large fraction of ordinary abstract drawings
+(anything with a rounded, cylindrical, or paired-circle shape) instead.
+Catching schematic doodles specifically would need a classifier trained on
+that exact category, which no open-source pretrained model appears to
+cover, and building/training one is out of scope for what this check is
+(docs/PLAN.md, Moderation: automatic checks are a first pass, not the whole
+system).
+
+This is the drawn-content gap `docs/PLAN.md`'s "Remove tile" backstop and
+tile reporting already exist for, same as drawn hate symbols — it isn't a
+regression introduced by this ADR, but it's now a confirmed instance rather
+than a hypothetical one.
