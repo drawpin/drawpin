@@ -18,8 +18,20 @@ export async function generateMetadata({
 }: PageProps<"/b/[slug]">): Promise<Metadata> {
   const { slug } = await params;
   const board = await getBoard(slug);
+  if (!board) return { title: "Board not found · DrawPin" };
+
   return {
-    title: board ? `${board.name} · DrawPin` : "Board not found · DrawPin",
+    title: `${board.name} · DrawPin`,
+    // Shared into a group chat, the venue is the thing being sent — so the
+    // card carries its name alone, without the site's name after it.
+    openGraph: {
+      type: "website",
+      siteName: "DrawPin",
+      title: board.name,
+      description: "Draw It. Pin It. Compete to Win!",
+      url: `/b/${slug}`,
+      images: [{ url: "/og.png", width: 1200, height: 630, alt: "DrawPin" }],
+    },
   };
 }
 
