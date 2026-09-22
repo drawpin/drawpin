@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/logo.png" alt="DrawPin" width="420">
+  <img src="docs/assets/logo.png" alt="DrawPin" width="640">
 </p>
 
 <p align="center">
@@ -76,12 +76,12 @@ anywhere something as simple as a doodle can make a difference.
 
 ## How it works
 
-|          |                                                                                                                                                                    |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Join** | A printed QR opens the venue's board directly. No QR handy? Type the 8-digit code shown at the venue instead — it rotates daily.                                   |
-| **Draw** | One tile a day per person: a freehand drawing plus an optional caption. Guests can draw too, shown on the board but not in the running.                            |
-| **Vote** | The following week, anyone signed in picks three favorites from last week's board. Votes are final, and results stay hidden until voting closes.                   |
-| **Win**  | The most-voted tile becomes that week's winner and joins the venue's permanent Hall of Fame. Each month, the four best weekly winners face off for a super winner. |
+|          |                                                                                                                                                                          |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Join** | A printed QR opens the venue's board directly. No QR handy? Type the 8-digit code shown at the venue instead — it rotates daily.                                         |
+| **Draw** | One tile a day per person: a freehand drawing, and add a caption if you want.                                                                                            |
+| **Vote** | The following week, vote on others' tiles by picking your three favorites.                                                                                               |
+| **Win**  | The most-voted tile becomes that week's winner and joins the venue's permanent Hall of Fame. Each month, the four best weekly winners face off for an even bigger title! |
 
 ## System design
 
