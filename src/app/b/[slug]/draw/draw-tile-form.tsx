@@ -278,7 +278,9 @@ export function DrawTileForm({
         size={size}
         brush={brush}
         filling={filling}
-        showGrid={showGrid}
+        // The guide is for drawing; the details step is a last look at the
+        // tile as the board will show it.
+        showGrid={showGrid && step === "drawing"}
         disabled={pending}
         onDraw={addOp}
       />
