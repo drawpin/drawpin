@@ -47,6 +47,7 @@ See `docs/adr/002-frontend-tooling.md` for the rationale behind the last five ro
 ## Repository layout
 
 ```
+TODO.md               what is left to do, in order
 docs/
   PLAN.md             locked product plan
   adr/                architecture decision records (NNN-title.md)
