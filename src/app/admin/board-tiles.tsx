@@ -26,22 +26,22 @@ function TileCard({ tile }: { tile: AdminTile }) {
   const [confirming, setConfirming] = useState(false);
 
   return (
-    <li className="flex flex-col gap-1">
+    <li className="flex h-full flex-col gap-1">
       <Image
         src={tile.imageUrl}
-        alt={tile.caption ?? `Drawing by ${tile.author ?? "Anonymous"}`}
+        alt={tile.caption ?? `Drawing by ${tile.author ?? "a guest"}`}
         width={512}
         height={512}
         unoptimized
         className="aspect-square w-full rounded-lg border bg-white object-cover"
       />
       {tile.caption && <p className="text-sm break-words">{tile.caption}</p>}
-      <p className="text-muted-foreground text-xs">
-        {tile.author ?? "Anonymous"}
-      </p>
+      <p className="text-muted-foreground text-xs">{tile.author ?? "Guest"}</p>
 
+      {/* Pushed to the bottom so the buttons in a row line up however long
+          the captions above them are. */}
       {confirming ? (
-        <form action={formAction} className="flex gap-2">
+        <form action={formAction} className="mt-auto flex gap-2">
           <input type="hidden" name="tileId" value={tile.id} />
           <Button
             type="submit"
@@ -66,6 +66,7 @@ function TileCard({ tile }: { tile: AdminTile }) {
           type="button"
           variant="outline"
           size="sm"
+          className="mt-auto"
           onClick={() => setConfirming(true)}
         >
           Remove

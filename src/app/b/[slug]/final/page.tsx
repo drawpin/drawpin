@@ -15,6 +15,7 @@ import {
   listWeekTimings,
 } from "./data";
 import { FinalGrid } from "./final-grid";
+import { FinalistWall } from "./finalist-wall";
 
 export async function generateMetadata({
   params,
@@ -66,6 +67,7 @@ export default async function FinalPage({
     return (
       <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 px-4 py-6">
         {heading}
+        <p className="text-muted-foreground text-sm">{board.name}</p>
         <p role="status" className="bg-muted rounded-lg px-3 py-2 text-sm">
           No final is running right now. Each month&apos;s winners meet about
           two weeks after the month ends.
@@ -92,10 +94,13 @@ export default async function FinalPage({
           Nothing won a week that month, so there&apos;s no final to hold.
         </p>
       ) : alreadyVoted ? (
-        <p role="status" className="bg-muted rounded-lg px-3 py-2 text-sm">
-          You&apos;ve voted in this month&apos;s final. The super winner is
-          crowned when it closes.
-        </p>
+        <>
+          <p role="status" className="bg-muted rounded-lg px-3 py-2 text-sm">
+            You&apos;ve voted in this month&apos;s final. The super winner is
+            crowned when it closes.
+          </p>
+          <FinalistWall finalists={finalists} />
+        </>
       ) : customer ? (
         <FinalGrid
           slug={slug}
@@ -103,13 +108,18 @@ export default async function FinalPage({
           turnstileSiteKey={serverEnv().NEXT_PUBLIC_TURNSTILE_SITE_KEY}
         />
       ) : (
-        <div className="flex flex-col gap-3 rounded-lg border px-3 py-3">
-          <p className="text-sm font-medium">Sign in to vote</p>
-          <p className="text-muted-foreground text-xs">
-            One vote per person in the final, so it needs an account.
-          </p>
-          <GoogleSignIn next={`/b/${slug}/final`} size="sm" />
-        </div>
+        <>
+          {/* The drawings stay on the page: they are the argument for
+              signing in. */}
+          <div className="flex flex-col gap-3 rounded-lg border px-3 py-3">
+            <p className="text-sm font-medium">Sign in to vote</p>
+            <p className="text-muted-foreground text-xs">
+              One vote per person in the final, so it needs an account.
+            </p>
+            <GoogleSignIn next={`/b/${slug}/final`} size="sm" />
+          </div>
+          <FinalistWall finalists={finalists} />
+        </>
       )}
     </main>
   );
