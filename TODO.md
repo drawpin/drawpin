@@ -17,14 +17,6 @@ anyone but us.
 
 ### Yours — can't be done from the repo
 
-- [ ] **Confirm `SITE_URL` is `https://drawpin.io`.** Vercel → Settings →
-      Environment Variables, or read the Board link on `/admin`. Every printed
-      QR encodes this value, so a `www.` or a trailing slash in it means
-      reprinting.
-- [ ] **Add the `_dmarc` record.** Cloudflare → DNS: `TXT` / `_dmarc` /
-      `v=DMARC1; p=none;`. Resend verified without it; Gmail penalises its
-      absence, and a sign-in link in someone's spam folder is the failure #41
-      existed to prevent.
 - [ ] **Prove #63.** The Google app is published and Google's consent page
       already shows the drawpin.io privacy and terms links. The one untested
       path: sign in on a phone with a Google account that was never on the
@@ -49,6 +41,11 @@ anyone but us.
 
 - **#41** — domain and custom SMTP. drawpin.io is live, mail sends as
   `hello@drawpin.io` through Resend, sign-in links work on any device.
+- `SITE_URL` is `https://drawpin.io`, confirmed from the Board link on the
+  owner screen: a real board and its draw and Hall of Fame pages all answer on
+  the domain, so a scanned QR lands somewhere that works.
+- Mail is fully signed: SPF and DKIM from the Resend setup, and `_dmarc`
+  (`v=DMARC1; p=none;`) resolving publicly.
 - **#60** — the cleanup job's secret. **#62** — closed deliberately.
 - Turnstile's hostname allow-list had only the vercel.app domain, so on
   drawpin.io nobody could sign in, post, vote or report. Fixed in Cloudflare.
