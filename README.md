@@ -1,10 +1,9 @@
 <p align="center">
-  <img src="docs/assets/logo.png" alt="DrawPin" width="660" height="330">
+  <img src="docs/assets/logo.png" alt="DrawPin" width="800">
 </p>
 
 <p align="center">
-  A free shared drawing board for local spots. Scan a code, draw a tile —
-  no app to download, no account needed to draw.
+  A free web-based shared drawing board for local spots. Join a board, draw a tile, pin it for everyone to see, and compete to see who comes out on top!
 </p>
 
 <p align="center">
