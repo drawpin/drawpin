@@ -3,8 +3,8 @@
 </p>
 
 <p align="center">
-  A free shared drawing board for local spots. Scan a code, draw a tile,
-  vote for the winner — no app, no account to play.
+  A free shared drawing board for local spots. Scan a code, draw a tile —
+  no app to download, no account needed to draw.
 </p>
 
 <p align="center">
@@ -26,12 +26,50 @@ ask for a Google sign-in, because a vote and a win should belong to somebody.
 
 ## Why I built it
 
-<!-- TODO(ahmad): your story goes here — what got you started on this,
-     what you were trying to prove or learn, whatever's true. -->
+I'm a software engineer who loves building and shipping products, but just as
+much, I love learning. System design is a huge part of what it means to be a
+good engineer, and I wanted a real project to learn it on rather than a
+tutorial.
+
+The idea came from watching the restaurant industry from the inside: the
+stretches where customers are just waiting — for a table, for food, with kids
+to keep entertained, or just killing time. A simple way to compete against
+each other is a proven way to keep people engaged and bring them back, so a
+shared drawing board that turns into a weekly and monthly competition felt
+like a fun, low-stakes way to fill that time.
+
+Mostly, though, I started this to learn: system design, product development,
+CI/CD, and the parts of being a software engineer that don't show up in a
+tutorial — where "it compiles" is nowhere near "it's correct," and correctness
+in production is a different discipline from correctness on a whiteboard.
 
 ## What I learned
 
-<!-- TODO(ahmad): the real takeaways — technical, product, or otherwise. -->
+- **System design under real constraints, not on paper.** Modeling a weekly
+  voting cycle, deriving a week's status from timestamps instead of storing
+  it, and building "on-demand" jobs that are idempotent and race-safe instead
+  of a cron I couldn't actually run on a free hosting tier ([ADR-003](docs/adr/003-on-demand-venue-time-transitions.md)).
+- **Trust and safety at a small scale.** Layering automated moderation (a
+  vendor API, a curated blocklist, and eventually a self-hosted ML model)
+  with a human backstop, and learning the hard way that off-the-shelf tools
+  have real, specific blind spots you only find by testing them, not by
+  assuming they work ([ADR-005](docs/adr/005-nsfw-drawing-classifier.md)).
+- **Shipping ML in a real product, not a notebook.** What actually gets
+  bundled and deployed matters as much as the model itself — chasing a
+  dependency down from 38 MB to 3.5 MB, and a "missing file" bug that only
+  showed up in a production build, never in local testing.
+- **Trunk-based development and CI/CD, end to end.** Every merge to `main`
+  deploys, so small PRs, fast checks, and being comfortable shipping
+  continuously instead of batching up changes.
+- **Working within real platform limits instead of ignoring them.** A
+  free-tier cron schedule, a magic-link email provider that can't be fully
+  customized without paid infrastructure, a bot-protection widget with a
+  hostname allowlist that quietly breaks the moment a domain changes.
+- **Writing decisions down.** ADRs mean a call made once — and the reasons
+  for it — doesn't have to be re-litigated or rediscovered months later.
+
+I can't wait to see this used in restaurants, cafes, friend groups, and
+anywhere something as simple as a doodle can make a difference.
 
 ## How it works
 
@@ -75,8 +113,7 @@ A few of the harder problems this project ended up solving:
 | Drawing                       | HTML canvas + `perfect-freehand`                            |
 | UI                            | Tailwind CSS + shadcn/ui                                    |
 
-Building and running it yourself is covered in [`CONTRIBUTING.md`](CONTRIBUTING.md).
-
 ## License
 
-Not yet licensed for external use.
+All rights reserved. This repository is public to show the project — no
+license is granted to use, copy, modify, or redistribute the code.
