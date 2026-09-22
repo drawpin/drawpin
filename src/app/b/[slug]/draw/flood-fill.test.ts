@@ -2,7 +2,10 @@
 import { describe, expect, it } from "vitest";
 import { floodFill, type Pixels } from "./flood-fill";
 
-/** Builds an image from rows of characters: `.` is white, `#` is black. */
+/**
+ * Builds an image from rows of characters: `.` is white, `#` is black, and
+ * `+` is the half-shade a smoothed stroke leaves at its edge.
+ */
 function imageFrom(rows: string[]): Pixels {
   const height = rows.length;
   const width = rows[0].length;
@@ -10,7 +13,8 @@ function imageFrom(rows: string[]): Pixels {
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      const value = rows[y][x] === "#" ? 0 : 255;
+      const character = rows[y][x];
+      const value = character === "#" ? 0 : character === "+" ? 128 : 255;
       const index = (y * width + x) * 4;
       data[index] = value;
       data[index + 1] = value;
@@ -79,14 +83,34 @@ describe("floodFill", () => {
     expect(covers(region, 3, 2)).toBe(true);
   });
 
-  it("reaches under the smoothed edge of a stroke", () => {
-    const image = imageFrom(["......", ".####.", ".#..#.", ".####.", "......"]);
+  it("reaches into the blend at a stroke edge, but not the stroke", () => {
+    const image = imageFrom([
+      "########",
+      "#++++++#",
+      "#+....+#",
+      "#++++++#",
+      "########",
+    ]);
+
+    const region = floodFill(image, 3, 2);
+
+    // The half-shaded pixels are covered, so no pale halo is left between
+    // the fill and the line...
+    expect(covers(region, 1, 2)).toBe(true);
+    // ...but the line itself is left where it was.
+    expect(covers(region, 0, 2)).toBe(false);
+  });
+
+  it("does not fatten a line when the line is what you fill", () => {
+    const image = imageFrom([".....", ".....", "#####", ".....", "....."]);
 
     const region = floodFill(image, 2, 2);
 
-    // The pixel of the outline itself is included, so a fill tucks under the
-    // stroke rather than leaving a pale halo between the two.
-    expect(covers(region, 1, 2)).toBe(true);
+    // Tapping the bucket on a stroke recolours it. It must not also grow
+    // it: the paper either side stays paper.
+    expect(covers(region, 2, 2)).toBe(true);
+    expect(covers(region, 2, 1)).toBe(false);
+    expect(covers(region, 2, 3)).toBe(false);
   });
 
   it("returns nothing for a tap outside the image", () => {

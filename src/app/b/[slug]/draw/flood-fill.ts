@@ -25,16 +25,27 @@ export type FillRegion = {
  */
 const TOLERANCE = 48;
 
+/**
+ * How far the fill may reach beyond that, by a single pixel, to cover the
+ * blend between two colours.
+ *
+ * Wider than the match itself so a fill tucks under a stroke's smoothed edge,
+ * but nowhere near wide enough to reach a different colour: growing into
+ * anything at all would make a line thicker every time someone filled it.
+ */
+const EDGE_TOLERANCE = 128;
+
 function matches(
   data: Uint8ClampedArray,
   index: number,
   target: [number, number, number, number],
+  tolerance = TOLERANCE,
 ): boolean {
   return (
-    Math.abs(data[index] - target[0]) <= TOLERANCE &&
-    Math.abs(data[index + 1] - target[1]) <= TOLERANCE &&
-    Math.abs(data[index + 2] - target[2]) <= TOLERANCE &&
-    Math.abs(data[index + 3] - target[3]) <= TOLERANCE
+    Math.abs(data[index] - target[0]) <= tolerance &&
+    Math.abs(data[index + 1] - target[1]) <= tolerance &&
+    Math.abs(data[index + 2] - target[2]) <= tolerance &&
+    Math.abs(data[index + 3] - target[3]) <= tolerance
   );
 }
 
@@ -110,8 +121,8 @@ export function floodFill(
     if (y > maxY) maxY = y;
   }
 
-  // Grown by a pixel so the fill tucks under the smoothed edge of a stroke
-  // instead of leaving a pale outline around everything.
+  // Grown by a pixel into the blend at its edge, so the fill tucks under a
+  // stroke instead of leaving a pale outline around everything.
   const boxX = Math.max(minX - 1, 0);
   const boxY = Math.max(minY - 1, 0);
   const boxWidth = Math.min(maxX + 1, width - 1) - boxX + 1;
@@ -126,7 +137,14 @@ export function floodFill(
         region[y * boxWidth + x] = 1;
         continue;
       }
-      // Dilation: a pixel next to a filled one joins it.
+      // A pixel beside the filled area joins it only if it is part of the
+      // blend at its edge. Filling a line would otherwise fatten the line.
+      if (
+        !matches(data, (imageY * width + imageX) * 4, target, EDGE_TOLERANCE)
+      ) {
+        continue;
+      }
+
       for (const [dx, dy] of [
         [1, 0],
         [-1, 0],
