@@ -9,6 +9,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getBoard, getVotingWeek, listLiveTiles } from "../data";
 import { VOTES_PER_WEEK } from "./cast-votes";
 import { SupabaseVoteStore } from "./supabase-vote-store";
+import { TileWall } from "./tile-wall";
 import { VoteGrid } from "./vote-grid";
 
 export async function generateMetadata({
@@ -92,14 +93,18 @@ export default async function VotePage({
           turnstileSiteKey={serverEnv().NEXT_PUBLIC_TURNSTILE_SITE_KEY}
         />
       ) : (
-        <div className="flex flex-col gap-3 rounded-lg border px-3 py-3">
-          <p className="text-sm font-medium">Sign in to vote</p>
-          <p className="text-muted-foreground text-xs">
-            Voting is one set of three per person, so it needs an account. It
-            works from any device once you&apos;re in.
-          </p>
-          <GoogleSignIn next={`/b/${slug}/vote`} size="sm" />
-        </div>
+        <>
+          {/* The drawings come first: they are the argument for signing in. */}
+          <div className="flex flex-col gap-3 rounded-lg border px-3 py-3">
+            <p className="text-sm font-medium">Sign in to vote for one</p>
+            <p className="text-muted-foreground text-xs">
+              Three votes each per week, so it needs an account. It works from
+              any device once you&apos;re in.
+            </p>
+            <GoogleSignIn next={`/b/${slug}/vote`} size="sm" />
+          </div>
+          <TileWall tiles={page.tiles} />
+        </>
       )}
     </main>
   );

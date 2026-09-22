@@ -101,7 +101,9 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
         </Link>
       )}
 
-      <AccountBar customer={customer} next={`/b/${slug}`} />
+      {/* Signed in, this is one quiet line; signed out it's an invitation,
+          which belongs after the drawings rather than in front of them. */}
+      {customer && <AccountBar customer={customer} next={`/b/${slug}`} />}
 
       <TileFeed
         // Tiles and the pagination cursor belong to one week; start fresh when
@@ -114,6 +116,8 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
         initialTiles={page?.tiles ?? []}
         initialCursor={page?.nextCursor ?? null}
       />
+
+      {!customer && <AccountBar customer={null} next={`/b/${slug}`} />}
     </main>
   );
 }
