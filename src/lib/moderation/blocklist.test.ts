@@ -63,4 +63,10 @@ describe("findBlockedTerm", () => {
       term: "ass",
     });
   });
+
+  it("exempts a term's known-innocent phrases", () => {
+    const term = { term: "arse", exceptions: ["sparse"] };
+    expect(findBlockedTerm("the data is sparse", [term])).toBeNull();
+    expect(findBlockedTerm("what an arse", [term])).toEqual({ term: "arse" });
+  });
 });

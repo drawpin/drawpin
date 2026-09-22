@@ -2,11 +2,13 @@
  * The custom blocklist half of moderation (docs/PLAN.md, Moderation). It runs
  * before the OpenAI check because it's instant and free.
  *
- * It deliberately holds no slur list: this repository is public, and OpenAI's
- * text moderation already covers hate and harassment. What it catches instead
- * is spam that moderation models don't flag — links, email addresses and phone
- * numbers in a name or caption — plus any extra words the venue owner adds
- * privately through `MODERATION_BLOCKLIST`.
+ * It holds no word list of its own — this repository is public. What it
+ * matches here is spam that moderation models don't flag (links, email
+ * addresses and phone numbers) plus whatever terms are handed to it: the
+ * built-in profanity list from `profanity-terms.ts` (OpenAI's text
+ * moderation has a documented blind spot on slurs and contextual hate
+ * speech) and any extra words a venue owner adds privately through
+ * `MODERATION_BLOCKLIST`.
  */
 
 /** Spam patterns that aren't "harmful" but don't belong on a board. */
@@ -61,15 +63,24 @@ export function parseBlocklist(value: string | undefined): string[] {
 export type BlocklistMatch = { term: string };
 
 /**
+ * A term to block, either a plain normalized word/phrase (from
+ * {@link parseBlocklist}) or one with known-innocent phrases it shouldn't
+ * trip inside (from `profanity-terms.ts`) — e.g. the term `arse` exempting
+ * `sparse`.
+ */
+export type BlockedTerm =
+  string | { term: string; exceptions?: readonly string[] };
+
+/**
  * Checks a name or caption against the blocklist.
  *
  * @param text - The text as the visitor typed it.
- * @param blockedTerms - Normalized terms from {@link parseBlocklist}.
+ * @param blockedTerms - Terms to match, normalized (see {@link BlockedTerm}).
  * @returns What matched, or `null` when the text is fine.
  */
 export function findBlockedTerm(
   text: string | null,
-  blockedTerms: string[],
+  blockedTerms: BlockedTerm[],
 ): BlocklistMatch | null {
   if (!text) return null;
 
@@ -79,11 +90,33 @@ export function findBlockedTerm(
 
   // Padded so a term at either end still matches on word boundaries.
   const normalized = ` ${normalizeForBlocklist(text)} `;
-  for (const term of blockedTerms) {
-    if (normalized.includes(` ${term} `)) return { term };
+  for (const entry of blockedTerms) {
+    const term = typeof entry === "string" ? entry : entry.term;
+    const exceptions = typeof entry === "string" ? undefined : entry.exceptions;
+    const haystack = exceptions?.length
+      ? withoutExceptions(normalized, exceptions)
+      : normalized;
+
+    if (haystack.includes(` ${term} `)) return { term };
     // Also catch it inside a longer run of letters, e.g. "xxbadwordxx".
-    if (term.length >= 4 && normalized.includes(term)) return { term };
+    if (term.length >= 4 && haystack.includes(term)) return { term };
   }
 
   return null;
+}
+
+/**
+ * Removes known-innocent phrases (e.g. `sparse`) from the haystack before a
+ * term is matched against it, so a term that's a substring of an innocent
+ * word (e.g. `arse` inside `sparse`) doesn't block that word.
+ */
+function withoutExceptions(
+  haystack: string,
+  exceptions: readonly string[],
+): string {
+  let result = haystack;
+  for (const exception of exceptions) {
+    result = result.split(exception).join(" ");
+  }
+  return result;
 }

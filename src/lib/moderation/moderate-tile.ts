@@ -1,4 +1,5 @@
-import { findBlockedTerm } from "./blocklist";
+import { findBlockedTerm, type BlockedTerm } from "./blocklist";
+import { defaultProfanityTerms } from "./profanity-terms";
 import { checkWithOpenAi, type ModerationInput } from "./openai";
 
 export type TileContent = {
@@ -17,6 +18,10 @@ export type ModerationDeps = {
   apiKey: string;
   blockedTerms: string[];
   check?: typeof checkWithOpenAi;
+  /** Built-in profanity list (profanity-terms.ts). Defaults to
+   * {@link defaultProfanityTerms}; overridable so tests don't depend on the
+   * real (public, third-party) word list. */
+  profanityTerms?: BlockedTerm[];
 };
 
 /**
@@ -31,11 +36,16 @@ export async function moderateTile(
   content: TileContent,
   deps: ModerationDeps,
 ): Promise<ModerationDecision> {
+  const blockedTerms: BlockedTerm[] = [
+    ...(deps.profanityTerms ?? defaultProfanityTerms()),
+    ...deps.blockedTerms,
+  ];
+
   for (const [field, text] of [
     ["name", content.displayName],
     ["caption", content.caption],
   ] as const) {
-    const match = findBlockedTerm(text, deps.blockedTerms);
+    const match = findBlockedTerm(text, blockedTerms);
     if (match)
       return { allowed: false, reason: `blocklist:${field}:${match.term}` };
   }
