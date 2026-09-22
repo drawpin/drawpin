@@ -84,6 +84,13 @@ anywhere something as simple as a doodle can make a difference.
 
 ## System design
 
+Every actor, feature area, and integration, traced down to the files that
+implement them:
+
+<p align="center">
+  <img src="docs/assets/architecture.png" alt="DrawPin architecture diagram" width="900">
+</p>
+
 - **Architecture** — [system diagram](https://lucid.app/lucidchart/629ff9fe-e215-4bbb-b5d9-120f87a55a8e/edit), [post/vote/weekly-cycle flows](https://lucid.app/lucidchart/d0cb474a-8eba-4d8d-8fce-4ad46bc47bb6/edit), [database ERD](https://lucid.app/lucidchart/1e2f0c20-87e8-4065-9f7e-11c4fc2a4124/edit)
 - **Decisions** — every non-obvious call (why trunk-based git, why on-demand time transitions instead of a cron, why a second nudity classifier alongside OpenAI's) is written up as an ADR in [`docs/adr/`](docs/adr/)
 - **Product scope** — the full, locked v1 plan lives in [`docs/PLAN.md`](docs/PLAN.md)
