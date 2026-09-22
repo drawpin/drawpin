@@ -20,10 +20,10 @@ three of the four need you to open an account or pick up a phone first.
 
 ### Mine, once the door is open
 
-- [ ] **#61 — preview deployments write to production data.** One careless
-      click on a PR preview corrupts a real board. _Needs you to create a
-      second Supabase project_; the migrations, seed and preview-scoped
-      environment variables are mine.
+- [ ] **#61 — preview deployments write to production data.** A second
+      Supabase project (`drawpin-preview`, us-west-2) now holds the schema,
+      and Vercel points previews at it instead. Left: confirm a preview really
+      reads it, and decide what data previews should start with.
 - [ ] **#64 — nothing tells us when DrawPin breaks.** Every failure path is
       deliberately quiet, so an outage looks like a slow evening. _Needs you to
       create the Sentry project and the uptime monitor_; wiring them in and
