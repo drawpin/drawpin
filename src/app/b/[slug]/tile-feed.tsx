@@ -96,7 +96,7 @@ export function TileFeed({
   if (visibleTiles.length === 0) {
     return (
       <p className="text-muted-foreground py-12 text-center">
-        No drawings yet this week.
+        Nobody has drawn anything this week. Be the first.
       </p>
     );
   }

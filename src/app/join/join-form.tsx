@@ -15,7 +15,11 @@ export function JoinForm() {
 
   return (
     <form action={formAction} className="flex w-full flex-col gap-3">
-      <Label htmlFor="code">Have a code?</Label>
+      {/* The heading above the form already asks for the code; the label is
+          here for anyone who can't see that it does. */}
+      <Label htmlFor="code" className="sr-only">
+        Board code
+      </Label>
       <Input
         id="code"
         name="code"

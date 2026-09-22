@@ -57,22 +57,23 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
 
   return (
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-6 px-4 py-6">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold tracking-tight">{board.name}</h1>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col items-start gap-1">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {board.name}
+          </h1>
+          <Link
+            href={`/b/${slug}/hall-of-fame`}
+            className="text-muted-foreground text-sm underline underline-offset-4"
+          >
+            Hall of Fame
+          </Link>
+        </div>
         {!board.isPaused && (
           <Link href={`/b/${slug}/draw`} className={buttonVariants()}>
             Draw a tile
           </Link>
         )}
-      </div>
-
-      <div className="flex justify-end">
-        <Link
-          href={`/b/${slug}/hall-of-fame`}
-          className="text-muted-foreground text-sm underline underline-offset-4"
-        >
-          Hall of Fame
-        </Link>
       </div>
 
       {board.isPaused && (
