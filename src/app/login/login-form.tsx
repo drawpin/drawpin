@@ -25,13 +25,9 @@ export function LoginForm({ turnstileSiteKey }: { turnstileSiteKey: string }) {
           Check <span className="font-medium">{state.email}</span> for a sign-in
           link. It expires in 15 minutes.
         </p>
-        {/* Supabase's default email link only completes in the browser that
-            requested it (see src/app/auth/confirm/params.ts). */}
         <p className="text-muted-foreground text-sm">
-          Open the link in{" "}
-          <span className="font-medium">this same browser</span>. Links opened
-          on another device or inside an email app&apos;s built-in browser
-          won&apos;t sign you in.
+          It works wherever you open it — this browser, your phone, or the one
+          inside your email app.
         </p>
       </div>
     );

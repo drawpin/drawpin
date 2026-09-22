@@ -24,9 +24,8 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       </div>
       {error === "link" && (
         <p role="alert" className="text-destructive text-center text-sm">
-          That sign-in link didn&apos;t work. Links expire after 15 minutes,
-          work once, and must be opened in the same browser you requested them
-          from. Request a new one below.
+          That sign-in link didn&apos;t work. Links expire after 15 minutes and
+          work once. Request a new one below.
         </p>
       )}
       <LoginForm

@@ -3,8 +3,9 @@ import { z } from "zod";
 /** How the sign-in link identifies itself when it reaches `/auth/confirm`. */
 export type ConfirmParams =
   /**
-   * Our custom email template: `?token_hash=…&type=email`. Verified without
-   * any cookie, so it works on a different device than the one that asked.
+   * Our custom email template, which is what every sign-in email carries:
+   * `?token_hash=…&type=email`. Verified without any cookie, so it works on a
+   * different device than the one that asked.
    */
   | {
       kind: "token-hash";
@@ -12,10 +13,11 @@ export type ConfirmParams =
       type: "email" | "magiclink" | "signup";
     }
   /**
-   * Supabase's default email template, which the hosted free project is
-   * locked to without custom SMTP: Supabase verifies the link, then redirects
-   * here with `?code=…`. Exchanging the code needs the PKCE verifier cookie set
-   * when the link was requested, so it only works in that same browser.
+   * Supabase's default email template: it verifies the link, then redirects
+   * here with `?code=…`. Exchanging the code needs the PKCE verifier cookie
+   * set when the link was requested, so it only works in that same browser.
+   * Kept for links sent before the custom template was in place, and for local
+   * work against a project that hasn't got it.
    */
   | { kind: "code"; code: string; flowId?: string }
   | { kind: "invalid" };
