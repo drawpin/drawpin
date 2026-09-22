@@ -18,7 +18,7 @@ DrawPin is a free, mobile-web drawing board for local spots (coffee shops, resta
 |---|---|
 | App | Next.js (App Router) + TypeScript, hosted on Vercel |
 | Database / Storage / Realtime / Auth | Supabase (Postgres, Storage, Realtime, Auth: magic link for owners, Google for customers) |
-| Moderation | OpenAI moderation endpoint (text + image) + custom blocklist |
+| Moderation | OpenAI moderation endpoint (text + image) + custom blocklist + NSFWJS drawing check (ADR-005) |
 | Bot protection | Cloudflare Turnstile |
 | Device limiting | Signed device ID cookie + FingerprintJS (open source), hashed IP |
 | Drawing | HTML canvas + `perfect-freehand` |

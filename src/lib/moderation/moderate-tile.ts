@@ -1,6 +1,7 @@
 import { findBlockedTerm, type BlockedTerm } from "./blocklist";
-import { defaultProfanityTerms } from "./profanity-terms";
+import { classifyDrawing } from "./nsfw-drawing";
 import { checkWithOpenAi, type ModerationInput } from "./openai";
+import { defaultProfanityTerms } from "./profanity-terms";
 
 export type TileContent = {
   displayName: string | null;
@@ -22,6 +23,9 @@ export type ModerationDeps = {
    * {@link defaultProfanityTerms}; overridable so tests don't depend on the
    * real (public, third-party) word list. */
   profanityTerms?: BlockedTerm[];
+  /** Drawing-aware nudity check (nsfw-drawing.ts), run alongside OpenAI's
+   * image check. Overridable for tests. */
+  checkDrawing?: typeof classifyDrawing;
 };
 
 /**
@@ -61,11 +65,28 @@ export async function moderateTile(
   };
 
   const check = deps.check ?? checkWithOpenAi;
-  const verdict = await check(input, deps.apiKey);
+  const checkDrawing = deps.checkDrawing ?? classifyDrawing;
 
-  return verdict.flagged
-    ? { allowed: false, reason: `openai:${verdict.categories.join(",")}` }
-    : { allowed: true };
+  // Run together: the drawing check is in-process (no network round trip),
+  // so this adds no meaningful latency to the OpenAI call on the common
+  // (warm) path.
+  const [verdict, drawing] = await Promise.all([
+    check(input, deps.apiKey),
+    content.image
+      ? checkDrawing(content.image)
+      : Promise.resolve({ flagged: false, label: "no-image" }),
+  ]);
+
+  if (verdict.flagged) {
+    return {
+      allowed: false,
+      reason: `openai:${verdict.categories.join(",")}`,
+    };
+  }
+  if (drawing.flagged) {
+    return { allowed: false, reason: `nsfw-drawing:${drawing.label}` };
+  }
+  return { allowed: true };
 }
 
 function toDataUrl(image: Buffer): string {

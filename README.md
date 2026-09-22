@@ -48,18 +48,18 @@ needs no Docker.
 
 ## Tech Stack
 
-| Area                                       | Choice                                                       |
-| ------------------------------------------ | ------------------------------------------------------------ |
-| App                                        | Next.js (App Router) + TypeScript, hosted on Vercel          |
-| Database / Storage / Realtime / Owner auth | Supabase (Postgres, Storage, Realtime, magic-link Auth)      |
-| Moderation                                 | OpenAI moderation endpoint (text + image) + custom blocklist |
-| Bot protection                             | Cloudflare Turnstile                                         |
-| Device limiting                            | Signed device ID cookie + FingerprintJS, hashed IP           |
-| Drawing                                    | HTML canvas + `perfect-freehand`                             |
-| UI/styling                                 | Tailwind CSS + shadcn/ui                                     |
-| Validation                                 | Zod                                                          |
-| Scheduled jobs                             | On-demand transitions + daily Vercel Cron (ADR-003)          |
-| Package manager                            | npm                                                          |
+| Area                                       | Choice                                                                                        |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| App                                        | Next.js (App Router) + TypeScript, hosted on Vercel                                           |
+| Database / Storage / Realtime / Owner auth | Supabase (Postgres, Storage, Realtime, magic-link Auth)                                       |
+| Moderation                                 | OpenAI moderation endpoint (text + image) + custom blocklist + NSFWJS drawing check (ADR-005) |
+| Bot protection                             | Cloudflare Turnstile                                                                          |
+| Device limiting                            | Signed device ID cookie + FingerprintJS, hashed IP                                            |
+| Drawing                                    | HTML canvas + `perfect-freehand`                                                              |
+| UI/styling                                 | Tailwind CSS + shadcn/ui                                                                      |
+| Validation                                 | Zod                                                                                           |
+| Scheduled jobs                             | On-demand transitions + daily Vercel Cron (ADR-003)                                           |
+| Package manager                            | npm                                                                                           |
 
 Decisions and rationale are recorded as ADRs in [`docs/adr/`](docs/adr/).
 
