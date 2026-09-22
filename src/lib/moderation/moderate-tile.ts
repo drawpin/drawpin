@@ -1,4 +1,5 @@
-import { findBlockedTerm } from "./blocklist";
+import { findBlockedTerm, type BlockedTerm } from "./blocklist";
+import { defaultHateTerms } from "./hate-terms";
 import { checkWithOpenAi, type ModerationInput } from "./openai";
 
 export type TileContent = {
@@ -17,6 +18,10 @@ export type ModerationDeps = {
   apiKey: string;
   blockedTerms: string[];
   check?: typeof checkWithOpenAi;
+  /** Built-in slur/hate-term list (hate-terms.ts). Defaults to
+   * {@link defaultHateTerms}; overridable so tests don't depend on the real
+   * (public, third-party) word list. */
+  hateTerms?: BlockedTerm[];
 };
 
 /**
@@ -31,11 +36,16 @@ export async function moderateTile(
   content: TileContent,
   deps: ModerationDeps,
 ): Promise<ModerationDecision> {
+  const blockedTerms: BlockedTerm[] = [
+    ...(deps.hateTerms ?? defaultHateTerms()),
+    ...deps.blockedTerms,
+  ];
+
   for (const [field, text] of [
     ["name", content.displayName],
     ["caption", content.caption],
   ] as const) {
-    const match = findBlockedTerm(text, deps.blockedTerms);
+    const match = findBlockedTerm(text, blockedTerms);
     if (match)
       return { allowed: false, reason: `blocklist:${field}:${match.term}` };
   }
