@@ -16,14 +16,10 @@ Tracked in **#67**. The product is feature-complete and still not usable by
 anyone but us.
 
 Nothing here waits on you alone any more. What is left is mine to build, but
-three of the four need you to open an account or pick up a phone first.
+each of the three needs you to open an account or pick up a phone first.
 
 ### Mine, once the door is open
 
-- [ ] **#61 — preview deployments write to production data.** A second
-      Supabase project (`drawpin-preview`, us-west-2) now holds the schema,
-      and Vercel points previews at it instead. Left: confirm a preview really
-      reads it, and decide what data previews should start with.
 - [ ] **#64 — nothing tells us when DrawPin breaks.** Every failure path is
       deliberately quiet, so an outage looks like a slow evening. _Needs you to
       create the Sentry project and the uptime monitor_; wiring them in and
@@ -53,6 +49,11 @@ three of the four need you to open an account or pick up a phone first.
 - Both cron jobs run and return 200: `/api/cron/cleanup` at 09:00 UTC and
   `/api/cron/health` at 13:00 UTC, with the feature enabled and Hobby's
   one-hour window.
+- **#61** — previews read `drawpin-preview`, a second free Supabase project
+  with the same schema. Proven from both sides at once: a preview returns
+  **Board not found** for the production board slug, while production serves
+  it. Turnstile runs on Cloudflare's test keys in previews, because every
+  preview gets a hostname the widget's allow-list has never seen.
 - **#60** — the cleanup job's secret. **#62** — closed deliberately.
 - Turnstile's hostname allow-list had only the vercel.app domain, so on
   drawpin.io nobody could sign in, post, vote or report. Fixed in Cloudflare.
@@ -144,6 +145,10 @@ worth pulling forward.
 - [ ] **Vercel's recommended DNS records.** It prefers `216.198.79.1` and a
       project-specific CNAME over the legacy pair we're on. Vercel says the
       current ones keep working; worth switching on a quiet day.
+- [ ] **Decide what data previews start with.** `drawpin-preview` has the
+      schema and nothing else, so a preview has no board to look at. Seeding it
+      the way the local database is seeded — a venue, a few weeks, some tiles —
+      would make previews useful for reviewing UI work.
 - [ ] **Rotate the OpenAI API key before 2026-12-16.** 90-day expiry, created
       2026-09-17. A reminder is scheduled for 2026-12-10. Posting is refused
       while moderation is unreachable, so an expired key stops posting entirely.
