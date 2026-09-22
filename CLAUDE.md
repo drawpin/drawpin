@@ -54,6 +54,7 @@ docs/
   api/openapi.yaml    API route contracts
   components/         feature/module docs
   ERD.md              database tables
+  assets/             README/showcase images (e.g. the logo)
 supabase/migrations/  schema as code
 src/                  Next.js app
 .claude/skills/       project skills for Claude

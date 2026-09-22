@@ -1,120 +1,81 @@
-# DrawPin
+<p align="center">
+  <img src="docs/assets/logo.png" alt="DrawPin" width="420">
+</p>
 
-A free, mobile-web drawing board for local spots (coffee shops, restaurants).
-Customers scan a printed QR code or enter a daily 8-digit code, draw a tile,
-see everyone's tiles live, and vote for the weekly winner. No app download and
-no customer accounts.
+<p align="center">
+  A free shared drawing board for local spots. Scan a code, draw a tile,
+  vote for the winner — no app, no account to play.
+</p>
 
-See [`docs/PLAN.md`](docs/PLAN.md) for the full, locked v1 product scope.
+<p align="center">
+  <a href="https://drawpin.io"><strong>drawpin.io →</strong></a>
+</p>
 
-## Quick Start
+---
 
-```bash
-npm install
-npm run dev
-```
+## What it is
 
-Open [http://localhost:3000](http://localhost:3000).
+Coffee shops and restaurants print a QR code for their table. Anyone who
+scans it can draw one small tile a day — a doodle, a joke, a tiny piece of
+art — and watch everyone else's tiles fill up the board live. A week later,
+customers vote for their favorite, that week's winner joins the venue's Hall
+of Fame, and the best week of each month goes on to crown a super winner.
 
-### Local database
+Drawing needs nothing: no download, no account, no email. Voting and winning
+ask for a Google sign-in, because a vote and a win should belong to somebody.
 
-The schema lives in `supabase/migrations/` and runs on a local Supabase stack,
-which needs [Docker](https://docs.docker.com/desktop/) running:
+## Why I built it
 
-```bash
-npx supabase start     # boots Postgres, Auth, Storage, Studio
-npx supabase db reset  # applies every migration from scratch
-```
+<!-- TODO(ahmad): your story goes here — what got you started on this,
+     what you were trying to prove or learn, whatever's true. -->
 
-`supabase start` prints the local API URL and keys — copy them into
-`.env.local`. Stop the stack with `npx supabase stop`.
+## What I learned
 
-Owners sign in with an emailed magic link. Locally no real email is sent: open
-the Mailpit inbox at [http://127.0.0.1:54324](http://127.0.0.1:54324) to find
-the link. Use `http://localhost:3000` rather than `127.0.0.1` so the link lands
-on the host holding the session cookies.
+<!-- TODO(ahmad): the real takeaways — technical, product, or otherwise. -->
 
-The hosted project can't use the custom template in
-`supabase/templates/magic_link.html`: free Supabase projects can only edit auth
-emails with their own SMTP provider. Until one is set up, owners get Supabase's
-default email, whose link only signs in **in the browser that requested it**.
-`/auth/confirm` handles both link formats, and the login page tells owners to
-use the same browser. Setting up SMTP and the custom template removes that
-limitation with no code change.
+## How it works
 
-The schema's domain rules are covered by `supabase/schema.test.ts`, which runs
-the migrations against Postgres compiled to WASM. It's part of `npm test` and
-needs no Docker.
+|          |                                                                                                                                                                    |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Join** | A printed QR opens the venue's board directly. No QR handy? Type the 8-digit code shown at the venue instead — it rotates daily.                                   |
+| **Draw** | One tile a day per person: a freehand drawing plus an optional caption. Guests can draw too, shown on the board but not in the running.                            |
+| **Vote** | The following week, anyone signed in picks three favorites from last week's board. Votes are final, and results stay hidden until voting closes.                   |
+| **Win**  | The most-voted tile becomes that week's winner and joins the venue's permanent Hall of Fame. Each month, the four best weekly winners face off for a super winner. |
 
-## Tech Stack
+## System design
 
-| Area                                       | Choice                                                                                        |
-| ------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| App                                        | Next.js (App Router) + TypeScript, hosted on Vercel                                           |
-| Database / Storage / Realtime / Owner auth | Supabase (Postgres, Storage, Realtime, magic-link Auth)                                       |
-| Moderation                                 | OpenAI moderation endpoint (text + image) + custom blocklist + NSFWJS drawing check (ADR-005) |
-| Bot protection                             | Cloudflare Turnstile                                                                          |
-| Device limiting                            | Signed device ID cookie + FingerprintJS, hashed IP                                            |
-| Drawing                                    | HTML canvas + `perfect-freehand`                                                              |
-| UI/styling                                 | Tailwind CSS + shadcn/ui                                                                      |
-| Validation                                 | Zod                                                                                           |
-| Scheduled jobs                             | On-demand transitions + daily Vercel Cron (ADR-003)                                           |
-| Package manager                            | npm                                                                                           |
+- **Architecture** — [system diagram](https://lucid.app/lucidchart/629ff9fe-e215-4bbb-b5d9-120f87a55a8e/edit), [post/vote/weekly-cycle flows](https://lucid.app/lucidchart/d0cb474a-8eba-4d8d-8fce-4ad46bc47bb6/edit), [database ERD](https://lucid.app/lucidchart/1e2f0c20-87e8-4065-9f7e-11c4fc2a4124/edit)
+- **Decisions** — every non-obvious call (why trunk-based git, why on-demand time transitions instead of a cron, why a second nudity classifier alongside OpenAI's) is written up as an ADR in [`docs/adr/`](docs/adr/)
+- **Product scope** — the full, locked v1 plan lives in [`docs/PLAN.md`](docs/PLAN.md)
 
-Decisions and rationale are recorded as ADRs in [`docs/adr/`](docs/adr/).
+A few of the harder problems this project ended up solving:
 
-## Scripts
+- **Moderation with no staff approval.** Every drawing is checked automatically
+  (OpenAI's moderation endpoint, a curated profanity list, and a second,
+  drawing-specific nudity classifier — general NSFW models are trained on
+  photos, not hand-drawn line art) before it's ever visible, with a manual
+  "Remove tile" as the human backstop for whatever slips through
+  ([ADR-005](docs/adr/005-nsfw-drawing-classifier.md)).
+- **A weekly cycle with no scheduler running the show.** Weeks, daily codes,
+  and Hall of Fame results are all computed on demand, the moment they're
+  first needed, rather than by a background job — see
+  [ADR-003](docs/adr/003-on-demand-venue-time-transitions.md).
+- **One post a day without an account.** A signed device cookie plus a
+  browser fingerprint carries the daily limit for guests; accounts layer on
+  top for anyone who signs in.
 
-| Script                 | Description                                            |
-| ---------------------- | ------------------------------------------------------ |
-| `npm run dev`          | Start the Next.js dev server                           |
-| `npm run build`        | Production build                                       |
-| `npm run start`        | Serve a production build                               |
-| `npm run lint`         | Lint with ESLint                                       |
-| `npm run typecheck`    | Generate Next.js route types and type-check with `tsc` |
-| `npm run format`       | Format with Prettier                                   |
-| `npm run format:check` | Check formatting without writing                       |
-| `npm test`             | Run unit tests once (Vitest)                           |
-| `npm run test:watch`   | Run unit tests in watch mode                           |
-| `npm run test:e2e`     | Run end-to-end tests (Playwright, mobile viewport)     |
+## Tech stack
 
-## Configuration
+| Area                          | Choice                                                      |
+| ----------------------------- | ----------------------------------------------------------- |
+| App                           | Next.js (App Router) + TypeScript, on Vercel                |
+| Database / Storage / Realtime | Supabase (Postgres, Storage, Realtime)                      |
+| Moderation                    | OpenAI moderation + custom blocklist + NSFWJS drawing check |
+| Bot protection                | Cloudflare Turnstile                                        |
+| Drawing                       | HTML canvas + `perfect-freehand`                            |
+| UI                            | Tailwind CSS + shadcn/ui                                    |
 
-Copy [`.env.example`](.env.example) to `.env.local` and fill it in from the
-output of `npx supabase start`.
-
-| Variable                         | Required | Description                                                                                                                                                        |
-| -------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `NEXT_PUBLIC_SUPABASE_URL`       | yes      | Supabase API URL; `http://127.0.0.1:54321` locally                                                                                                                 |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY`  | yes      | Browser-side key, limited by row level security                                                                                                                    |
-| `SUPABASE_SERVICE_ROLE_KEY`      | yes      | Server-side key; bypasses RLS, never sent to the browser                                                                                                           |
-| `SITE_URL`                       | yes      | Public site origin for board links and QR codes; `http://localhost:3000` locally                                                                                   |
-| `DEVICE_COOKIE_SECRET`           | yes      | 32+ random characters; signs the device cookie and derives name tags. Changing it resets daily limits and tags                                                     |
-| `OPENAI_API_KEY`                 | yes      | Moderation for names, captions and drawings. Restrict the key to `/v1/moderations`; that endpoint is free. Posting is refused while it's missing                   |
-| `MODERATION_BLOCKLIST`           | no       | Extra blocked words, comma-separated. Links, emails, phone numbers, and a built-in profanity list are always blocked                                               |
-| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | yes      | Cloudflare Turnstile site key, rendered in the page. Cloudflare test key `1x00000000000000000000AA` works locally                                                  |
-| `TURNSTILE_SECRET_KEY`           | yes      | Turnstile secret, used to verify tokens server-side. Posting and owner sign-in are refused while it is missing. Test secret: `1x0000000000000000000000000000000AA` |
-| `CRON_SECRET`                    | no       | Bearer token Vercel Cron sends to the daily cleanup. The endpoint refuses to run while it is unset, which is what you want outside production                      |
-
-## Health checks
-
-`GET /api/health` is public and cheap: one database round trip, nothing else.
-Point an uptime monitor at it.
-
-`GET /api/cron/health` runs daily and asks the things that fail silently —
-whether OpenAI still accepts our key, whether Cloudflare still accepts our
-Turnstile secret, and whether the database and storage answer. It needs the
-`CRON_SECRET` bearer token, and returns 503 when anything is wrong so the run
-shows as failed in Vercel.
-
-## Contributing
-
-- One branch → one pull request. Branches: `type/short-name`, with an issue number when there is one.
-- Commits follow [Conventional Commits](https://www.conventionalcommits.org/).
-- `main` is the only long-lived branch (trunk-based, see
-  [`docs/adr/001-trunk-based-branching.md`](docs/adr/001-trunk-based-branching.md));
-  pull requests are squash-merged.
-- Full working agreement is in [`CLAUDE.md`](CLAUDE.md).
+Building and running it yourself is covered in [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## License
 
