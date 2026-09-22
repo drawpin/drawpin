@@ -91,12 +91,14 @@ No charges for venues or users in v1.
 Weekly prompt mode ("challenges"), live jam mode, location checks, Google
 sign-in for owners, multi-location owners, wall display.
 
-**Per-board moderation strictness.** Today one fixed built-in profanity list
-(`src/lib/moderation/profanity-terms.ts`) applies to every board, blocking
-every category the source list carries (not just slurs). Letting each owner
-choose how strict their own board is — e.g. slurs only vs. all profanity —
-is a reasonable ask once there's more than one board's worth of feedback on
-it. Not v1.
+**Per-board moderation strictness.** Today moderation is one fixed set of
+rules for every board: the built-in profanity list
+(`src/lib/moderation/profanity-terms.ts`) blocks every category the source
+list carries, not just slurs, and the drawing nudity check allows its
+"Sexy" class through (ADR-005). Letting each owner tune their own board's
+strictness — e.g. slurs only vs. all profanity, or how the nudity check
+treats "Sexy" — is a reasonable ask once there's real feedback across more
+than one board. Not v1.
 
 Accounts open a few more: a customer's saved drawings and history (#44),
 blocking an account from a board, and more ways to sign in — Facebook, Apple,
