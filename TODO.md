@@ -15,27 +15,26 @@ Last updated: 2026-09-22.
 Tracked in **#67**. The product is feature-complete and still not usable by
 anyone but us.
 
-### Yours — can't be done from the repo
+Nothing here waits on you alone any more. What is left is mine to build, but
+three of the four need you to open an account or pick up a phone first.
 
-- [ ] **Prove #63.** The Google app is published and Google's consent page
-      already shows the drawpin.io privacy and terms links. The one untested
-      path: sign in on a phone with a Google account that was never on the
-      test-user list. Until that's seen working, assume nothing.
-- [ ] **Check Vercel's Cron Jobs tab** — both daily jobs should be returning 200. Not visible from the CLI.
-
-### Mine
+### Mine, once the door is open
 
 - [ ] **#61 — preview deployments write to production data.** One careless
-      click on a PR preview corrupts a real board. Needs a second Supabase
-      project and preview-scoped environment variables.
+      click on a PR preview corrupts a real board. _Needs you to create a
+      second Supabase project_; the migrations, seed and preview-scoped
+      environment variables are mine.
 - [ ] **#64 — nothing tells us when DrawPin breaks.** Every failure path is
-      deliberately quiet, so an outage looks like a slow evening. Error
-      reporting, the cron's result, and an uptime ping.
-- [ ] **#65 — run the whole cycle in production, on a real phone.** Takes days
-      of wall-clock time (a week rolls over, voting opens, a winner is crowned),
-      so it starts as soon as #63 is proven, not the week we invite someone.
+      deliberately quiet, so an outage looks like a slow evening. _Needs you to
+      create the Sentry project and the uptime monitor_; wiring them in and
+      reporting the cron's result are mine.
+- [ ] **#65 — run the whole cycle in production, on a real phone.** #63 is
+      proven, so this can start now — and it should, because it takes days of
+      wall-clock time: a week rolls over, voting opens, a winner is crowned.
+      _Needs your phone, and a second Google account to vote with._
 - [ ] **#66 — real devices.** iOS private browsing, and the in-app browsers a
       QR scan lands in, where Google sign-in is sometimes blocked outright.
+      _Needs real devices in real hands._
 
 ### Done in this stretch, kept for the record
 
@@ -46,6 +45,14 @@ anyone but us.
   the domain, so a scanned QR lands somewhere that works.
 - Mail is fully signed: SPF and DKIM from the Resend setup, and `_dmarc`
   (`v=DMARC1; p=none;`) resolving publicly.
+- **#63** — the Google app is **in production**, so the test-user list no
+  longer gates anything. The 100-user OAuth cap on that page applies only to
+  unapproved sensitive or restricted scopes; `email` and `profile` are
+  neither. It would bind the day we ask for more, which would also mean a
+  verification review.
+- Both cron jobs run and return 200: `/api/cron/cleanup` at 09:00 UTC and
+  `/api/cron/health` at 13:00 UTC, with the feature enabled and Hobby's
+  one-hour window.
 - **#60** — the cleanup job's secret. **#62** — closed deliberately.
 - Turnstile's hostname allow-list had only the vercel.app domain, so on
   drawpin.io nobody could sign in, post, vote or report. Fixed in Cloudflare.
