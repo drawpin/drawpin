@@ -1,5 +1,5 @@
 import { findBlockedTerm, type BlockedTerm } from "./blocklist";
-import { defaultHateTerms } from "./hate-terms";
+import { defaultProfanityTerms } from "./profanity-terms";
 import { checkWithOpenAi, type ModerationInput } from "./openai";
 
 export type TileContent = {
@@ -18,10 +18,10 @@ export type ModerationDeps = {
   apiKey: string;
   blockedTerms: string[];
   check?: typeof checkWithOpenAi;
-  /** Built-in slur/hate-term list (hate-terms.ts). Defaults to
-   * {@link defaultHateTerms}; overridable so tests don't depend on the real
-   * (public, third-party) word list. */
-  hateTerms?: BlockedTerm[];
+  /** Built-in profanity list (profanity-terms.ts). Defaults to
+   * {@link defaultProfanityTerms}; overridable so tests don't depend on the
+   * real (public, third-party) word list. */
+  profanityTerms?: BlockedTerm[];
 };
 
 /**
@@ -37,7 +37,7 @@ export async function moderateTile(
   deps: ModerationDeps,
 ): Promise<ModerationDecision> {
   const blockedTerms: BlockedTerm[] = [
-    ...(deps.hateTerms ?? defaultHateTerms()),
+    ...(deps.profanityTerms ?? defaultProfanityTerms()),
     ...deps.blockedTerms,
   ];
 

@@ -91,6 +91,13 @@ No charges for venues or users in v1.
 Weekly prompt mode ("challenges"), live jam mode, location checks, Google
 sign-in for owners, multi-location owners, wall display.
 
+**Per-board moderation strictness.** Today one fixed built-in profanity list
+(`src/lib/moderation/profanity-terms.ts`) applies to every board, blocking
+every category the source list carries (not just slurs). Letting each owner
+choose how strict their own board is — e.g. slurs only vs. all profanity —
+is a reasonable ask once there's more than one board's worth of feedback on
+it. Not v1.
+
 Accounts open a few more: a customer's saved drawings and history (#44),
 blocking an account from a board, and more ways to sign in — Facebook, Apple,
 email codes, passkeys (#50). Google is the only provider in v1; anyone without

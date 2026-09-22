@@ -25,7 +25,7 @@ describe("moderateTile", () => {
       moderateTile(content, {
         apiKey: "sk",
         blockedTerms: [],
-        hateTerms: [],
+        profanityTerms: [],
         check,
       }),
     ).resolves.toEqual({ allowed: true });
@@ -44,7 +44,7 @@ describe("moderateTile", () => {
     await expect(
       moderateTile(
         { ...content, caption: "visit www.spam.co" },
-        { apiKey: "sk", blockedTerms: [], hateTerms: [], check },
+        { apiKey: "sk", blockedTerms: [], profanityTerms: [], check },
       ),
     ).resolves.toEqual({ allowed: false, reason: "blocklist:caption:link" });
     expect(check).not.toHaveBeenCalled();
@@ -56,7 +56,7 @@ describe("moderateTile", () => {
     await expect(
       moderateTile(
         { ...content, displayName: "badword" },
-        { apiKey: "sk", blockedTerms: ["badword"], hateTerms: [], check },
+        { apiKey: "sk", blockedTerms: ["badword"], profanityTerms: [], check },
       ),
     ).resolves.toEqual({ allowed: false, reason: "blocklist:name:badword" });
     expect(check).not.toHaveBeenCalled();
@@ -72,7 +72,7 @@ describe("moderateTile", () => {
       moderateTile(content, {
         apiKey: "sk",
         blockedTerms: [],
-        hateTerms: [],
+        profanityTerms: [],
         check,
       }),
     ).resolves.toEqual({ allowed: false, reason: "openai:violence" });
@@ -83,7 +83,7 @@ describe("moderateTile", () => {
 
     await moderateTile(
       { ...content, displayName: null, caption: null },
-      { apiKey: "sk", blockedTerms: [], hateTerms: [], check },
+      { apiKey: "sk", blockedTerms: [], profanityTerms: [], check },
     );
 
     expect(check.mock.calls[0][0].text).toBeNull();
@@ -99,30 +99,30 @@ describe("moderateTile", () => {
       moderateTile(content, {
         apiKey: "sk",
         blockedTerms: [],
-        hateTerms: [],
+        profanityTerms: [],
         check,
       }),
     ).rejects.toBeInstanceOf(ModerationUnavailableError);
   });
 });
 
-describe("built-in hate-term list", () => {
-  it("blocks a hate term without calling OpenAI", async () => {
+describe("built-in profanity list", () => {
+  it("blocks a listed term without calling OpenAI", async () => {
     const check = vi.fn(allow);
 
     await expect(
       moderateTile(
-        { ...content, caption: "a zzfakehateterm caption" },
+        { ...content, caption: "a zzfakebadword caption" },
         {
           apiKey: "sk",
           blockedTerms: [],
-          hateTerms: [{ term: "zzfakehateterm" }],
+          profanityTerms: [{ term: "zzfakebadword" }],
           check,
         },
       ),
     ).resolves.toEqual({
       allowed: false,
-      reason: "blocklist:caption:zzfakehateterm",
+      reason: "blocklist:caption:zzfakebadword",
     });
     expect(check).not.toHaveBeenCalled();
   });
@@ -144,7 +144,7 @@ describe("checking a username on its own", () => {
 
     const decision = await moderateTile(
       { displayName: "Ahmad", caption: null, image: null },
-      { apiKey: "sk-test", blockedTerms: [], hateTerms: [], check },
+      { apiKey: "sk-test", blockedTerms: [], profanityTerms: [], check },
     );
 
     expect(decision).toEqual({ allowed: true });
@@ -159,7 +159,7 @@ describe("checking a username on its own", () => {
 
     const decision = await moderateTile(
       { displayName: "visit example.com", caption: null, image: null },
-      { apiKey: "sk-test", blockedTerms: [], hateTerms: [], check },
+      { apiKey: "sk-test", blockedTerms: [], profanityTerms: [], check },
     );
 
     expect(decision).toMatchObject({ allowed: false });

@@ -1,24 +1,29 @@
 import { describe, expect, it } from "vitest";
-import { defaultHateTerms, selectHateTerms } from "./hate-terms";
+import { defaultProfanityTerms, selectProfanityTerms } from "./profanity-terms";
 
 /**
  * These use made-up entries in the source package's shape, never real
- * slurs — this repository is public. {@link defaultHateTerms} (the real
- * list) only gets a smoke test below.
+ * slurs — this repository is public. {@link defaultProfanityTerms} (the
+ * real list) only gets a smoke test below.
  */
-describe("selectHateTerms", () => {
-  it("keeps hate-tagged entries at or above severity 3", () => {
-    const terms = selectHateTerms([
+describe("selectProfanityTerms", () => {
+  it("keeps entries at or above severity 3, regardless of category", () => {
+    const terms = selectProfanityTerms([
       { id: "a", match: "fakeslur", severity: 3, tags: ["racial"] },
-      { id: "b", match: "mildinsult", severity: 2, tags: ["racial"] },
-      { id: "c", match: "sweardword", severity: 4, tags: ["general"] },
+      { id: "b", match: "fakeswear", severity: 3, tags: ["general"] },
+      { id: "c", match: "mildinsult", severity: 2, tags: ["racial"] },
+      { id: "d", match: "untagged", severity: 4 },
     ]);
 
-    expect(terms).toEqual([{ term: "fakeslur", exceptions: [] }]);
+    expect(terms).toEqual([
+      { term: "fakeslur", exceptions: [] },
+      { term: "fakeswear", exceptions: [] },
+      { term: "untagged", exceptions: [] },
+    ]);
   });
 
   it("splits alternates and strips elongation markers", () => {
-    const terms = selectHateTerms([
+    const terms = selectProfanityTerms([
       {
         id: "a",
         match: "fu*keyslur|altspelling",
@@ -34,7 +39,7 @@ describe("selectHateTerms", () => {
   });
 
   it("expands exceptions against every alternate", () => {
-    const terms = selectHateTerms([
+    const terms = selectProfanityTerms([
       {
         id: "a",
         match: "fakeslur|otherslur",
@@ -49,28 +54,19 @@ describe("selectHateTerms", () => {
       { term: "otherslur", exceptions: ["harmfakeslur", "harmotherslur"] },
     ]);
   });
-
-  it("ignores an entry with no hate tag, even at severity 4", () => {
-    expect(
-      selectHateTerms([
-        { id: "a", match: "sweardword", severity: 4, tags: ["sexual"] },
-        { id: "b", match: "untagged", severity: 4 },
-      ]),
-    ).toEqual([]);
-  });
 });
 
-describe("defaultHateTerms", () => {
+describe("defaultProfanityTerms", () => {
   it("parses the real list into a non-empty, well-formed set", () => {
-    const terms = defaultHateTerms();
+    const terms = defaultProfanityTerms();
 
-    expect(terms.length).toBeGreaterThan(20);
+    expect(terms.length).toBeGreaterThan(100);
     for (const entry of terms) {
       expect(typeof entry === "string" ? entry : entry.term).not.toBe("");
     }
   });
 
   it("is cached across calls", () => {
-    expect(defaultHateTerms()).toBe(defaultHateTerms());
+    expect(defaultProfanityTerms()).toBe(defaultProfanityTerms());
   });
 });

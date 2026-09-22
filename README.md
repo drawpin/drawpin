@@ -91,7 +91,7 @@ output of `npx supabase start`.
 | `SITE_URL`                       | yes      | Public site origin for board links and QR codes; `http://localhost:3000` locally                                                                                   |
 | `DEVICE_COOKIE_SECRET`           | yes      | 32+ random characters; signs the device cookie and derives name tags. Changing it resets daily limits and tags                                                     |
 | `OPENAI_API_KEY`                 | yes      | Moderation for names, captions and drawings. Restrict the key to `/v1/moderations`; that endpoint is free. Posting is refused while it's missing                   |
-| `MODERATION_BLOCKLIST`           | no       | Extra blocked words, comma-separated. Links, emails, phone numbers, and a built-in slur/hate-term list are always blocked                                          |
+| `MODERATION_BLOCKLIST`           | no       | Extra blocked words, comma-separated. Links, emails, phone numbers, and a built-in profanity list are always blocked                                               |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | yes      | Cloudflare Turnstile site key, rendered in the page. Cloudflare test key `1x00000000000000000000AA` works locally                                                  |
 | `TURNSTILE_SECRET_KEY`           | yes      | Turnstile secret, used to verify tokens server-side. Posting and owner sign-in are refused while it is missing. Test secret: `1x0000000000000000000000000000000AA` |
 | `CRON_SECRET`                    | no       | Bearer token Vercel Cron sends to the daily cleanup. The endpoint refuses to run while it is unset, which is what you want outside production                      |

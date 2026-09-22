@@ -2,12 +2,13 @@
  * The custom blocklist half of moderation (docs/PLAN.md, Moderation). It runs
  * before the OpenAI check because it's instant and free.
  *
- * It holds no slur list of its own — this repository is public. What it
+ * It holds no word list of its own — this repository is public. What it
  * matches here is spam that moderation models don't flag (links, email
  * addresses and phone numbers) plus whatever terms are handed to it: the
- * built-in hate-term list from `hate-terms.ts` (OpenAI's text moderation has
- * a documented blind spot on slurs and contextual hate speech) and any extra
- * words a venue owner adds privately through `MODERATION_BLOCKLIST`.
+ * built-in profanity list from `profanity-terms.ts` (OpenAI's text
+ * moderation has a documented blind spot on slurs and contextual hate
+ * speech) and any extra words a venue owner adds privately through
+ * `MODERATION_BLOCKLIST`.
  */
 
 /** Spam patterns that aren't "harmful" but don't belong on a board. */
@@ -64,7 +65,7 @@ export type BlocklistMatch = { term: string };
 /**
  * A term to block, either a plain normalized word/phrase (from
  * {@link parseBlocklist}) or one with known-innocent phrases it shouldn't
- * trip inside (from `hate-terms.ts`) — e.g. the term `arse` exempting
+ * trip inside (from `profanity-terms.ts`) — e.g. the term `arse` exempting
  * `sparse`.
  */
 export type BlockedTerm =
