@@ -127,7 +127,7 @@ export type Scene = {
   ops: DrawOp[];
   /** The stroke being drawn right now, if any. */
   activeStroke: Stroke | null;
-  /** Drawn under the drawing, and never part of the exported tile. */
+  /** Drawn over the drawing, and never part of the exported tile. */
   showGrid: boolean;
 };
 
@@ -179,20 +179,28 @@ function drawStroke(context: CanvasRenderingContext2D, stroke: Stroke) {
 }
 
 /**
- * Faint guides to draw against, like squared paper.
+ * Guides to draw against, like squared paper held over the work.
  *
- * Only ever drawn on screen: {@link renderTile} is what the export uses, and
+ * Drawn on top rather than underneath: a guide beneath the drawing disappears
+ * behind the first thing filled in, which is exactly when it was useful.
+ *
+ * Only ever drawn on screen — {@link renderTile} is what the export uses, and
  * it doesn't take a grid, so nobody else sees the lines (issue #39).
  */
 function drawGrid(context: CanvasRenderingContext2D) {
   const step = TILE_SIZE / GRID_CELLS;
+  // A mid grey at half strength reads as a faint line on paper and as a pale
+  // one over dark ink, so the guide survives whatever is under it.
+  const scale = context.getTransform().a || 1;
 
   context.save();
-  context.strokeStyle = "#e5e7eb";
-  context.lineWidth = 1;
+  context.strokeStyle = "rgba(107, 114, 128, 0.5)";
+  // One screen pixel however far in someone has zoomed: a guide that thickens
+  // with the drawing starts covering it.
+  context.lineWidth = 1 / scale;
   context.beginPath();
   for (let line = 1; line < GRID_CELLS; line++) {
-    const offset = Math.round(line * step) + 0.5;
+    const offset = line * step;
     context.moveTo(offset, 0);
     context.lineTo(offset, TILE_SIZE);
     context.moveTo(0, offset);
@@ -216,8 +224,6 @@ export function renderScene(
   context.fillStyle = "#ffffff";
   context.fillRect(0, 0, TILE_SIZE, TILE_SIZE);
 
-  if (scene.showGrid) drawGrid(context);
-
   for (const op of scene.ops) {
     if (op.kind === "fill") {
       context.drawImage(op.mask.canvas, op.mask.x, op.mask.y);
@@ -227,6 +233,9 @@ export function renderScene(
   }
 
   if (scene.activeStroke) drawStroke(context, scene.activeStroke);
+
+  // Last, so it stays a guide rather than something to paint over.
+  if (scene.showGrid) drawGrid(context);
 }
 
 /**
