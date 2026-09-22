@@ -47,7 +47,7 @@ const NUDITY_CLASSES = new Set(["Porn", "Hentai"]);
  * is flagged. There's no labeled DrawPin data to tune this against yet;
  * revisit once reported/removed tiles give a real signal.
  */
-const FLAG_THRESHOLD = 0.75;
+const FLAG_THRESHOLD = 0.7;
 
 let modelPromise: Promise<NSFWJS> | null = null;
 

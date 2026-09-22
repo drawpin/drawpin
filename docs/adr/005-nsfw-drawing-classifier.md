@@ -23,9 +23,10 @@ infinitered/nsfwjs)'s MobileNetV2 model. Its five classes — Drawing, Hentai,
 Neutral, Porn, Sexy — were trained specifically to tell safe line art apart
 from explicit content, including drawn/animated nudity ("Hentai"), not just
 photographic nudity ("Porn"). A tile is blocked if `Porn + Hentai`
-probability clears a threshold (`FLAG_THRESHOLD`, currently 0.75); `Sexy`
+probability clears a threshold (`FLAG_THRESHOLD`, currently 0.7); `Sexy`
 (e.g. swimwear, suggestive-but-not-explicit) is deliberately not
-auto-blocked, to avoid false-positiving ordinary drawings.
+auto-blocked for now, to avoid false-positiving ordinary drawings — see
+docs/PLAN.md's back pocket on per-board moderation strictness.
 
 It runs in-process on `@tensorflow/tfjs`'s **WASM** backend, not
 `@tensorflow/tfjs-node`: `tfjs-node` needs a native compiled binary, which is
@@ -68,6 +69,14 @@ built function's `.nft.json` file list after `npm run build`.
   unverified on Vercel's serverless runtime, and the risk of a broken
   production deploy over a supplementary check isn't worth the speed gain —
   classification is already well under 100ms warm on WASM.
+- **NSFWJS's larger bundled models** (`MobileNetV2Mid`, 5.6 MB;
+  `InceptionV3`, 29 MB — both more accurate than the 3.5 MB `MobileNetV2`
+  used here). Not chosen for the first ship, to keep the deployment small
+  and cold starts fast, but worth keeping in mind: if `MobileNetV2`'s
+  accuracy proves insufficient once there's real traffic, swapping in
+  `nsfwjs/models/mobilenet_v2_mid` only touches the import and the
+  `loadModel` call in `nsfw-drawing.ts` — nothing else in the moderation
+  pipeline changes.
 
 ## Consequences
 - `~3.5 MB` added to the `/b/[slug]/draw` function's deployment size for the
