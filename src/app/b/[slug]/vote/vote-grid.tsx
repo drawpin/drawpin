@@ -8,6 +8,7 @@ import { TURNSTILE_FIELD } from "@/lib/turnstile/field";
 import type { Tile } from "../tiles";
 import { castVotesAction } from "./actions";
 import type { VoteState } from "./schema";
+import { TileWall } from "./tile-wall";
 
 const initialState: VoteState = { status: "idle" };
 
@@ -79,12 +80,16 @@ export function VoteGrid({
   }
 
   if (left === 0) {
+    // Out of votes, but the board is still worth looking at.
     return (
-      <p role="status" className="bg-muted rounded-lg px-3 py-2 text-sm">
-        {state.status === "cast"
-          ? "Votes cast. That's all three for this week — they're final."
-          : "You've used all three of your votes this week."}
-      </p>
+      <>
+        <p role="status" className="bg-muted rounded-lg px-3 py-2 text-sm">
+          {state.status === "cast"
+            ? "Votes cast. That's all three for this week — they're final."
+            : "You've used all three of your votes this week."}
+        </p>
+        <TileWall tiles={tiles} />
+      </>
     );
   }
 
@@ -113,7 +118,7 @@ export function VoteGrid({
                 onClick={() => toggle(tile.id)}
                 disabled={blocked !== null || pending}
                 aria-pressed={isPicked}
-                className={`flex w-full flex-col gap-1 rounded-lg border p-1 text-left ${
+                className={`flex h-full w-full flex-col gap-1 rounded-lg border p-1 text-left ${
                   isPicked ? "border-primary border-2" : ""
                 } ${blocked ? "opacity-60" : ""}`}
               >
@@ -127,9 +132,11 @@ export function VoteGrid({
                   className="aspect-square w-full rounded bg-white object-cover"
                 />
                 {tile.caption && (
-                  <span className="text-sm break-words">{tile.caption}</span>
+                  <span className="line-clamp-2 text-sm break-words">
+                    {tile.caption}
+                  </span>
                 )}
-                <span className="text-muted-foreground text-xs">
+                <span className="text-muted-foreground truncate text-xs">
                   {tile.author ?? "Guest"}
                   {blocked && ` · ${blocked}`}
                   {isPicked && " · picked"}

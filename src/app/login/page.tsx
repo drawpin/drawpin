@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getOwner } from "@/lib/auth";
 import { serverEnv } from "@/lib/env";
@@ -31,6 +32,15 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       <LoginForm
         turnstileSiteKey={serverEnv().NEXT_PUBLIC_TURNSTILE_SITE_KEY}
       />
+      {/* Customers sign in with Google from the board itself, so anyone who
+          lands here looking for that needs pointing back. */}
+      <p className="text-muted-foreground text-center text-sm">
+        Here to draw? You don&apos;t need this — join a board from the{" "}
+        <Link href="/" className="underline underline-offset-4">
+          home page
+        </Link>
+        .
+      </p>
     </main>
   );
 }

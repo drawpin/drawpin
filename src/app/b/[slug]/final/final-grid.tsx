@@ -6,6 +6,7 @@ import { Turnstile } from "@/components/turnstile";
 import { Button } from "@/components/ui/button";
 import { TURNSTILE_FIELD } from "@/lib/turnstile/field";
 import { castFinalVoteAction } from "./actions";
+import { FinalistWall } from "./finalist-wall";
 import type { Finalist } from "./data";
 import type { FinalVoteState } from "./schema";
 
@@ -33,10 +34,13 @@ export function FinalGrid({
 
   if (state.status === "cast") {
     return (
-      <p role="status" className="bg-muted rounded-lg px-3 py-2 text-sm">
-        Vote cast. That&apos;s your one for this month&apos;s final — the super
-        winner is crowned when it closes.
-      </p>
+      <>
+        <p role="status" className="bg-muted rounded-lg px-3 py-2 text-sm">
+          Vote cast. That&apos;s your one for this month&apos;s final — the
+          super winner is crowned when it closes.
+        </p>
+        <FinalistWall finalists={finalists} />
+      </>
     );
   }
 

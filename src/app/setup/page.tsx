@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { signOut } from "@/app/admin/actions";
+import { Button } from "@/components/ui/button";
 import { isOwnerAccount, requireOwner } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { listTimeZones } from "@/lib/timezones";
@@ -33,6 +35,16 @@ export default async function SetupPage() {
         </p>
       </div>
       <SetupForm timeZones={listTimeZones()} />
+      {/* Signed in as the wrong address, this page is otherwise a dead end:
+          every other route sends an owner without a board back to it. */}
+      <div className="text-muted-foreground flex flex-wrap items-center justify-center gap-1 text-sm">
+        <span>Signed in as {owner.email}.</span>
+        <form action={signOut}>
+          <Button type="submit" variant="link" size="sm" className="h-auto p-0">
+            Sign out
+          </Button>
+        </form>
+      </div>
     </main>
   );
 }
