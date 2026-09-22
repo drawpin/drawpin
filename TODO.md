@@ -80,8 +80,10 @@ What's left:
       something it can put on a table without designing it themselves.
 - [ ] **The favicon is still create-next-app's.** Needs a DrawPin mark — a
       branding call, so say what you want and I'll build it.
-- [ ] **No link preview.** A board link pasted into a group chat shows a bare
-      URL. Open Graph title, description and image.
+- [ ] **Previews for the pages inside a board.** The board and the home page
+      now show a card; `/draw`, `/vote` and the Hall of Fame still inherit the
+      generic title. "Come vote for mine" is a link people send, so it should
+      say Vote rather than repeat the board's name.
 - [ ] **Remaining screens at phone width**: `/welcome`, the monthly final with
       real finalists, and the empty states nobody has seen yet.
 
