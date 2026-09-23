@@ -16,6 +16,11 @@ const serverEnvSchema = z.object({
    * runs without it; the endpoint refuses to do anything while it is unset.
    */
   CRON_SECRET: z.string().min(1).optional(),
+  /**
+   * Sends the email when a daily health check fails. Optional: without it the
+   * checks still run and still fail the cron, they just go unreported.
+   */
+  RESEND_API_KEY: z.string().min(1).optional(),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

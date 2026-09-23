@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { sendHealthAlert } from "@/lib/health/alert";
 import { runChecks } from "@/lib/health/checks";
 import {
   checkOpenAiKey,
@@ -37,6 +38,11 @@ export async function GET(request: NextRequest) {
 
   if (!report.ok) {
     console.error("Health check failed", report.checks);
+    // Nobody watches a cron dashboard, so the failure has to arrive somewhere
+    // a person reads. Failing to send is logged, not thrown: the check result
+    // matters more than the reporting of it.
+    const problem = await sendHealthAlert(report, env.RESEND_API_KEY);
+    if (problem) console.error("Could not send the health alert", problem);
   }
 
   // A non-200 is what makes Vercel's cron dashboard show it as a failure.
