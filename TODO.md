@@ -95,9 +95,25 @@ Things an owner will hit that v1 doesn't answer. None are filed yet.
 
 - [ ] **Rename the board.** The venue name is set once at setup and never
       again — a typo, a rebrand, or "Corner Coffee" becoming "Corner Coffee &
-      Wine" all need a support conversation today. The slug and the QR code
-      stay the same, so renaming costs nothing and reprints nothing; that's the
-      design point. Belongs on the owner screen next to Pause.
+      Wine" all need a support conversation today. Belongs on the owner screen
+      next to Pause.
+
+      Renaming changes the **name only**. The slug is generated once at setup
+      (`makeSlug` in `src/app/setup/create-venue.ts`) and stored; the QR code
+      encodes `/b/<slug>`; the daily code is keyed by venue and time window and
+      never touches either. So a rename reprints nothing, and the field should
+      say so: _"Your board link and QR code stay the same."_ That's the right
+      trade, because a printed QR is the one thing in this product we can't
+      deploy a fix to — a café with twenty table tents and a window sticker
+      pays for every broken code.
+
+- [ ] **Change the board link.** The other half, and a different thing
+      entirely: after a rename the URL still carries the old name, which is
+      fine for a test board and not for a real café. This one _does_ invalidate
+      printed codes, so it needs the loud warning the rename doesn't — and old
+      slugs must keep redirecting to the new one, or every table tent, saved
+      bookmark and shared chat link dies at once. Needs somewhere to keep
+      former slugs, which is a schema change rather than a form field.
 - [ ] **Change the board's time zone.** Also set once at setup, and it decides
       every 4:00 AM day and week boundary. Picking the wrong one silently shifts
       the whole cycle, and there's no way back.
