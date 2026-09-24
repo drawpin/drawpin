@@ -30,7 +30,7 @@ export async function generateMetadata({
       title: board.name,
       description: "Draw It. Pin It. Compete to Win!",
       url: `/b/${slug}`,
-      images: [{ url: "/og.png", width: 1200, height: 630, alt: "DrawPin" }],
+      images: [{ url: "/og-v2.png", width: 1200, height: 630, alt: "DrawPin" }],
     },
   };
 }
