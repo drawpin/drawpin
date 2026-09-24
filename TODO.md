@@ -6,7 +6,7 @@ GitHub issues stay the source of truth for anything with a number; this file is
 the map, and the place for things that don't have an issue yet. `docs/PLAN.md`
 is still the locked v1 scope — nothing here changes it.
 
-Last updated: 2026-09-22.
+Last updated: 2026-09-24.
 
 ---
 
@@ -91,21 +91,25 @@ What's left:
 
 ## 3. Owner-facing gaps
 
-Things an owner will hit that v1 doesn't answer. None are filed yet.
+Things an owner will hit that v1 doesn't answer.
 
-- [ ] **Rename the board.** The venue name is set once at setup and never
-      again — a typo, a rebrand, or "Corner Coffee" becoming "Corner Coffee &
-      Wine" all need a support conversation today. Belongs on the owner screen
-      next to Pause.
+- [x] **Rename the board** — **#105**, shipped. Lives above Pause on the owner
+      screen. The venue name also goes through moderation now, at rename _and_
+      at setup: anyone who can receive email can create a board, and the name
+      becomes the heading, the page title, the link-preview title and the URL
+      itself, yet nothing checked it.
 
       Renaming changes the **name only**. The slug is generated once at setup
-      (`makeSlug` in `src/app/setup/create-venue.ts`) and stored; the QR code
-      encodes `/b/<slug>`; the daily code is keyed by venue and time window and
-      never touches either. So a rename reprints nothing, and the field should
-      say so: _"Your board link and QR code stay the same."_ That's the right
-      trade, because a printed QR is the one thing in this product we can't
-      deploy a fix to — a café with twenty table tents and a window sticker
-      pays for every broken code.
+      (`createBoardSlug` in `src/lib/slug.ts`) and stored; the QR code encodes
+      `/b/<slug>`; the daily code is keyed by venue and time window and never
+      touches either. So a rename reprints nothing, and the form says so. That
+      was the right trade, because a printed QR is the one thing in this
+      product we can't deploy a fix to — a café with twenty table tents and a
+      window sticker pays for every broken code.
+
+      One thing it can't fix: a link already shared in a chat keeps the old
+      name, because the preview is cached against the URL and the URL doesn't
+      change. The form says that too, after the rename rather than before it.
 
 - [ ] **Change the board link.** The other half, and a different thing
       entirely: after a rename the URL still carries the old name, which is

@@ -66,8 +66,9 @@ Account (where there is one) + signed device ID cookie + browser fingerprint (ha
 - Owners sign in by email magic link (Supabase Auth), single-use, short expiry, rate-limited, Turnstile on login. Customers sign in with Google; the two are separate roles on one auth system.
 - **One board per owner.**
 - Setup: email → link → venue name + time zone → done.
-- One screen: (1) QR + today's code (download/print), (2) Pause board toggle, (3) Remove a tile, (4) reported tiles, surfaced first.
-- Not included: analytics, branding, multiple staff logins, settings. Blocking an account from a board is the natural next step once reporting is real, but it isn't in v1.
+- One screen: (1) QR + today's code (download/print), (2) Pause board toggle, (3) Remove a tile, (4) reported tiles, surfaced first, (5) rename the board.
+- Renaming changes the display name only. The slug is generated once at setup, the QR encodes `/b/<slug>`, and the daily code is keyed by venue and time window — so a rename reprints nothing. Changing the slug is not in v1: it would kill every printed code, and needs a table of former slugs to redirect from.
+- Not included: analytics, branding, multiple staff logins, any other settings. Blocking an account from a board is the natural next step once reporting is real, but it isn't in v1.
 
 ### Data retention
 - Weekly winners and monthly super winners (the Hall of Fame) are kept forever.
