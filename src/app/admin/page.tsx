@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { serverEnv } from "@/lib/env";
 import { setBoardPaused, signOut } from "./actions";
 import { BoardTiles } from "./board-tiles";
+import { RenameBoard } from "./rename-board";
 import { ReportedTiles } from "./reported-tiles";
 import { listBoardTiles, listReportedTiles, requireOwnedVenue } from "./venue";
 
@@ -32,7 +33,7 @@ export default async function AdminPage() {
       <header className="flex items-start justify-between gap-4">
         <div>
           <p className="text-muted-foreground text-sm">Your board</p>
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 className="text-2xl font-semibold tracking-tight break-words">
             {venue.name}
           </h1>
         </div>
@@ -82,9 +83,12 @@ export default async function AdminPage() {
           {url}
         </p>
         <p className="text-muted-foreground text-xs">
-          Customers open this link by scanning the QR code.
+          Customers open this link by scanning the QR code. It doesn&apos;t
+          change when you rename your board.
         </p>
       </section>
+
+      <RenameBoard name={venue.name} />
 
       <section className="flex flex-col gap-2">
         <h2 className="text-sm font-medium">

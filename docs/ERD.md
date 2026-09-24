@@ -38,7 +38,7 @@ One drawing board per owner, addressed publicly by `slug`.
 |---|---|---|
 | `id` | `uuid` | PK |
 | `owner_id` | `uuid` | FK → `owners`, **unique** — one board per owner |
-| `name` | `text` | 1–120 chars |
+| `name` | `text` | 1–120 chars; the owner can change it, and nothing denormalizes a copy |
 | `slug` | `text` | unique, `^[a-z0-9]+(-[a-z0-9]+)*$` |
 | `timezone` | `text` | IANA name, validated in the app |
 | `is_paused` | `boolean` | owner's pause toggle |

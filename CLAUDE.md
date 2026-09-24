@@ -41,7 +41,7 @@ See `docs/adr/002-frontend-tooling.md` for the rationale behind the last five ro
 - Voting on week N's board happens during week N+1. Anyone signed in can vote: 3 votes per account per week, from any device, on different tiles, not your own, and votes are final.
 - Each week's most-voted tile (at least 1 vote) is its winner; ties go to the earlier post. Each month, up to 4 weekly winners (by votes) go to a one-week final (1 vote per account) that crowns a super winner.
 - Winners are kept forever; other tiles are deleted 30 days after voting ends.
-- One board per owner. The owner admin has four things only: QR + today's code, Pause board, Remove tile, and reported tiles.
+- One board per owner. The owner admin has five things only: QR + today's code, Pause board, Remove tile, reported tiles, and renaming the board. A rename changes the display name only — never the slug, so printed QR codes keep working.
 - Store only hashes of IPs and fingerprints.
 
 ## Repository layout

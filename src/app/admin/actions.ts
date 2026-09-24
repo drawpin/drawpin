@@ -3,9 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { serverEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { moderateVenueName, venueNameSchema } from "@/lib/venue-name";
 import { removeTile } from "./remove-tile";
+import { renameVenue } from "./rename-venue";
 import {
   listReportedTiles,
   requireOwnedVenue,
@@ -40,6 +43,59 @@ export async function setBoardPaused(formData: FormData): Promise<void> {
   if (error) throw new Error(`Could not update the board: ${error.message}`);
 
   revalidatePath("/admin");
+}
+
+export type RenameBoardState =
+  | { status: "idle" }
+  | { status: "error"; message: string }
+  | { status: "renamed"; name: string };
+
+/**
+ * Changes the name shown on the owner's board.
+ *
+ * Only the display name: the slug, the QR code and the daily join code are
+ * untouched, so nothing printed stops working (issue #105).
+ *
+ * Revalidates `/admin` alone. Every `/b/[slug]` page calls `connection()`, so
+ * none of them is in the full route cache, and `getBoard`'s React `cache()` is
+ * per-request memoization that can't go stale — the new name is read fresh on
+ * the next request. **If a board page ever becomes cacheable, this action has
+ * to revalidate it.**
+ */
+export async function renameBoardAction(
+  _previous: RenameBoardState,
+  formData: FormData,
+): Promise<RenameBoardState> {
+  const venue = await requireOwnedVenue();
+
+  const parsed = venueNameSchema.safeParse(formData.get("name"));
+  if (!parsed.success) {
+    return { status: "error", message: parsed.error.issues[0].message };
+  }
+
+  const name = parsed.data;
+  const check = await moderateVenueName(name, serverEnv());
+  if (check.status === "refused") {
+    return { status: "error", message: check.message };
+  }
+
+  const result = await renameVenue(venue.name, name, async (next) => {
+    const { error } = await createAdminClient()
+      .from("venues")
+      .update({ name: next })
+      .eq("id", venue.id);
+    return { error };
+  });
+
+  if (result === "renamed") {
+    // The only record of what a board used to be called. Kept deliberately:
+    // if a board is renamed to something abusive, this is how we find out
+    // what it was before (issue #105, "No rate limit and no name-history").
+    console.info(`Board renamed: ${venue.id} "${venue.name}" -> "${name}"`);
+    revalidatePath("/admin");
+  }
+
+  return { status: "renamed", name };
 }
 
 const removeSchema = z.object({ tileId: z.guid() });
