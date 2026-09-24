@@ -23,6 +23,12 @@ const geistMono = Geist_Mono({
  * `metadataBase` is the live domain rather than an environment variable, so
  * the URL is absolute in every client and a preview deployment advertises the
  * same picture instead of one behind Vercel's login.
+ *
+ * The image file carries a version in its name because iMessage, WhatsApp and
+ * Slack cache a preview against the image URL, for days and with no way to ask
+ * them to refetch. Replacing the file in place leaves every link already sent
+ * — and every new one — showing the old picture. **Changing the card means
+ * renaming the file**, here and in the board's `generateMetadata`.
  */
 export const metadata: Metadata = {
   metadataBase: new URL("https://drawpin.io"),
@@ -34,7 +40,7 @@ export const metadata: Metadata = {
     siteName: "DrawPin",
     title: "DrawPin",
     description: "Draw It. Pin It. Compete to Win!",
-    images: [{ url: "/og.png", width: 1200, height: 630, alt: "DrawPin" }],
+    images: [{ url: "/og-v2.png", width: 1200, height: 630, alt: "DrawPin" }],
   },
   twitter: { card: "summary_large_image" },
 };
