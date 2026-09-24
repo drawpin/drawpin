@@ -39,7 +39,11 @@ export const metadata: Metadata = {
     type: "website",
     siteName: "DrawPin",
     title: "DrawPin",
-    description: "Draw It. Pin It. Compete to Win!",
+    // The card carries the slogan now, so the line under it says what the
+    // thing actually is — somebody seeing this link in a group chat has never
+    // heard of DrawPin, and "Draw it. Pin it." twice tells them nothing.
+    description:
+      "Scan a QR code, draw a tile, and vote for the weekly winner at your local spot.",
     images: [{ url: "/og-v2.png", width: 1200, height: 630, alt: "DrawPin" }],
   },
   twitter: { card: "summary_large_image" },
