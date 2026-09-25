@@ -428,7 +428,7 @@ export function DrawTileForm({
                 <ellipse cx="12" cy="10" rx="9" ry="6" />
                 <path d="M6 15c-1 2 0 4 2 5" strokeDasharray="none" />
               </svg>
-              Select
+              Lasso
             </Button>
           </fieldset>
 
