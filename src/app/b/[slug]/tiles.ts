@@ -58,7 +58,10 @@ export function formatAuthor(
  * Maps a `tiles` row to a board tile, resolving its public image URL.
  *
  * @param viewerId - The signed-in account looking at the board, so its own
- * tiles can be marked. Account ids never reach the browser.
+ * tiles can be marked. A tile carries `user_id` (the author's account, or null
+ * for a guest) because both the server render and the Realtime feed need it to
+ * tell guest tiles apart; `device_id` is not granted to the public role, so it
+ * never leaves the server (20260924190000_restrict_public_columns.sql).
  */
 export function toTile(
   row: TileRow,

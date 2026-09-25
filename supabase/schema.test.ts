@@ -1373,13 +1373,44 @@ describe("data API grants", () => {
     return result.rows.map((row) => row.privilege);
   }
 
-  const publicTables = [
-    "venues",
-    "weeks",
-    "tiles",
-    "hall_of_fame",
-    "profiles",
-    "monthly_finals",
+  async function canReadColumn(role: string, table: string, column: string) {
+    const result = await db.query<{ allowed: boolean }>(
+      `select has_column_privilege($1, $2, $3, 'SELECT') as allowed`,
+      [role, `public.${table}`, column],
+    );
+    return result.rows[0]?.allowed ?? false;
+  }
+
+  // Read to the public API as a whole table.
+  const publicTables = ["weeks", "hall_of_fame", "profiles", "monthly_finals"];
+
+  // Read to the public API, but only some columns: the rest hold internal
+  // identifiers the board never shows (20260924190000_restrict_public_columns).
+  const columnRestrictedTables = [
+    {
+      table: "venues",
+      readable: ["id", "name", "slug", "timezone", "is_paused"],
+      hidden: ["owner_id"],
+    },
+    {
+      table: "tiles",
+      readable: [
+        "id",
+        "week_id",
+        "user_id",
+        "display_name",
+        "name_tag",
+        "caption",
+        "image_path",
+        "status",
+        "created_at",
+      ],
+      hidden: ["device_id"],
+    },
+  ];
+  const allPublicTables = [
+    ...publicTables,
+    ...columnRestrictedTables.map((entry) => entry.table),
   ];
   const ownerTables = ["owners", "daily_codes"];
   const privateTables = [
@@ -1391,7 +1422,7 @@ describe("data API grants", () => {
     "final_votes",
     "tile_reports",
   ];
-  const allTables = [...publicTables, ...ownerTables, ...privateTables];
+  const allTables = [...allPublicTables, ...ownerTables, ...privateTables];
 
   it.each(allTables)("lets the server read and write %s", async (table) => {
     expect(await privileges("service_role", table)).toEqual([
@@ -1407,6 +1438,28 @@ describe("data API grants", () => {
     async (table) => {
       expect(await privileges("anon", table)).toEqual(["SELECT"]);
       expect(await privileges("authenticated", table)).toEqual(["SELECT"]);
+    },
+  );
+
+  describe.each(columnRestrictedTables)(
+    "$table exposes only safe columns to the API",
+    ({ table, readable, hidden }) => {
+      it.each(readable)("lets visitors read %s", async (column) => {
+        expect(await canReadColumn("anon", table, column)).toBe(true);
+        expect(await canReadColumn("authenticated", table, column)).toBe(true);
+      });
+
+      it.each(hidden)("hides %s from visitors and owners", async (column) => {
+        expect(await canReadColumn("anon", table, column)).toBe(false);
+        expect(await canReadColumn("authenticated", table, column)).toBe(false);
+        // The server still reads it — removal, moderation and counting need it.
+        expect(await canReadColumn("service_role", table, column)).toBe(true);
+      });
+
+      it("gives visitors no whole-table SELECT, only the columns", async () => {
+        expect(await privileges("anon", table)).toEqual([]);
+        expect(await privileges("authenticated", table)).toEqual([]);
+      });
     },
   );
 
