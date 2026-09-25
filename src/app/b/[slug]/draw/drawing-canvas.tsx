@@ -14,7 +14,10 @@ import {
   backingSizeFor,
   clampView,
   type DrawOp,
+  drawSelectionFrame,
   fillAt,
+  type Lifted,
+  liftSelection,
   renderScene,
   renderTile,
   screenToTile,
@@ -26,15 +29,37 @@ import {
   zoomAround,
 } from "./render";
 import { recognizeShape } from "./recognize";
-import { isTooSmall, shapeEnd } from "./shapes";
+import {
+  contains,
+  type Corner,
+  handleAt,
+  moveBy,
+  type Rect,
+  resizeFromCorner,
+  sameRect,
+} from "./selection";
+import { isTooSmall, type Point, shapeEnd } from "./shapes";
 import { isShapeTool, type Tool } from "./tools";
 
 export type { DrawOp } from "./render";
 
 export type DrawingCanvasHandle = {
-  /** Exports the drawing as a PNG on a white background, at tile size. */
+  /**
+   * Exports the drawing as a PNG on a white background, at tile size — with
+   * a lasso selection that hasn't been put down yet included where it is.
+   */
   toBlob: () => Promise<Blob>;
+  /** Puts a lasso selection down where it is. `false` if there wasn't one. */
+  commitSelection: () => boolean;
+  /** Drops a lasso selection back where it came from. `false` if there wasn't one. */
+  cancelSelection: () => boolean;
 };
+
+/** A lasso selection, plus where it was lifted from. */
+type Floating = Lifted & { source: Rect };
+
+/** How far from a corner handle, in CSS pixels, a finger still grabs it. */
+const HANDLE_REACH = 22;
 
 type DrawingCanvasProps = {
   ops: DrawOp[];
@@ -97,6 +122,17 @@ export const DrawingCanvas = forwardRef<
   // What a snapped shape does as the finger keeps moving: a line's far end
   // follows it, so it can be swung and stretched; a closed shape stays put.
   const snapped = useRef<"line" | "fixed" | null>(null);
+  // The loop being drawn with the lasso, in tile units.
+  const lassoLoop = useRef<Point[] | null>(null);
+  // A selection being moved (no corner) or resized (by a corner), measured
+  // from where the finger and the box were when it started.
+  const dragging = useRef<{
+    corner: Corner | null;
+    origin: Point;
+    start: Rect;
+  } | null>(null);
+  // In state rather than a ref: the Done and Cancel buttons show with it.
+  const [floating, setFloating] = useState<Floating | null>(null);
   const [backingSize, setBackingSize] = useState(TILE_SIZE);
   const [view, setView] = useState<View>(WHOLE_TILE);
 
@@ -120,8 +156,47 @@ export const DrawingCanvas = forwardRef<
     // The canvas keeps whatever is outside the zoomed window, so clear it.
     context.clearRect(0, 0, canvas.width, canvas.height);
 
-    renderScene(context, { ops, active: active.current, showGrid });
-  }, [ops, showGrid, view]);
+    renderScene(context, { ops, active: active.current, showGrid, floating });
+
+    // Guides for the lasso, in screen pixels: one CSS pixel is this many
+    // tile units at the current size and zoom.
+    const pixel =
+      TILE_SIZE / ((canvas.getBoundingClientRect().width || 1) * view.scale);
+    const loop = lassoLoop.current;
+    if (loop && loop.length > 1) {
+      context.save();
+      context.lineWidth = 1.5 * pixel;
+      context.strokeStyle = "#111827";
+      context.setLineDash([6 * pixel, 4 * pixel]);
+      context.beginPath();
+      context.moveTo(loop[0][0], loop[0][1]);
+      for (const [x, y] of loop.slice(1)) context.lineTo(x, y);
+      context.stroke();
+      context.restore();
+    }
+    if (floating) drawSelectionFrame(context, floating.target, pixel);
+  }, [ops, showGrid, view, floating]);
+
+  /** Puts the selection down where it is, unless it was never moved. */
+  function putDown(): boolean {
+    if (!floating) return false;
+    if (!sameRect(floating.source, floating.target)) {
+      onDraw({
+        kind: "paste",
+        hole: floating.hole,
+        image: floating.image,
+        target: floating.target,
+      });
+    }
+    setFloating(null);
+    return true;
+  }
+
+  function dropSelection(): boolean {
+    if (!floating) return false;
+    setFloating(null);
+    return true;
+  }
 
   useEffect(redraw, [redraw, backingSize]);
 
@@ -190,14 +265,25 @@ export const DrawingCanvas = forwardRef<
     toBlob: () =>
       new Promise((resolve, reject) => {
         // Rendered fresh at tile size, whole and without a grid: zooming in
-        // is a way of looking at the drawing, not part of it.
-        renderTile(ops).toBlob(
+        // is a way of looking at the drawing, not part of it. A selection
+        // still being moved is posted where it is, as it's shown.
+        const drawn: DrawOp[] = floating
+          ? [...ops, { kind: "paste", ...floating }]
+          : ops;
+        renderTile(drawn).toBlob(
           (blob) =>
             blob ? resolve(blob) : reject(new Error("Canvas export failed")),
           "image/png",
         );
       }),
+    commitSelection: putDown,
+    cancelSelection: dropSelection,
   }));
+
+  /** How many tile units one CSS pixel covers at the canvas's size and zoom. */
+  function pixelSize(rect: DOMRect): number {
+    return TILE_SIZE / ((rect.width || 1) * view.scale);
+  }
 
   function fingerAt(
     event: { clientX: number; clientY: number },
@@ -234,14 +320,38 @@ export const DrawingCanvas = forwardRef<
     if (fingers.current.size >= 2) {
       // A second finger means they're moving the drawing, not drawing on it.
       // Whatever the first one had started is thrown away rather than left as
-      // an accidental dot.
+      // an accidental dot. A half-drawn lasso loop or a drag goes the same way;
+      // a selection already lifted stays lifted.
       active.current = null;
+      lassoLoop.current = null;
+      dragging.current = null;
       const [first, second] = [...fingers.current.values()];
       gesture.current = {
         distance: distanceBetween(first, second),
         midpoint: midpointOf(first, second),
         view,
       };
+      redraw();
+      return;
+    }
+
+    if (tool === "lasso") {
+      const [x, y] = toTilePoint(event, rect);
+      const point: Point = [x, y];
+      if (floating) {
+        const corner = handleAt(
+          floating.target,
+          point,
+          HANDLE_REACH * pixelSize(rect),
+        );
+        if (corner !== null || contains(floating.target, point)) {
+          dragging.current = { corner, origin: point, start: floating.target };
+          return;
+        }
+        // A touch outside the selection puts it down and starts a new loop.
+        putDown();
+      }
+      lassoLoop.current = [point];
       redraw();
       return;
     }
@@ -319,6 +429,25 @@ export const DrawingCanvas = forwardRef<
       return;
     }
 
+    const drag = dragging.current;
+    if (drag) {
+      const [x, y] = toTilePoint(event, rect);
+      const target =
+        drag.corner === null
+          ? moveBy(drag.start, x - drag.origin[0], y - drag.origin[1])
+          : resizeFromCorner(drag.start, drag.corner, [x, y]);
+      setFloating((current) => current && { ...current, target });
+      return;
+    }
+
+    const loop = lassoLoop.current;
+    if (loop) {
+      const [x, y] = toTilePoint(event, rect);
+      loop.push([x, y]);
+      redraw();
+      return;
+    }
+
     const drawing = active.current;
     if (!drawing) return;
 
@@ -363,6 +492,21 @@ export const DrawingCanvas = forwardRef<
     if (fingers.current.size < 2) gesture.current = null;
     cancelHold();
     holdAnchor.current = null;
+
+    if (dragging.current) {
+      dragging.current = null;
+      return;
+    }
+
+    const loop = lassoLoop.current;
+    if (loop) {
+      if (fingers.current.size > 0) return;
+      lassoLoop.current = null;
+      const lifted = liftSelection(ops, loop);
+      if (lifted) setFloating({ ...lifted, source: lifted.target });
+      else redraw();
+      return;
+    }
 
     const drawing = active.current;
     // A stroke or shape only counts when the finger that drew it was the only
@@ -426,6 +570,23 @@ export const DrawingCanvas = forwardRef<
         >
           {view.scale.toFixed(1)}× · Fit
         </Button>
+      )}
+
+      {floating && (
+        <div className="absolute bottom-2 left-2 flex gap-2">
+          <Button type="button" size="sm" className="shadow" onClick={putDown}>
+            Done
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="shadow"
+            onClick={dropSelection}
+          >
+            Cancel
+          </Button>
+        </div>
       )}
     </div>
   );
