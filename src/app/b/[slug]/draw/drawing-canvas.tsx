@@ -12,21 +12,23 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   backingSizeFor,
-  type Brush,
   clampView,
   type DrawOp,
   fillAt,
   renderScene,
   renderTile,
   screenToTile,
+  type Shape,
   type Stroke,
   TILE_SIZE,
   type View,
   WHOLE_TILE,
   zoomAround,
 } from "./render";
+import { isTooSmall, shapeEnd } from "./shapes";
+import { isShapeTool, type Tool } from "./tools";
 
-export type { DrawOp, Stroke } from "./render";
+export type { DrawOp } from "./render";
 
 export type DrawingCanvasHandle = {
   /** Exports the drawing as a PNG on a white background, at tile size. */
@@ -37,9 +39,11 @@ type DrawingCanvasProps = {
   ops: DrawOp[];
   color: string;
   size: number;
-  brush: Brush;
-  /** Tapping fills the area under the finger instead of drawing. */
-  filling: boolean;
+  /**
+   * What a finger does: draw with a brush, fill the area it taps, or drag out
+   * a shape.
+   */
+  tool: Tool;
   showGrid: boolean;
   disabled?: boolean;
   onDraw: (op: DrawOp) => void;
@@ -63,11 +67,13 @@ export const DrawingCanvas = forwardRef<
   DrawingCanvasHandle,
   DrawingCanvasProps
 >(function DrawingCanvas(
-  { ops, color, size, brush, filling, showGrid, disabled, onDraw },
+  { ops, color, size, tool, showGrid, disabled, onDraw },
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const activeStroke = useRef<Stroke | null>(null);
+  // What the finger that's down is drawing: a stroke, or a shape being dragged
+  // out. Kept outside React state so a stroke doesn't re-render per point.
+  const active = useRef<Stroke | Shape | null>(null);
   // Every finger currently on the canvas. Two or more means the drawing is
   // being moved around rather than drawn on.
   const fingers = useRef(new Map<number, Finger>());
@@ -95,11 +101,7 @@ export const DrawingCanvas = forwardRef<
     // The canvas keeps whatever is outside the zoomed window, so clear it.
     context.clearRect(0, 0, canvas.width, canvas.height);
 
-    renderScene(context, {
-      ops,
-      activeStroke: activeStroke.current,
-      showGrid,
-    });
+    renderScene(context, { ops, active: active.current, showGrid });
   }, [ops, showGrid, view]);
 
   useEffect(redraw, [redraw, backingSize]);
@@ -168,7 +170,7 @@ export const DrawingCanvas = forwardRef<
       // A second finger means they're moving the drawing, not drawing on it.
       // Whatever the first one had started is thrown away rather than left as
       // an accidental dot.
-      activeStroke.current = null;
+      active.current = null;
       const [first, second] = [...fingers.current.values()];
       gesture.current = {
         distance: distanceBetween(first, second),
@@ -179,7 +181,7 @@ export const DrawingCanvas = forwardRef<
       return;
     }
 
-    if (filling) {
+    if (tool === "fill") {
       // A bucket is a tap, not a stroke: work out the area now and keep it.
       const [x, y] = toTilePoint(event, rect);
       const fill = fillAt(ops, x, y, color);
@@ -187,12 +189,26 @@ export const DrawingCanvas = forwardRef<
       return;
     }
 
-    activeStroke.current = {
+    if (isShapeTool(tool)) {
+      const [x, y] = toTilePoint(event, rect);
+      active.current = {
+        kind: "shape",
+        shape: tool,
+        from: [x, y],
+        to: [x, y],
+        color,
+        size,
+      };
+      redraw();
+      return;
+    }
+
+    active.current = {
       kind: "stroke",
       points: [toTilePoint(event, rect)],
       color,
       size,
-      brush,
+      brush: tool,
       // Fixed now so the spray lands in the same places on every redraw.
       seed: Math.floor(Math.random() * 2 ** 31),
       simulatePressure: event.pointerType !== "pen",
@@ -235,9 +251,23 @@ export const DrawingCanvas = forwardRef<
       return;
     }
 
-    const stroke = activeStroke.current;
-    if (!stroke) return;
+    const drawing = active.current;
+    if (!drawing) return;
 
+    if (drawing.kind === "shape") {
+      // Only where the finger is now matters, so batched points are skipped.
+      const [x, y] = toTilePoint(event, rect);
+      drawing.to = shapeEnd(
+        drawing.shape,
+        drawing.from,
+        [x, y],
+        event.shiftKey,
+      );
+      redraw();
+      return;
+    }
+
+    const stroke = drawing;
     // Coalesced events recover the points the browser batched between
     // frames, which keeps fast strokes from looking jagged.
     const coalesced = event.nativeEvent.getCoalescedEvents?.() ?? [];
@@ -254,12 +284,18 @@ export const DrawingCanvas = forwardRef<
     fingers.current.delete(event.pointerId);
     if (fingers.current.size < 2) gesture.current = null;
 
-    const stroke = activeStroke.current;
-    // A stroke only counts when the finger that drew it was the only one
-    // down; anything else was a gesture.
-    if (!stroke || fingers.current.size > 0) return;
-    activeStroke.current = null;
-    onDraw(stroke);
+    const drawing = active.current;
+    // A stroke or shape only counts when the finger that drew it was the only
+    // one down; anything else was a gesture.
+    if (!drawing || fingers.current.size > 0) return;
+    active.current = null;
+
+    // A tap with the shape tool isn't a shape; drop it rather than leave a dot.
+    if (drawing.kind === "shape" && isTooSmall(drawing.from, drawing.to)) {
+      redraw();
+      return;
+    }
+    onDraw(drawing);
   }
 
   /** Zooming with a wheel, for anyone drawing with a mouse or trackpad. */

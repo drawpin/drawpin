@@ -1,5 +1,6 @@
 import { getStroke } from "perfect-freehand";
 import { floodFill } from "./flood-fill";
+import { boxBetween, type Point, type ShapeKind } from "./shapes";
 import { strokeToSvgPath } from "./stroke-path";
 
 /**
@@ -120,13 +121,27 @@ export type Fill = {
   mask: { canvas: HTMLCanvasElement; x: number; y: number };
 };
 
+/**
+ * A line, rectangle or ellipse from the shape tool, kept as its two corners
+ * rather than as points so it's drawn exactly: a pen stroke through the same
+ * points would round the corners and taper the ends.
+ */
+export type Shape = {
+  kind: "shape";
+  shape: ShapeKind;
+  from: Point;
+  to: Point;
+  color: string;
+  size: number;
+};
+
 /** One thing someone did to the tile, in the order they did it. */
-export type DrawOp = Stroke | Fill;
+export type DrawOp = Stroke | Fill | Shape;
 
 export type Scene = {
   ops: DrawOp[];
-  /** The stroke being drawn right now, if any. */
-  activeStroke: Stroke | null;
+  /** What's being drawn right now, if anything: a stroke or a shape. */
+  active: Stroke | Shape | null;
   /** Drawn over the drawing, and never part of the exported tile. */
   showGrid: boolean;
 };
@@ -179,6 +194,62 @@ function drawStroke(context: CanvasRenderingContext2D, stroke: Stroke) {
 }
 
 /**
+ * Draws a shape at the brush size, solid and in the chosen colour.
+ *
+ * Rectangles keep sharp corners, which is what makes them read as drawn with
+ * a tool rather than by hand; lines keep round ends, so a thick one doesn't
+ * stop in a hard edge.
+ */
+export function drawShape(
+  context: Pick<
+    CanvasRenderingContext2D,
+    | "save"
+    | "restore"
+    | "beginPath"
+    | "moveTo"
+    | "lineTo"
+    | "rect"
+    | "ellipse"
+    | "stroke"
+    | "strokeStyle"
+    | "lineWidth"
+    | "lineCap"
+    | "lineJoin"
+  >,
+  shape: Shape,
+): void {
+  context.save();
+  context.strokeStyle = shape.color;
+  context.lineWidth = shape.size;
+  context.lineCap = "round";
+  context.lineJoin = shape.shape === "rectangle" ? "miter" : "round";
+  context.beginPath();
+
+  if (shape.shape === "line") {
+    context.moveTo(shape.from[0], shape.from[1]);
+    context.lineTo(shape.to[0], shape.to[1]);
+  } else {
+    const box = boxBetween(shape.from, shape.to);
+    if (shape.shape === "rectangle") {
+      context.rect(box.x, box.y, box.width, box.height);
+    } else {
+      context.ellipse(
+        box.x + box.width / 2,
+        box.y + box.height / 2,
+        box.width / 2,
+        box.height / 2,
+        0,
+        0,
+        Math.PI * 2,
+      );
+    }
+  }
+
+  context.stroke();
+  context.restore();
+}
+
+/**
  * Guides to draw against, like squared paper held over the work.
  *
  * Drawn on top rather than underneath: a guide beneath the drawing disappears
@@ -210,6 +281,16 @@ function drawGrid(context: CanvasRenderingContext2D) {
   context.restore();
 }
 
+function drawOp(context: CanvasRenderingContext2D, op: DrawOp) {
+  if (op.kind === "fill") {
+    context.drawImage(op.mask.canvas, op.mask.x, op.mask.y);
+  } else if (op.kind === "shape") {
+    drawShape(context, op);
+  } else {
+    drawStroke(context, op);
+  }
+}
+
 /**
  * Paints a whole drawing, in tile coordinates.
  *
@@ -224,15 +305,8 @@ export function renderScene(
   context.fillStyle = "#ffffff";
   context.fillRect(0, 0, TILE_SIZE, TILE_SIZE);
 
-  for (const op of scene.ops) {
-    if (op.kind === "fill") {
-      context.drawImage(op.mask.canvas, op.mask.x, op.mask.y);
-    } else {
-      drawStroke(context, op);
-    }
-  }
-
-  if (scene.activeStroke) drawStroke(context, scene.activeStroke);
+  for (const op of scene.ops) drawOp(context, op);
+  if (scene.active) drawOp(context, scene.active);
 
   // Last, so it stays a guide rather than something to paint over.
   if (scene.showGrid) drawGrid(context);
@@ -252,7 +326,7 @@ export function renderTile(ops: DrawOp[]): HTMLCanvasElement {
   const context = canvas.getContext("2d");
   if (!context) throw new Error("Canvas is unavailable");
 
-  renderScene(context, { ops, activeStroke: null, showGrid: false });
+  renderScene(context, { ops, active: null, showGrid: false });
   return canvas;
 }
 
