@@ -146,12 +146,10 @@ v7 changes: the weekly Hall of Fame is a single winner (at least 1 vote) instead
 
 v8 changes: customer accounts added (ADR-004) — Google sign-in for customers, anonymous drawing stays but guest tiles can't be voted for or win, votes and the monthly final move from per device to per account, a signed-in post must pass both the account and the device daily limit, reporting a tile becomes possible and joins the owner screen, and accounts move from the back pocket into phase 3 so voting and winners are built on them once instead of twice.
 
-## Diagrams (Lucid)
-- System architecture
-- Post & weekly-cycle flows
-- Database ERD
+## Diagrams
 
-### Diagram links
-- System Architecture: https://lucid.app/lucidchart/629ff9fe-e215-4bbb-b5d9-120f87a55a8e/edit
-- Post, Vote & Weekly Cycle Flows: https://lucid.app/lucidchart/d0cb474a-8eba-4d8d-8fce-4ad46bc47bb6/edit
-- Database ERD: https://lucid.app/lucidchart/1e2f0c20-87e8-4065-9f7e-11c4fc2a4124/edit
+Kept privately in Lucidchart, not linked here:
+
+- System architecture
+- Post, vote & weekly-cycle flows
+- Database ERD

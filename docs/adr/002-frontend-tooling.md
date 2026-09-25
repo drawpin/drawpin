@@ -4,8 +4,8 @@
 Accepted
 
 ## Context
-`CLAUDE.md` decided the core app framework (Next.js + TypeScript) and backend
-(Supabase) up front, but left linting/formatting, unit testing, end-to-end
+The project brief decided the core app framework (Next.js + TypeScript) and
+backend (Supabase) up front, but left linting/formatting, unit testing, end-to-end
 testing, UI/styling, and validation as "not yet decided," to be settled via
 an ADR before scaffolding (issue #3). DrawPin is a mobile-only, canvas-heavy,
 form-light app, so the priorities are: fast mobile-viewport feedback, low
