@@ -2,9 +2,11 @@
 import { describe, expect, it } from "vitest";
 import {
   BASE_COLORS,
+  hexToRgb,
   parseHexInput,
   parseRecents,
   RECENT_LIMIT,
+  rgbToHex,
   withRecent,
 } from "./palette";
 
@@ -98,4 +100,22 @@ describe("parseRecents", () => {
       expect(parseRecents(stored)).toEqual([]);
     },
   );
+});
+
+describe("hexToRgb / rgbToHex", () => {
+  it("splits a colour into red, green and blue", () => {
+    expect(hexToRgb("#ef4444")).toEqual([239, 68, 68]);
+  });
+
+  it("puts them back together", () => {
+    expect(rgbToHex([239, 68, 68])).toBe("#ef4444");
+  });
+
+  it("keeps a box that's out of range to a real colour", () => {
+    expect(rgbToHex([300, -5, 12.6])).toBe("#ff000d");
+  });
+
+  it("treats an empty box as zero", () => {
+    expect(rgbToHex([Number.NaN, 0, 0])).toBe("#000000");
+  });
 });

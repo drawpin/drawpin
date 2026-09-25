@@ -21,12 +21,8 @@ import {
   type DrawOp,
   type DrawingCanvasHandle,
 } from "./drawing-canvas";
-import {
-  BASE_COLORS,
-  parseHexInput,
-  parseRecents,
-  withRecent,
-} from "./palette";
+import { ColorPanel } from "./color-panel";
+import { BASE_COLORS, parseRecents, withRecent } from "./palette";
 import type { Brush } from "./render";
 import type { PostTileState } from "./schema";
 import { type ShapeKind, SHAPES } from "./shapes";
@@ -124,9 +120,10 @@ export function DrawTileForm({
   const [pickedBrush, setBrush] = useState<Brush | null>(null);
   const [pickedColor, setColor] = useState<string | null>(null);
   const [pickedRecents, setRecents] = useState<string[] | null>(null);
-  // What's in the hex field while someone is typing in it; `null` shows the
-  // current colour.
-  const [hexDraft, setHexDraft] = useState<string | null>(null);
+  // The colour panel, and the colour it opened on — what it's left on is only
+  // added to Recent if it differs.
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [panelStart, setPanelStart] = useState<string | null>(null);
   const [pickedSize, setSize] = useState<number | null>(null);
   const [pickedEraserSize, setEraserSize] = useState<number | null>(null);
   const [pickedGrid, setShowGrid] = useState<boolean | null>(null);
@@ -220,13 +217,34 @@ export function DrawTileForm({
     }
   }
 
-  function chooseColor(next: string) {
+  /** Uses a colour without adding it to Recent: the panel sends one per drag step. */
+  function previewColor(next: string) {
     setColor(next);
     remember(COLOR_STORAGE_KEY, next);
+  }
 
+  function addRecent(next: string) {
     const updated = withRecent(recents, next);
     setRecents(updated);
     remember(RECENTS_STORAGE_KEY, JSON.stringify(updated));
+  }
+
+  /** A swatch or a recent colour: used straight away, and settled. */
+  function chooseColor(next: string) {
+    previewColor(next);
+    addRecent(next);
+    setPanelOpen(false);
+  }
+
+  function openPanel() {
+    setPanelStart(color);
+    setPanelOpen(true);
+  }
+
+  /** Closing the panel settles whatever it was left on into Recent. */
+  function closePanel() {
+    if (panelOpen && color !== panelStart) addRecent(color);
+    setPanelOpen(false);
   }
 
   function addOp(op: DrawOp) {
@@ -286,6 +304,7 @@ export function DrawTileForm({
 
   function goToDetails() {
     canvasRef.current?.commitSelection();
+    closePanel();
     if (ops.length === 0) {
       setLocalError("Draw something first.");
       return;
@@ -482,60 +501,22 @@ export function DrawTileForm({
               />
             ))}
 
-            {/* The phone's own colour picker, drawn as a wheel so it reads as
-                "any colour" rather than a mystery "+". */}
-            <label
-              className="size-9 shrink-0 cursor-pointer rounded-full border-2"
+            {/* Drawn as a wheel so it reads as "any colour"; it opens the
+                colour panel below. */}
+            <button
+              type="button"
+              aria-label="Colour wheel"
+              aria-expanded={panelOpen}
+              onClick={() => (panelOpen ? closePanel() : openPanel())}
+              className="size-9 shrink-0 rounded-full border-2 aria-expanded:border-black aria-expanded:ring-2 aria-expanded:ring-offset-2"
               style={{
                 background:
                   "conic-gradient(#ef4444, #eab308, #22c55e, #06b6d4, #3b82f6, #a855f7, #ef4444)",
               }}
-              aria-label="Colour wheel"
-            >
-              <input
-                type="color"
-                value={color}
-                onChange={(event) => chooseColor(event.target.value)}
-                className="sr-only"
-              />
-            </label>
+            />
           </fieldset>
 
-          <div className="flex items-center gap-2">
-            <Label
-              htmlFor="hex-color"
-              className="text-muted-foreground text-xs"
-            >
-              Hex
-            </Label>
-            <div className="border-input focus-within:border-ring flex items-center rounded-md border px-2">
-              <span
-                className="text-muted-foreground font-mono text-sm"
-                aria-hidden
-              >
-                #
-              </span>
-              <input
-                id="hex-color"
-                type="text"
-                autoComplete="off"
-                spellCheck={false}
-                // Seven, so a pasted "#RRGGBB" fits before the # is dropped.
-                maxLength={7}
-                value={hexDraft ?? color.replace("#", "")}
-                disabled={pending}
-                onChange={(event) => {
-                  const typed = parseHexInput(event.target.value);
-                  setHexDraft(typed.draft);
-                  if (typed.color) chooseColor(typed.color);
-                }}
-                // Leaving the field shows the colour actually in use, so a
-                // half-typed value doesn't linger looking like it applied.
-                onBlur={() => setHexDraft(null)}
-                className="w-20 bg-transparent py-1 font-mono text-sm uppercase outline-none"
-              />
-            </div>
-          </div>
+          {panelOpen && <ColorPanel color={color} onChange={previewColor} />}
 
           {recents.length > 0 && (
             <fieldset

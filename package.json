@@ -30,6 +30,7 @@
     "perfect-freehand": "^1.2.3",
     "qrcode": "^1.5.4",
     "react": "19.2.8",
+    "react-colorful": "^5.8.1",
     "react-dom": "19.2.8",
     "sharp": "^0.35.4",
     "temporal-polyfill": "^1.0.5",
