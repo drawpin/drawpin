@@ -6,7 +6,7 @@ import { type ShapeKind, SHAPES } from "./shapes";
  * separate switches, so exactly one tool is ever active and a new one is
  * another value here instead of another flag to keep in step.
  */
-export type Tool = Brush | "fill" | ShapeKind;
+export type Tool = Brush | "fill" | "lasso" | ShapeKind;
 
 /** Pen first: it's what most people reach for, and what they already know. */
 export const BRUSHES: { value: Brush; name: string }[] = [

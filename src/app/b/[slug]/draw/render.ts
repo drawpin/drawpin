@@ -1,6 +1,7 @@
 import { getStroke } from "perfect-freehand";
 import { floodFill } from "./flood-fill";
-import { boxBetween, type ShapeGeometry } from "./shapes";
+import { type Rect, selectionBounds, whiteToAlpha } from "./selection";
+import { boxBetween, type Point, type ShapeGeometry } from "./shapes";
 import { strokeToSvgPath } from "./stroke-path";
 
 /**
@@ -132,13 +133,34 @@ export type Shape = {
   size: number;
 } & ShapeGeometry;
 
+/**
+ * Part of the drawing lifted with the lasso: the loop it came from, the
+ * pixels inside it (with the paper made see-through), and the box they sit
+ * in now. Moved and resized as a picture, so strokes, fills and eraser marks
+ * travel together exactly as they looked.
+ */
+export type Lifted = {
+  hole: Point[];
+  image: HTMLCanvasElement;
+  target: Rect;
+};
+
+/**
+ * A lifted part of the drawing put down again. The place it came from is
+ * painted over with paper and the pixels are drawn where they were put, in
+ * one step — so one undo puts it back.
+ */
+type Paste = { kind: "paste" } & Lifted;
+
 /** One thing someone did to the tile, in the order they did it. */
-export type DrawOp = Stroke | Fill | Shape;
+export type DrawOp = Stroke | Fill | Shape | Paste;
 
 export type Scene = {
   ops: DrawOp[];
   /** What's being drawn right now, if anything: a stroke or a shape. */
   active: Stroke | Shape | null;
+  /** A lasso selection being moved or resized, if there is one. */
+  floating?: Lifted | null;
   /** Drawn over the drawing, and never part of the exported tile. */
   showGrid: boolean;
 };
@@ -287,9 +309,61 @@ function drawGrid(context: CanvasRenderingContext2D) {
   context.restore();
 }
 
+/** Paper over where it was lifted from, then the pixels where they are now. */
+function drawLifted(context: CanvasRenderingContext2D, lifted: Lifted) {
+  const [first, ...rest] = lifted.hole;
+  context.save();
+  context.fillStyle = PAPER;
+  context.beginPath();
+  context.moveTo(first[0], first[1]);
+  for (const [x, y] of rest) context.lineTo(x, y);
+  context.closePath();
+  context.fill();
+  const { x, y, width, height } = lifted.target;
+  context.drawImage(lifted.image, x, y, width, height);
+  context.restore();
+}
+
+/**
+ * The dashed box and corner handles round a lasso selection. Only ever drawn
+ * on screen, and in screen pixels however far in someone has zoomed, so the
+ * handles stay the size of a fingertip.
+ *
+ * @param pixel - How many tile units one CSS pixel covers right now.
+ */
+export function drawSelectionFrame(
+  context: CanvasRenderingContext2D,
+  target: Rect,
+  pixel: number,
+): void {
+  const { x, y, width, height } = target;
+  const handle = 12 * pixel;
+
+  context.save();
+  context.lineWidth = 1.5 * pixel;
+  context.strokeStyle = "#111827";
+  context.setLineDash([6 * pixel, 4 * pixel]);
+  context.strokeRect(x, y, width, height);
+
+  context.setLineDash([]);
+  context.fillStyle = PAPER;
+  for (const [cx, cy] of [
+    [x, y],
+    [x + width, y],
+    [x + width, y + height],
+    [x, y + height],
+  ]) {
+    context.fillRect(cx - handle / 2, cy - handle / 2, handle, handle);
+    context.strokeRect(cx - handle / 2, cy - handle / 2, handle, handle);
+  }
+  context.restore();
+}
+
 function drawOp(context: CanvasRenderingContext2D, op: DrawOp) {
   if (op.kind === "fill") {
     context.drawImage(op.mask.canvas, op.mask.x, op.mask.y);
+  } else if (op.kind === "paste") {
+    drawLifted(context, op);
   } else if (op.kind === "shape") {
     drawShape(context, op);
   } else {
@@ -312,6 +386,7 @@ export function renderScene(
   context.fillRect(0, 0, TILE_SIZE, TILE_SIZE);
 
   for (const op of scene.ops) drawOp(context, op);
+  if (scene.floating) drawLifted(context, scene.floating);
   if (scene.active) drawOp(context, scene.active);
 
   // Last, so it stays a guide rather than something to paint over.
@@ -387,6 +462,49 @@ export function fillAt(
     color,
     mask: { canvas: mask, x: region.x, y: region.y },
   };
+}
+
+/**
+ * Lifts the part of the drawing inside a lasso loop, as it looks right now.
+ *
+ * The drawing is rendered whole, cut to the loop, and the paper in it made
+ * see-through (see {@link whiteToAlpha}), so what comes away is the drawing
+ * alone.
+ *
+ * @returns The lifted pixels, starting where they were, or `null` when the
+ * loop is too small or holds nothing but paper.
+ */
+export function liftSelection(ops: DrawOp[], loop: Point[]): Lifted | null {
+  const bounds = selectionBounds(loop, TILE_SIZE);
+  if (!bounds) return null;
+
+  const image = document.createElement("canvas");
+  image.width = bounds.width;
+  image.height = bounds.height;
+  const context = image.getContext("2d");
+  if (!context) return null;
+
+  const [first, ...rest] = loop;
+  context.beginPath();
+  context.moveTo(first[0] - bounds.x, first[1] - bounds.y);
+  for (const [x, y] of rest) context.lineTo(x - bounds.x, y - bounds.y);
+  context.closePath();
+  context.clip();
+  context.drawImage(renderTile(ops), -bounds.x, -bounds.y);
+
+  const pixels = context.getImageData(0, 0, bounds.width, bounds.height);
+  whiteToAlpha(pixels.data);
+  let hasInk = false;
+  for (let index = 3; index < pixels.data.length; index += 4) {
+    if (pixels.data[index] > 0) {
+      hasInk = true;
+      break;
+    }
+  }
+  if (!hasInk) return null;
+
+  context.putImageData(pixels, 0, 0);
+  return { hole: loop, image, target: bounds };
 }
 
 /** `#rrggbb` to its three parts. */

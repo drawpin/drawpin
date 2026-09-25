@@ -105,7 +105,9 @@ export function DrawTileForm({
   // A tool used instead of the brush, if any. Only the brush is remembered
   // between visits: someone coming back should start drawing, not find
   // themselves in bucket or shape mode wondering why nothing draws.
-  const [pickedMode, setMode] = useState<"fill" | ShapeKind | null>(null);
+  const [pickedMode, setMode] = useState<"fill" | "lasso" | ShapeKind | null>(
+    null,
+  );
   // The shape the Shapes button returns to.
   const [lastShape, setLastShape] = useState<ShapeKind>("line");
   // What they used last time, read the same way the hydration flag is: the
@@ -233,8 +235,20 @@ export function DrawTileForm({
     setUndone([]);
   }
 
+  /**
+   * Changes tool, putting a lasso selection down first: switching away
+   * shouldn't throw away a move someone has lined up.
+   */
+  function switchTool(change: () => void) {
+    canvasRef.current?.commitSelection();
+    change();
+  }
+
   // Stable, so the keyboard shortcuts below don't re-subscribe every render.
   const undo = useCallback(() => {
+    // A selection still being moved is the most recent thing: undoing puts
+    // it back where it came from, before touching anything drawn.
+    if (canvasRef.current?.cancelSelection()) return;
     setOps((current) => {
       const last = current.at(-1);
       if (last) setUndone((redoable) => [...redoable, last]);
@@ -271,6 +285,7 @@ export function DrawTileForm({
   }, [step, pending, undo, redo]);
 
   function goToDetails() {
+    canvasRef.current?.commitSelection();
     if (ops.length === 0) {
       setLocalError("Draw something first.");
       return;
@@ -308,8 +323,11 @@ export function DrawTileForm({
 
       {step === "drawing" ? (
         <>
+          {/* Two rows — what you draw with, then what else a finger can do —
+              so every tool fits the narrowest phones and there's room for
+              the next one. */}
           <fieldset className="flex gap-2" disabled={pending}>
-            <legend className="sr-only">Tool</legend>
+            <legend className="sr-only">Brush</legend>
             {BRUSHES.map((option) => (
               <Button
                 key={option.value}
@@ -317,46 +335,65 @@ export function DrawTileForm({
                 variant={tool === option.value ? "default" : "outline"}
                 size="sm"
                 aria-pressed={tool === option.value}
-                onClick={() => {
-                  setBrush(option.value);
-                  setMode(null);
-                  remember(BRUSH_STORAGE_KEY, option.value);
-                }}
+                onClick={() =>
+                  switchTool(() => {
+                    setBrush(option.value);
+                    setMode(null);
+                    remember(BRUSH_STORAGE_KEY, option.value);
+                  })
+                }
               >
                 {option.name}
               </Button>
             ))}
-            {/* Fill and Shapes toggle: pressing either again goes back to the
-                brush, the way the bucket always has. */}
+          </fieldset>
+
+          {/* Each of these toggles: pressing it again goes back to the brush,
+              the way the bucket always has. */}
+          <fieldset className="flex gap-2" disabled={pending}>
+            <legend className="sr-only">Tool</legend>
             <Button
               type="button"
               variant={tool === "fill" ? "default" : "outline"}
               size="sm"
               aria-pressed={tool === "fill"}
               onClick={() =>
-                setMode((current) => (current === "fill" ? null : "fill"))
-              }
-            >
-              Fill
-            </Button>
-            {/* An icon rather than a word: the row is already as wide as a
-                phone, and a square beside a circle reads as "shapes". */}
-            <Button
-              type="button"
-              variant={isShapeTool(tool) ? "default" : "outline"}
-              size="sm"
-              aria-pressed={isShapeTool(tool)}
-              aria-label="Shapes"
-              title="Shapes"
-              onClick={() =>
-                setMode((current) =>
-                  current !== null && current !== "fill" ? null : lastShape,
+                switchTool(() =>
+                  setMode((current) => (current === "fill" ? null : "fill")),
                 )
               }
             >
               <svg
                 viewBox="0 0 24 24"
-                className="size-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <path d="m19 11-8-8-8.6 8.6a2 2 0 0 0 0 2.8l5.2 5.2c.8.8 2 .8 2.8 0L19 11Z" />
+                <path d="m5 2 5 5" />
+                <path d="M2 13h15" />
+                <path d="M22 20a2 2 0 1 1-4 0c0-1.6 1.7-2.4 2-4 .3 1.6 2 2.4 2 4Z" />
+              </svg>
+              Fill
+            </Button>
+            <Button
+              type="button"
+              variant={isShapeTool(tool) ? "default" : "outline"}
+              size="sm"
+              aria-pressed={isShapeTool(tool)}
+              onClick={() =>
+                switchTool(() =>
+                  setMode((current) =>
+                    current !== null && isShapeTool(current) ? null : lastShape,
+                  ),
+                )
+              }
+            >
+              <svg
+                viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth={2}
@@ -365,8 +402,42 @@ export function DrawTileForm({
                 <rect x="2" y="8" width="10" height="10" />
                 <circle cx="16" cy="9" r="6" />
               </svg>
+              Shapes
+            </Button>
+            <Button
+              type="button"
+              variant={tool === "lasso" ? "default" : "outline"}
+              size="sm"
+              aria-pressed={tool === "lasso"}
+              title="Circle part of your drawing to move or resize it"
+              onClick={() =>
+                switchTool(() =>
+                  setMode((current) => (current === "lasso" ? null : "lasso")),
+                )
+              }
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeDasharray="3 3"
+                aria-hidden
+              >
+                <ellipse cx="12" cy="10" rx="9" ry="6" />
+                <path d="M6 15c-1 2 0 4 2 5" strokeDasharray="none" />
+              </svg>
+              Lasso
             </Button>
           </fieldset>
+
+          {tool === "lasso" && (
+            <p className="text-muted-foreground text-xs">
+              Draw a loop round part of your drawing, then drag it or its
+              corners.
+            </p>
+          )}
 
           {isShapeTool(tool) && (
             <fieldset className="flex items-center gap-2" disabled={pending}>
@@ -596,6 +667,7 @@ export function DrawTileForm({
               size="sm"
               disabled={pending || ops.length === 0}
               onClick={() => {
+                canvasRef.current?.cancelSelection();
                 setOps([]);
                 setUndone([]);
               }}

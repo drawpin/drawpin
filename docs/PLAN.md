@@ -31,7 +31,7 @@ Drawing needs no account. **Competing does.**
 
 ### Tiles (default mode)
 - Each tile = a drawing + optional typed caption (max 80 chars).
-- Drawing tools: pen, marker, spray, eraser, paint bucket, and shapes (line, rectangle, oval — the line doubles as a ruler). Six base colours plus a colour wheel and hex field. Shapes were added after the first test round's feedback; a snap assist and a lasso are planned next.
+- Drawing tools: pen, marker, spray, eraser, paint bucket, and shapes (line, rectangle, oval — the line doubles as a ruler). Six base colours plus a colour wheel and hex field. A snap assist (hold still at the end of a stroke to straighten it into a line or shape) and a lasso (circle part of the drawing to move or resize it) were added with the shapes, all from the first test round's feedback.
 - Posting as a guest or signed in. A guest tile shows the optional name typed with it and is marked as not in the running; a signed-in tile shows that account's username.
 - **1 post per device per day** (day resets 4:00 AM venue time). A signed-in post must also pass **1 post per account per day**, so a second device doesn't buy a second post.
 
