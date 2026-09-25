@@ -76,3 +76,21 @@ export function parseRecents(stored: string | null): string[] {
     return [];
   }
 }
+
+/** `#rrggbb` to its red, green and blue, each 0–255. */
+export function hexToRgb(color: string): [number, number, number] {
+  const value = Number.parseInt(color.replace("#", ""), 16);
+  return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
+}
+
+/**
+ * Red, green and blue back to `#rrggbb`. Each channel is rounded and kept to
+ * 0–255, so a half-typed or out-of-range box still gives a real colour.
+ */
+export function rgbToHex([red, green, blue]: [number, number, number]): string {
+  const part = (channel: number) =>
+    Math.round(Math.min(255, Math.max(0, channel || 0)))
+      .toString(16)
+      .padStart(2, "0");
+  return `#${part(red)}${part(green)}${part(blue)}`;
+}
