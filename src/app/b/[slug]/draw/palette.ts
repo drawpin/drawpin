@@ -25,63 +25,6 @@ export const BASE_COLORS = [
  */
 export const RECENT_LIMIT = 5;
 
-function toRgb(hex: string): [number, number, number] {
-  const value = Number.parseInt(hex.replace("#", ""), 16);
-  return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
-}
-
-function toHex([red, green, blue]: [number, number, number]): string {
-  const part = (channel: number) =>
-    Math.round(Math.min(Math.max(channel, 0), 255))
-      .toString(16)
-      .padStart(2, "0");
-  return `#${part(red)}${part(green)}${part(blue)}`;
-}
-
-/** Moves a colour `amount` of the way towards another. */
-function mix(from: string, towards: string, amount: number): string {
-  const a = toRgb(from);
-  const b = toRgb(towards);
-  return toHex([
-    a[0] + (b[0] - a[0]) * amount,
-    a[1] + (b[1] - a[1]) * amount,
-    a[2] + (b[2] - a[2]) * amount,
-  ]);
-}
-
-/**
- * Five versions of a colour, darkest first, with the original in the middle.
- *
- * Mixing towards black and white rather than nudging lightness keeps the
- * colour recognisably itself: a lighter red still reads as red, where a
- * lightness shift can drift somewhere pink and surprising.
- *
- * White is the exception: nothing is lighter than it, so its two lighter
- * shades would just be white again — a row with the same swatch three times.
- * It gets four greys stepping down to it instead, with white at the light end.
- */
-export function shadesOf(color: string): string[] {
-  const base = color.toLowerCase();
-  const lighter = [mix(base, "#ffffff", 0.3), mix(base, "#ffffff", 0.55)];
-
-  if (lighter.includes(base)) {
-    return [
-      mix(base, "#000000", 0.8),
-      mix(base, "#000000", 0.6),
-      mix(base, "#000000", 0.4),
-      mix(base, "#000000", 0.2),
-      base,
-    ];
-  }
-
-  return [
-    mix(base, "#000000", 0.4),
-    mix(base, "#000000", 0.2),
-    base,
-    ...lighter,
-  ];
-}
-
 /**
  * Reads what someone typed into the hex field.
  *

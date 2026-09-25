@@ -25,7 +25,6 @@ import {
   BASE_COLORS,
   parseHexInput,
   parseRecents,
-  shadesOf,
   withRecent,
 } from "./palette";
 import type { Brush } from "./render";
@@ -51,8 +50,6 @@ const ERASER_SIZE_STORAGE_KEY = "drawpin:eraser-size";
 /** Erasing is usually coarser work than drawing, so it starts bigger. */
 const DEFAULT_ERASER_SIZE = 36;
 
-/** How long a press has to last before it counts as asking for shades. */
-const HOLD_MS = 350;
 const COLOR_STORAGE_KEY = "drawpin:brush-color";
 const RECENTS_STORAGE_KEY = "drawpin:recent-colors";
 const GRID_STORAGE_KEY = "drawpin:show-grid";
@@ -124,8 +121,6 @@ export function DrawTileForm({
   const [pickedBrush, setBrush] = useState<Brush | null>(null);
   const [pickedColor, setColor] = useState<string | null>(null);
   const [pickedRecents, setRecents] = useState<string[] | null>(null);
-  // Which base colour is showing its shades, if any.
-  const [openShades, setOpenShades] = useState<string | null>(null);
   // What's in the hex field while someone is typing in it; `null` shows the
   // current colour.
   const [hexDraft, setHexDraft] = useState<string | null>(null);
@@ -164,18 +159,6 @@ export function DrawTileForm({
   const [sizeOpen, setSizeOpen] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const canvasRef = useRef<DrawingCanvasHandle>(null);
-  const holdTimer = useRef<number | null>(null);
-  // A press that lasted long enough is followed by a click; without this the
-  // click would close the shades the press just opened.
-  const holdFired = useRef(false);
-
-  function cancelHold() {
-    if (holdTimer.current !== null) {
-      clearTimeout(holdTimer.current);
-      holdTimer.current = null;
-    }
-  }
-
   const nameRef = useRef<HTMLInputElement>(null);
 
   // Remember the visitor's name between posts. Read after hydration and
@@ -361,37 +344,9 @@ export function DrawTileForm({
               <button
                 key={option.value}
                 type="button"
-                aria-label={`${option.name}, hold for shades`}
+                aria-label={option.name}
                 aria-pressed={color === option.value}
-                onClick={() => {
-                  if (holdFired.current) {
-                    holdFired.current = false;
-                    return;
-                  }
-                  // Tapping the colour you already have opens its shades, so
-                  // there's a way in for anyone who never tries holding.
-                  if (color === option.value) {
-                    setOpenShades((current) =>
-                      current === option.value ? null : option.value,
-                    );
-                    return;
-                  }
-                  setOpenShades(null);
-                  chooseColor(option.value);
-                }}
-                onPointerDown={() => {
-                  holdFired.current = false;
-                  holdTimer.current = window.setTimeout(() => {
-                    holdFired.current = true;
-                    setOpenShades(option.value);
-                    chooseColor(option.value);
-                  }, HOLD_MS);
-                }}
-                onPointerUp={cancelHold}
-                onPointerLeave={cancelHold}
-                onPointerCancel={cancelHold}
-                // A long press on a phone would otherwise offer to copy it.
-                onContextMenu={(event) => event.preventDefault()}
+                onClick={() => chooseColor(option.value)}
                 className="size-9 shrink-0 rounded-full border-2 aria-pressed:border-black aria-pressed:ring-2 aria-pressed:ring-offset-2"
                 style={{ backgroundColor: option.value }}
               />
@@ -451,23 +406,6 @@ export function DrawTileForm({
               />
             </div>
           </div>
-
-          {openShades && (
-            <fieldset className="flex flex-wrap gap-2" disabled={pending}>
-              <legend className="sr-only">Shades</legend>
-              {shadesOf(openShades).map((shade) => (
-                <button
-                  key={shade}
-                  type="button"
-                  aria-label={`Shade ${shade}`}
-                  aria-pressed={color === shade}
-                  onClick={() => chooseColor(shade)}
-                  className="size-8 rounded-full border-2 aria-pressed:border-black aria-pressed:ring-2 aria-pressed:ring-offset-2"
-                  style={{ backgroundColor: shade }}
-                />
-              ))}
-            </fieldset>
-          )}
 
           {recents.length > 0 && (
             <fieldset
