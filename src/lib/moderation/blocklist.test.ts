@@ -43,24 +43,31 @@ describe("findBlockedTerm", () => {
     ["call 555 867 5309", "phone number"],
     ["+1 (555) 867-5309", "phone number"],
   ])("blocks spam in %j", (text, expected) => {
-    expect(findBlockedTerm(text, [])).toEqual({ term: expected });
+    expect(findBlockedTerm(text, [])).toEqual({
+      term: expected,
+      category: "contact",
+    });
   });
 
   it("blocks configured terms, including disguised spellings", () => {
     const terms = parseBlocklist("badword, two words");
-    expect(findBlockedTerm("this is a badword", terms)).toEqual({
+    expect(findBlockedTerm("this is a badword", terms)).toMatchObject({
       term: "badword",
     });
-    expect(findBlockedTerm("B4DW0RD!", terms)).toEqual({ term: "badword" });
-    expect(findBlockedTerm("xxbadwordxx", terms)).toEqual({ term: "badword" });
-    expect(findBlockedTerm("say two words here", terms)).toEqual({
+    expect(findBlockedTerm("B4DW0RD!", terms)).toMatchObject({
+      term: "badword",
+    });
+    expect(findBlockedTerm("xxbadwordxx", terms)).toMatchObject({
+      term: "badword",
+    });
+    expect(findBlockedTerm("say two words here", terms)).toMatchObject({
       term: "two words",
     });
   });
 
   it("doesn't let a short term match inside an unrelated word", () => {
     expect(findBlockedTerm("classic", parseBlocklist("ass"))).toBeNull();
-    expect(findBlockedTerm("ass", parseBlocklist("ass"))).toEqual({
+    expect(findBlockedTerm("ass", parseBlocklist("ass"))).toMatchObject({
       term: "ass",
     });
   });
@@ -68,7 +75,9 @@ describe("findBlockedTerm", () => {
   it("exempts a term's known-innocent phrases", () => {
     const term = { term: "arse", exceptions: ["sparse"] };
     expect(findBlockedTerm("the data is sparse", [term])).toBeNull();
-    expect(findBlockedTerm("what an arse", [term])).toEqual({ term: "arse" });
+    expect(findBlockedTerm("what an arse", [term])).toMatchObject({
+      term: "arse",
+    });
   });
 });
 
@@ -87,7 +96,7 @@ describe("findBlockedTerm: disguised spellings", () => {
   });
 
   it("reads ph as f", () => {
-    expect(findBlockedTerm("phudge", parseBlocklist("fudge"))).toEqual({
+    expect(findBlockedTerm("phudge", parseBlocklist("fudge"))).toMatchObject({
       term: "fudge",
     });
   });
@@ -141,5 +150,22 @@ describe("findBlockedTerm: with the real list", () => {
     "Blue Bottle",
   ])("lets %j through", (text) => {
     expect(findBlockedTerm(text, terms)).toBeNull();
+  });
+});
+
+describe("findBlockedTerm: categories", () => {
+  it("calls a link, an email or a phone number contact", () => {
+    expect(findBlockedTerm("call 555 867 5309", [])?.category).toBe("contact");
+  });
+
+  it("calls a plain configured term language", () => {
+    expect(findBlockedTerm("badword", ["badword"])?.category).toBe("language");
+  });
+
+  it("keeps a term's own category", () => {
+    expect(
+      findBlockedTerm("zzslur", [{ term: "zzslur", category: "hateful" }])
+        ?.category,
+    ).toBe("hateful");
   });
 });

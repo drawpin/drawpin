@@ -1,3 +1,5 @@
+import type { ModerationCategory } from "./categories";
+
 /**
  * The custom blocklist half of moderation (docs/PLAN.md, Moderation). It runs
  * before the OpenAI check because it's instant and free.
@@ -131,16 +133,23 @@ export function parseBlocklist(value: string | undefined): string[] {
     .filter((term) => term.length > 0);
 }
 
-export type BlocklistMatch = { term: string };
+/** What matched, and what kind of thing it is, for the poster's message. */
+export type BlocklistMatch = { term: string; category: ModerationCategory };
 
 /**
  * A term to block, either a plain normalized word/phrase (from
  * {@link parseBlocklist}) or one with known-innocent phrases it shouldn't
- * trip inside (from `profanity-terms.ts`) — e.g. the term `arse` exempting
- * `sparse`.
+ * trip inside and a category (from `profanity-terms.ts`) — e.g. the term
+ * `arse` exempting `sparse`.
  */
 export type BlockedTerm =
-  string | { term: string; exceptions?: readonly string[] };
+  | string
+  | {
+      term: string;
+      exceptions?: readonly string[];
+      /** Defaults to "language", as a plain string term does. */
+      category?: ModerationCategory;
+    };
 
 /**
  * Checks a name or caption against the blocklist.
@@ -156,7 +165,7 @@ export function findBlockedTerm(
   if (!text) return null;
 
   for (const { name, pattern } of SPAM_PATTERNS) {
-    if (pattern.test(text)) return { term: name };
+    if (pattern.test(text)) return { term: name, category: "contact" };
   }
 
   // Padded so a term at either end still matches on word boundaries.
@@ -166,15 +175,19 @@ export function findBlockedTerm(
   for (const entry of blockedTerms) {
     const term = typeof entry === "string" ? entry : entry.term;
     const exceptions = typeof entry === "string" ? undefined : entry.exceptions;
+    const category =
+      (typeof entry === "string" ? undefined : entry.category) ?? "language";
 
     for (const spelling of spellings) {
       const haystack = exceptions?.length
         ? withoutExceptions(spelling, exceptions)
         : spelling;
 
-      if (haystack.includes(` ${term} `)) return { term };
+      if (haystack.includes(` ${term} `)) return { term, category };
       // Also catch it inside a longer run of letters, e.g. "xxbadwordxx".
-      if (term.length >= 4 && haystack.includes(term)) return { term };
+      if (term.length >= 4 && haystack.includes(term)) {
+        return { term, category };
+      }
     }
   }
 

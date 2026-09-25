@@ -14,16 +14,18 @@ import { moderateTile } from "@/lib/moderation/moderate-tile";
 import { checkTurnstile } from "@/lib/turnstile/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { processTileImage } from "@/lib/tile-image";
+import { blockedMessage } from "./blocked-message";
 import { type PostTileFailure, postTile } from "./post-tile";
 import { type PostTileState, postTileFormSchema } from "./schema";
 import { SupabaseTileStore } from "./supabase-tile-store";
 
-const FAILURE_MESSAGES: Record<PostTileFailure, string> = {
+// A blocked post isn't here: its message depends on what was found and how
+// many tries are left (see blocked-message.ts).
+const FAILURE_MESSAGES: Record<Exclude<PostTileFailure, "blocked">, string> = {
   "not-found": "This board doesn't exist anymore.",
   paused: "This board is paused, so posting is off right now.",
   "invalid-image": "We couldn't read your drawing. Try again.",
   blank: "Draw something first.",
-  blocked: "This couldn't be posted. It didn't use up your post for today.",
   locked:
     "Too many posts couldn't be posted today. You can try again after 4:00 AM.",
   burst:
@@ -94,7 +96,13 @@ export async function postTileAction(
     );
 
     if (!result.ok) {
-      return { status: "error", message: FAILURE_MESSAGES[result.reason] };
+      return {
+        status: "error",
+        message:
+          result.reason === "blocked"
+            ? blockedMessage(result.category, result.triesLeft)
+            : FAILURE_MESSAGES[result.reason],
+      };
     }
   } catch (error) {
     console.error("postTileAction failed", error);

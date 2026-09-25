@@ -744,8 +744,10 @@ export function DrawTileForm({
             size="lg"
             disabled={!hydrated || pending || !turnstileToken}
           >
+            {/* Checking the drawing is most of the wait, and a second or two
+                of "Posting…" looks frozen; saying what's happening doesn't. */}
             {pending
-              ? "Posting…"
+              ? "Checking your drawing…"
               : turnstileToken
                 ? "Post my tile"
                 : "Checking your browser…"}
