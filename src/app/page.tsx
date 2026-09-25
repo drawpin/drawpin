@@ -129,9 +129,7 @@ export default function Home() {
           <p className="text-muted-foreground max-w-xl text-sm leading-relaxed">
             Put up one QR code and the board looks after itself. Every drawing
             is checked before it appears, the week rolls over on its own, and a
-            winner is crowned without you touching anything. You get one screen:
-            the code to print, a pause switch, and the ability to take anything
-            down.
+            winner is crowned without you touching anything.
           </p>
           <Link href="/login" className={buttonVariants({ size: "lg" })}>
             Start a board — free
