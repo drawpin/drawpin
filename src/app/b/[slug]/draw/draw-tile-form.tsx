@@ -29,20 +29,14 @@ import {
 } from "./palette";
 import type { Brush } from "./render";
 import type { PostTileState } from "./schema";
+import { type ShapeKind, SHAPES } from "./shapes";
 import { historyShortcut, isTypingTarget } from "./shortcuts";
+import { BRUSHES, isShapeTool, type Tool } from "./tools";
 
 /** Brush sizes in tile units, so they mean the same on any screen. */
 const MIN_SIZE = 4;
 const MAX_SIZE = 64;
 const DEFAULT_SIZE = 18;
-
-/** Pen first: it's what most people reach for, and what they already know. */
-const BRUSHES: { value: Brush; name: string }[] = [
-  { value: "pen", name: "Pen" },
-  { value: "marker", name: "Marker" },
-  { value: "spray", name: "Spray" },
-  { value: "eraser", name: "Eraser" },
-];
 
 const BRUSH_STORAGE_KEY = "drawpin:brush";
 const SIZE_STORAGE_KEY = "drawpin:brush-size";
@@ -107,7 +101,12 @@ export function DrawTileForm({
     initialState,
   );
   const [ops, setOps] = useState<DrawOp[]>([]);
-  const [filling, setFilling] = useState(false);
+  // A tool used instead of the brush, if any. Only the brush is remembered
+  // between visits: someone coming back should start drawing, not find
+  // themselves in bucket or shape mode wondering why nothing draws.
+  const [pickedMode, setMode] = useState<"fill" | ShapeKind | null>(null);
+  // The shape the Shapes button returns to.
+  const [lastShape, setLastShape] = useState<ShapeKind>("line");
   // What they used last time, read the same way the hydration flag is: the
   // server has no storage, so its snapshot is null and the first client
   // render matches the HTML it's hydrating.
@@ -133,9 +132,10 @@ export function DrawTileForm({
     (BRUSHES.some((option) => option.value === storedBrush)
       ? (storedBrush as Brush)
       : "pen");
+  const tool: Tool = pickedMode ?? brush;
   const color = pickedColor ?? storedColor ?? BASE_COLORS[0].value;
   const recents = pickedRecents ?? parseRecents(storedRecents);
-  const isErasing = brush === "eraser";
+  const isErasing = tool === "eraser";
 
   // The eraser keeps its own size: switching to it to rub something out
   // shouldn't cost you the brush size you'd settled on.
@@ -291,8 +291,7 @@ export function DrawTileForm({
         ops={ops}
         color={color}
         size={size}
-        brush={brush}
-        filling={filling}
+        tool={tool}
         // The guide is for drawing; the details step is a last look at the
         // tile as the board will show it.
         showGrid={showGrid && step === "drawing"}
@@ -303,35 +302,88 @@ export function DrawTileForm({
       {step === "drawing" ? (
         <>
           <fieldset className="flex gap-2" disabled={pending}>
-            <legend className="sr-only">Brush</legend>
+            <legend className="sr-only">Tool</legend>
             {BRUSHES.map((option) => (
               <Button
                 key={option.value}
                 type="button"
-                variant={
-                  !filling && brush === option.value ? "default" : "outline"
-                }
+                variant={tool === option.value ? "default" : "outline"}
                 size="sm"
-                aria-pressed={!filling && brush === option.value}
+                aria-pressed={tool === option.value}
                 onClick={() => {
                   setBrush(option.value);
-                  setFilling(false);
+                  setMode(null);
                   remember(BRUSH_STORAGE_KEY, option.value);
                 }}
               >
                 {option.name}
               </Button>
             ))}
+            {/* Fill and Shapes toggle: pressing either again goes back to the
+                brush, the way the bucket always has. */}
             <Button
               type="button"
-              variant={filling ? "default" : "outline"}
+              variant={tool === "fill" ? "default" : "outline"}
               size="sm"
-              aria-pressed={filling}
-              onClick={() => setFilling((current) => !current)}
+              aria-pressed={tool === "fill"}
+              onClick={() =>
+                setMode((current) => (current === "fill" ? null : "fill"))
+              }
             >
               Fill
             </Button>
+            {/* An icon rather than a word: the row is already as wide as a
+                phone, and a square beside a circle reads as "shapes". */}
+            <Button
+              type="button"
+              variant={isShapeTool(tool) ? "default" : "outline"}
+              size="sm"
+              aria-pressed={isShapeTool(tool)}
+              aria-label="Shapes"
+              title="Shapes"
+              onClick={() =>
+                setMode((current) =>
+                  current !== null && current !== "fill" ? null : lastShape,
+                )
+              }
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="size-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                aria-hidden
+              >
+                <rect x="2" y="8" width="10" height="10" />
+                <circle cx="16" cy="9" r="6" />
+              </svg>
+            </Button>
           </fieldset>
+
+          {isShapeTool(tool) && (
+            <fieldset className="flex items-center gap-2" disabled={pending}>
+              <legend className="sr-only">Shape</legend>
+              {SHAPES.map((option) => (
+                <Button
+                  key={option.value}
+                  type="button"
+                  variant={tool === option.value ? "default" : "outline"}
+                  size="sm"
+                  aria-pressed={tool === option.value}
+                  onClick={() => {
+                    setMode(option.value);
+                    setLastShape(option.value);
+                  }}
+                >
+                  {option.name}
+                </Button>
+              ))}
+              <span className="text-muted-foreground text-xs">
+                Drag to draw it
+              </span>
+            </fieldset>
+          )}
 
           {/* One row rather than a wrap, scrolling on the narrowest phones:
               a lone wheel on its own line looks like a mistake. */}

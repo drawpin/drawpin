@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   backingSizeFor,
   clampView,
+  drawShape,
   MAX_ZOOM,
+  type Shape,
   screenToTile,
   sprayDots,
   TILE_SIZE,
@@ -160,5 +162,83 @@ describe("sprayDots", () => {
 
   it("still marks the paper on a single tap", () => {
     expect(sprayDots([[50, 50, 0.5]], 20, 5).length).toBeGreaterThan(0);
+  });
+});
+
+describe("drawShape", () => {
+  /** A stand-in canvas that records what it's asked to draw. */
+  function recorder() {
+    const calls: string[] = [];
+    const record =
+      (name: string) =>
+      (...args: unknown[]): void => {
+        calls.push(`${name}(${args.join(",")})`);
+      };
+    const context = {
+      strokeStyle: "",
+      lineWidth: 0,
+      lineCap: "butt" as CanvasLineCap,
+      lineJoin: "miter" as CanvasLineJoin,
+      save: record("save"),
+      restore: record("restore"),
+      beginPath: record("beginPath"),
+      moveTo: record("moveTo"),
+      lineTo: record("lineTo"),
+      rect: record("rect"),
+      ellipse: record("ellipse"),
+      stroke: record("stroke"),
+    };
+    return { context, calls };
+  }
+
+  const base = { kind: "shape", color: "#ef4444", size: 12 } as const;
+
+  it("draws a line from one end to the other", () => {
+    const { context, calls } = recorder();
+    drawShape(context, {
+      ...base,
+      shape: "line",
+      from: [10, 20],
+      to: [90, 60],
+    });
+
+    expect(calls).toContain("moveTo(10,20)");
+    expect(calls).toContain("lineTo(90,60)");
+    expect(context.lineCap).toBe("round");
+  });
+
+  it("draws a rectangle from the box however it was dragged", () => {
+    const { context, calls } = recorder();
+    const shape: Shape = {
+      ...base,
+      shape: "rectangle",
+      from: [100, 80],
+      to: [20, 10],
+    };
+    drawShape(context, shape);
+
+    expect(calls).toContain("rect(20,10,80,70)");
+    // Sharp corners are what make it look drawn with a tool.
+    expect(context.lineJoin).toBe("miter");
+  });
+
+  it("draws an oval inside the box", () => {
+    const { context, calls } = recorder();
+    drawShape(context, {
+      ...base,
+      shape: "ellipse",
+      from: [0, 0],
+      to: [100, 40],
+    });
+
+    expect(calls).toContain(`ellipse(50,20,50,20,0,0,${Math.PI * 2})`);
+  });
+
+  it("uses the chosen colour and size", () => {
+    const { context } = recorder();
+    drawShape(context, { ...base, shape: "line", from: [0, 0], to: [5, 5] });
+
+    expect(context.strokeStyle).toBe("#ef4444");
+    expect(context.lineWidth).toBe(12);
   });
 });
