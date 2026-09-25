@@ -103,10 +103,10 @@ export default function Home() {
           </h2>
           <div className="text-muted-foreground flex flex-col gap-3 text-sm leading-relaxed">
             <p>
-              The few minutes you spend waiting for a coffee are a strange gap
-              in the day — long enough to be bored, too short to start anything.
-              Everyone fills it the same way, looking down at a phone on their
-              own.
+              Whether you&apos;re waiting for your food or sitting with a group
+              of friends, there&apos;s a gap — long enough to be bored, too
+              short to start anything. Everyone fills it the same way, looking
+              down at a phone on their own.
             </p>
             <p>
               DrawPin is an attempt to point that at the room instead. You draw

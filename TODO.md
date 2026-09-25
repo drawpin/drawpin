@@ -76,10 +76,8 @@ What's left:
 
 ### Blocked on you
 
-- [ ] **"Why I made this" in your own words.** The home page carries my
-      placeholder. It now ends by admitting the café was just where the idea
-      started — keep that turn if you rewrite it, because it's what makes the
-      wider framing honest rather than a retrofit.
+- [x] **"Why I made this" in your own words.** Ahmad's, as of 2026-09-24.
+      One word changed: the opening needed a subject to be a sentence.
 - [ ] **A real board on the home page.** Screenshots or a live demo instead of
       describing one. Wants a board worth showing, which wants #65.
 
