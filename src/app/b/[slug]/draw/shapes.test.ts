@@ -1,6 +1,12 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { boxBetween, isTooSmall, shapeEnd } from "./shapes";
+import {
+  boxBetween,
+  isTooSmall,
+  keepsPerfect,
+  SHAPES,
+  shapeEnd,
+} from "./shapes";
 
 /** Compares points with a little room for floating-point noise. */
 function expectPoint(actual: [number, number], expected: [number, number]) {
@@ -66,5 +72,33 @@ describe("boxBetween", () => {
     expect(boxBetween([10, 20], [40, 60])).toEqual(box);
     expect(boxBetween([40, 60], [10, 20])).toEqual(box);
     expect(boxBetween([10, 60], [40, 20])).toEqual(box);
+  });
+});
+
+describe("keepsPerfect", () => {
+  it("keeps a circle and a square perfect when nothing is held", () => {
+    // A phone has no Shift, so this is how every phone draws them.
+    expect(keepsPerfect("ellipse", false)).toBe(true);
+    expect(keepsPerfect("rectangle", false)).toBe(true);
+  });
+
+  it("lets Shift stretch a circle or a square", () => {
+    expect(keepsPerfect("ellipse", true)).toBe(false);
+    expect(keepsPerfect("rectangle", true)).toBe(false);
+  });
+
+  it("leaves a line free unless Shift snaps its angle", () => {
+    expect(keepsPerfect("line", false)).toBe(false);
+    expect(keepsPerfect("line", true)).toBe(true);
+  });
+});
+
+describe("SHAPES", () => {
+  it("offers a line, a circle and a square", () => {
+    expect(SHAPES.map((shape) => shape.name)).toEqual([
+      "Line",
+      "Circle",
+      "Square",
+    ]);
   });
 });

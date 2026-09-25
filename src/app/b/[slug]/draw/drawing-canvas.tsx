@@ -38,7 +38,7 @@ import {
   resizeFromCorner,
   sameRect,
 } from "./selection";
-import { isTooSmall, type Point, shapeEnd } from "./shapes";
+import { isTooSmall, keepsPerfect, type Point, shapeEnd } from "./shapes";
 import { isShapeTool, type Tool } from "./tools";
 
 export type { DrawOp } from "./render";
@@ -459,7 +459,7 @@ export const DrawingCanvas = forwardRef<
         drawing.shape,
         drawing.from,
         [x, y],
-        event.shiftKey,
+        keepsPerfect(drawing.shape, event.shiftKey),
       );
       redraw();
       return;
