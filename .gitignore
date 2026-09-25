@@ -154,3 +154,8 @@ vite.config.ts.timestamp-*
 
 # Playwright MCP browser-testing output
 .playwright-mcp/
+
+# Local project notes and AI working guide — kept on the maintainer's machine,
+# not part of the public repo (see CONTRIBUTING.md for contributor docs).
+/CLAUDE.md
+/TODO.md

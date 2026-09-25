@@ -114,7 +114,7 @@ shows as failed in Vercel.
 - `main` is the only long-lived branch (trunk-based, see
   [`docs/adr/001-trunk-based-branching.md`](docs/adr/001-trunk-based-branching.md));
   pull requests are squash-merged.
-- Full working agreement is in [`CLAUDE.md`](CLAUDE.md).
+- Decisions and rationale live in [`docs/adr/`](docs/adr/).
 
 ## License
 

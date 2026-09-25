@@ -1,8 +1,7 @@
 # Database
 
 The schema lives in `supabase/migrations/`. This page is the readable map of
-it; the diagram is on
-[Lucid](https://lucid.app/lucidchart/1e2f0c20-87e8-4065-9f7e-11c4fc2a4124/edit).
+it; a visual ER diagram is kept privately in Lucidchart.
 
 All day and week boundaries are 4:00 AM venue local time. The app computes them
 from each venue's IANA `timezone` and stores absolute `timestamptz` values, so
