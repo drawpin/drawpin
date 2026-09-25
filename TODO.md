@@ -78,8 +78,10 @@ What's left:
 - [ ] **Print material for venues.** The admin QR is a bare code: no venue
       name, no "draw something", no today's code beside it. A café needs
       something it can put on a table without designing it themselves.
-- [ ] **The favicon is still create-next-app's.** Needs a DrawPin mark — a
-      branding call, so say what you want and I'll build it.
+- [x] **The favicon** — the pencil from the wordmark, tilted, on a blue tile.
+      Tilting is what makes it work: upright it's a 1:4.8 sliver that squeezes
+      to a 3px stroke at 16px, and a solid tile is the only thing that holds
+      its own in a tab strip.
 - [ ] **Previews for the pages inside a board.** The board and the home page
       now show a card; `/draw`, `/vote` and the Hall of Fame still inherit the
       generic title. "Come vote for mine" is a link people send, so it should
