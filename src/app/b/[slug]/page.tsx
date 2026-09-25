@@ -7,7 +7,14 @@ import { connection } from "next/server";
 import { getCustomer } from "@/lib/customer";
 import { openFinal } from "@/lib/monthly-final";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getBoard, getPostingWeek, getVotingWeek, listLiveTiles } from "./data";
+import {
+  getBoard,
+  getBoardStats,
+  getPostingWeek,
+  getVotingWeek,
+  listLiveTiles,
+} from "./data";
+import { BoardStatsLine } from "./board-stats";
 import { listWeekTimings } from "./final/data";
 import { VOTES_PER_WEEK } from "./vote/cast-votes";
 import { SupabaseVoteStore } from "./vote/supabase-vote-store";
@@ -56,6 +63,7 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
     ? await listLiveTiles(week.id, undefined, undefined, customer?.id ?? null)
     : null;
   const votingWeek = await getVotingWeek(board.id);
+  const stats = await getBoardStats(board.id);
   const monthlyFinal = openFinal(
     await listWeekTimings(admin, board.id),
     board.timezone,
@@ -78,6 +86,7 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
           <h1 className="text-2xl font-semibold tracking-tight">
             {board.name}
           </h1>
+          {stats && <BoardStatsLine stats={stats} />}
           <Link
             href={`/b/${slug}/hall-of-fame`}
             className="text-muted-foreground text-sm underline underline-offset-4"

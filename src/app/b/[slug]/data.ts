@@ -47,6 +47,50 @@ export const getBoard = cache(async (slug: string): Promise<Board | null> => {
   };
 });
 
+/** Public participation numbers shown on a board. */
+export type BoardStats = {
+  /** Distinct people who have drawn on the board (all weeks). */
+  people: number;
+  /** Live drawings the board still holds (all weeks). */
+  totalDrawings: number;
+  /** Live drawings in the week that is taking posts now. */
+  weekDrawings: number;
+};
+
+/**
+ * Reads a board's participation stats through the `board_stats` function.
+ *
+ * The function is `SECURITY DEFINER`: "people" is a distinct count of
+ * `tiles.device_id`, which the public role can't read directly, so the count
+ * is done inside the database and only the totals come back (never an id).
+ *
+ * Returns `null` rather than throwing if the stats can't be read: the line is
+ * decorative, and a board must still load without it — including in the window
+ * between deploying this and applying its migration.
+ */
+export async function getBoardStats(
+  venueId: string,
+): Promise<BoardStats | null> {
+  const { data, error } = await createPublicClient()
+    .rpc("board_stats", { p_venue_id: venueId })
+    .single<{
+      people: number;
+      total_drawings: number;
+      week_drawings: number;
+    }>();
+
+  if (error) {
+    console.error(`Could not load board stats: ${error.message}`);
+    return null;
+  }
+
+  return {
+    people: Number(data.people),
+    totalDrawings: Number(data.total_drawings),
+    weekDrawings: Number(data.week_drawings),
+  };
+}
+
 /** The week a board is posting to right now. */
 export type PostingWeek = {
   id: string;
