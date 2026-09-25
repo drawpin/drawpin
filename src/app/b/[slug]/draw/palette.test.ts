@@ -75,6 +75,25 @@ describe("withRecent", () => {
 
     expect(recents).toHaveLength(RECENT_LIMIT);
   });
+
+  it("drops the colour used longest ago, not the one added first", () => {
+    const full = ["#000005", "#000004", "#000003", "#000002", "#000001"];
+    expect(full).toHaveLength(RECENT_LIMIT);
+
+    // Re-pick the oldest, then overflow the row by one.
+    const revived = withRecent(full, "#000001");
+    const after = withRecent(revived, "#0000ff");
+
+    expect(after).toEqual([
+      "#0000ff",
+      "#000001",
+      "#000005",
+      "#000004",
+      "#000003",
+    ]);
+    // #000002 went, because nothing had been used longer ago than it.
+    expect(after).not.toContain("#000002");
+  });
 });
 
 describe("parseRecents", () => {

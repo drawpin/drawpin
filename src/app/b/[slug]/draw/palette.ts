@@ -17,8 +17,14 @@ export const BASE_COLORS = [
   { name: "Brown", value: "#92400e" },
 ] as const;
 
-/** How many recent colours to keep within reach. */
-export const RECENT_LIMIT = 6;
+/**
+ * How many recent colours to keep within reach.
+ *
+ * Five, on one line beside its label at phone width. The row is there to get
+ * back to a colour you just used, and a longer one stops being that — it
+ * becomes a second palette to read, next to the curated one above it.
+ */
+export const RECENT_LIMIT = 5;
 
 function toRgb(hex: string): [number, number, number] {
   const value = Number.parseInt(hex.replace("#", ""), 16);
@@ -65,7 +71,9 @@ export function shadesOf(color: string): string[] {
  * Puts a colour at the front of the recent list.
  *
  * Choosing a colour already in the list moves it to the front rather than
- * adding it twice, so the row stays the last few distinct colours used.
+ * adding it twice, so the row stays the last few distinct colours used. Once
+ * it is full the colour that drops off the end is the one used longest ago —
+ * re-picking a colour keeps it alive.
  */
 export function withRecent(recents: string[], color: string): string[] {
   return [color, ...recents.filter((recent) => recent !== color)].slice(
