@@ -16,9 +16,11 @@ describe("selectProfanityTerms", () => {
     ]);
 
     expect(terms).toEqual([
-      { term: "fakeslur", exceptions: [] },
-      { term: "fakeswear", exceptions: [] },
-      { term: "untagged", exceptions: [] },
+      // Categories come from the tags: a slur is hateful, a swear or an
+      // untagged term is language.
+      { term: "fakeslur", exceptions: [], category: "hateful" },
+      { term: "fakeswear", exceptions: [], category: "language" },
+      { term: "untagged", exceptions: [], category: "language" },
     ]);
   });
 
@@ -33,8 +35,8 @@ describe("selectProfanityTerms", () => {
     ]);
 
     expect(terms).toEqual([
-      { term: "fukeyslur", exceptions: [] },
-      { term: "altspelling", exceptions: [] },
+      { term: "fukeyslur", exceptions: [], category: "hateful" },
+      { term: "altspelling", exceptions: [], category: "hateful" },
     ]);
   });
 
@@ -50,8 +52,16 @@ describe("selectProfanityTerms", () => {
     ]);
 
     expect(terms).toEqual([
-      { term: "fakeslur", exceptions: ["harmfakeslur", "harmotherslur"] },
-      { term: "otherslur", exceptions: ["harmfakeslur", "harmotherslur"] },
+      {
+        term: "fakeslur",
+        exceptions: ["harmfakeslur", "harmotherslur"],
+        category: "hateful",
+      },
+      {
+        term: "otherslur",
+        exceptions: ["harmfakeslur", "harmotherslur"],
+        category: "hateful",
+      },
     ]);
   });
 });

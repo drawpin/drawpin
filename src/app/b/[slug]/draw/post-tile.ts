@@ -2,6 +2,7 @@ import type {
   ModerationDecision,
   TileContent,
 } from "@/lib/moderation/moderate-tile";
+import type { ModerationCategory } from "@/lib/moderation/categories";
 import { ModerationUnavailableError } from "@/lib/moderation/openai";
 import { BlankTileImageError, InvalidTileImageError } from "@/lib/tile-image";
 import { localDayFor, type WeekBounds, weekBoundsFor } from "@/lib/venue-time";
@@ -122,7 +123,16 @@ export type PostTileFailure =
   | "failed";
 
 export type PostTileResult =
-  { ok: true; tileId: string } | { ok: false; reason: PostTileFailure };
+  | { ok: true; tileId: string }
+  | {
+      ok: false;
+      reason: "blocked";
+      /** What kind of problem, for the poster's message. */
+      category: ModerationCategory;
+      /** Blocked posts left today before the device is locked out (≥ 1). */
+      triesLeft: number;
+    }
+  | { ok: false; reason: Exclude<PostTileFailure, "blocked"> };
 
 /**
  * Posts a tile to a venue's current week, enforcing one post per device per
@@ -212,9 +222,14 @@ export async function postTile(
       input.deviceId,
       localDay,
     );
+    if (blockedCount >= BLOCKED_ATTEMPT_LIMIT) {
+      return { ok: false, reason: "locked" };
+    }
     return {
       ok: false,
-      reason: blockedCount >= BLOCKED_ATTEMPT_LIMIT ? "locked" : "blocked",
+      reason: "blocked",
+      category: decision.category,
+      triesLeft: BLOCKED_ATTEMPT_LIMIT - blockedCount,
     };
   }
 

@@ -159,3 +159,7 @@ vite.config.ts.timestamp-*
 # not part of the public repo (see CONTRIBUTING.md for contributor docs).
 /CLAUDE.md
 /TODO.md
+
+# Private moderation test set (npm run moderation:eval): real and made-up
+# drawings with slurs and hate symbols in them. Never part of the public repo.
+/moderation-eval/
