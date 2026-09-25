@@ -72,8 +72,8 @@ export default async function AdminPage() {
           {code}
         </p>
         <p className="text-muted-foreground text-xs">
-          Customers who can&apos;t scan can type this on the DrawPin home page.
-          It changes every morning at 4:00 AM.
+          Anyone who can&apos;t scan can type this on the DrawPin home page. It
+          changes every morning at 4:00 AM.
         </p>
       </section>
 
@@ -83,8 +83,8 @@ export default async function AdminPage() {
           {url}
         </p>
         <p className="text-muted-foreground text-xs">
-          Customers open this link by scanning the QR code. It doesn&apos;t
-          change when you rename your board.
+          People open this link by scanning the QR code. It doesn&apos;t change
+          when you rename your board.
         </p>
       </section>
 
@@ -96,8 +96,8 @@ export default async function AdminPage() {
         </h2>
         <p className="text-muted-foreground text-xs">
           {venue.isPaused
-            ? "Customers can see the board but can't post."
-            : "Customers can post to the board."}
+            ? "People can see the board but can't post."
+            : "People can post to the board."}
         </p>
         <form action={setBoardPaused}>
           <input

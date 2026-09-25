@@ -18,7 +18,8 @@ export default function PrivacyPage() {
       </div>
 
       <p>
-        DrawPin is a drawing board for a local venue. You can draw on it without
+        DrawPin is a shared drawing board — for a restaurant, a classroom, a
+        group of friends, whatever it was set up for. You can draw on it without
         an account. Signing in is only needed to be voted for, to vote, and to
         report a drawing.
       </p>
@@ -93,8 +94,8 @@ export default function PrivacyPage() {
             that week&apos;s voting ends, image and all.
           </li>
           <li>
-            A drawing that wins stays in the venue&apos;s Hall of Fame, which is
-            the point of winning.
+            A drawing that wins stays in that board&apos;s Hall of Fame, which
+            is the point of winning.
           </li>
           <li>Records of who posted on which day are deleted after 30 days.</li>
           <li>
@@ -116,7 +117,7 @@ export default function PrivacyPage() {
           </a>{" "}
           and we&apos;ll delete your account, your drawings and your votes.
           Anything of yours that won a week stays in the Hall of Fame as part of
-          that venue&apos;s history, with your name taken off it.
+          that board&apos;s history, with your name taken off it.
         </p>
       </section>
 

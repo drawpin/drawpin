@@ -19,7 +19,8 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           Sign in to DrawPin
         </h1>
         <p className="text-muted-foreground text-sm">
-          For venue owners. We&apos;ll email you a link — no password needed.
+          For whoever&apos;s setting up a board. We&apos;ll email you a link —
+          no password needed.
         </p>
       </div>
       {error === "link" && (

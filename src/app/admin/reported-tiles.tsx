@@ -127,7 +127,7 @@ export function ReportedTiles({ tiles }: { tiles: ReportedAdminTile[] }) {
   return (
     <section className="flex flex-col gap-2">
       <h2 className="text-sm font-medium">
-        Reported by customers ({tiles.length})
+        Reported drawings ({tiles.length})
       </h2>
       <p className="text-muted-foreground text-xs">
         Nothing is hidden automatically. Take a look and decide.

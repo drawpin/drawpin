@@ -30,7 +30,7 @@ export function SetupForm({ timeZones }: { timeZones: string[] }) {
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <Label htmlFor="name">Venue name</Label>
+        <Label htmlFor="name">Board name</Label>
         <Input id="name" name="name" maxLength={120} required />
       </div>
 

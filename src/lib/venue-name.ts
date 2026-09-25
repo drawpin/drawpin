@@ -21,7 +21,7 @@ export const venueNameSchema = z
   .trim()
   .transform((name) => name.replace(/\s+/g, " "))
   .refine((name) => name.length >= 1, {
-    message: "Enter your venue's name.",
+    message: "Enter a name for your board.",
   })
   .refine((name) => name.length <= MAX_LENGTH, {
     message: `Keep the name under ${MAX_LENGTH} characters.`,

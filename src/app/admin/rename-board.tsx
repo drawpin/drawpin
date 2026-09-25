@@ -26,7 +26,7 @@ export function RenameBoard({ name }: { name: string }) {
       <h2 className="text-sm font-medium">Board name</h2>
       <form action={formAction} className="flex flex-col gap-2">
         <Label htmlFor="venue-name" className="sr-only">
-          Venue name
+          Board name
         </Label>
         <Input
           id="venue-name"
@@ -36,7 +36,7 @@ export function RenameBoard({ name }: { name: string }) {
           defaultValue={name}
         />
         <p className="text-muted-foreground text-xs">
-          This is the name customers see on your board. Your board link and QR
+          This is the name everyone sees on your board. Your board link and QR
           code stay the same, so anything you&apos;ve already printed keeps
           working.
         </p>

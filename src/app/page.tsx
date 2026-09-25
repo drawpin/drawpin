@@ -2,19 +2,19 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { JoinForm } from "./join/join-form";
 
-/** How a tile gets from a table to a Hall of Fame, in the order it happens. */
+/** How a tile gets from a code on a wall to a Hall of Fame, in order. */
 const STEPS = [
   {
     title: "Scan, or type the code",
-    body: "The QR on the table opens that venue's board. No app, and nothing to install. If you can't scan, today's code is on the counter.",
+    body: "The QR opens that board. No app, and nothing to install. If you can't scan it, whoever set the board up has today's 8-digit code.",
   },
   {
     title: "Draw one tile",
-    body: "A few colours, a few brushes, and a caption if you want one. One drawing each per day, so the board stays a room rather than one person.",
+    body: "A few colours, a few brushes, and a caption if you want one. One drawing each per day, so the board stays everyone's rather than one person's.",
   },
   {
     title: "Come back and vote",
-    body: "Next week you pick three from the week before. The most-voted drawing wins the week and stays in the venue's Hall of Fame; each month, the best of those winners meet again.",
+    body: "Next week you pick three from the week before. The most-voted drawing wins the week and stays in that board's Hall of Fame; each month, the best of those winners meet again.",
   },
 ];
 
@@ -30,13 +30,13 @@ export default function Home() {
           >
             Have a code?
           </a>
-          {/* Customers sign in from the board they're standing in front of,
-              where it unlocks voting; this is the venue's way in. */}
+          {/* People draw and vote from the board itself; this door is for
+              whoever is setting one up. */}
           <Link
             href="/login"
             className={buttonVariants({ variant: "outline", size: "sm" })}
           >
-            For venues
+            Start a board
           </Link>
         </nav>
       </header>
@@ -44,12 +44,13 @@ export default function Home() {
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-14 px-6 py-10">
         <section className="flex flex-col items-center gap-5 text-center">
           <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
-            A drawing board for your local spot
+            A shared drawing board for wherever your people are
           </h1>
           <p className="text-muted-foreground max-w-xl text-lg text-pretty">
-            Scan the code on the table and draw something. It lands on the board
-            everyone else in the room is looking at. No app, no account — until
-            you want to vote.
+            Put up a code. Everyone draws one tile a day on the same board, and
+            the week&apos;s best gets voted for. A restaurant, a classroom, a
+            group chat — you decide. No app, and no account until you want to
+            vote.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <a href="#join" className={buttonVariants({ size: "lg" })}>
@@ -59,7 +60,7 @@ export default function Home() {
               href="/login"
               className={buttonVariants({ variant: "outline", size: "lg" })}
             >
-              Create a board
+              Start a board
             </Link>
           </div>
         </section>
@@ -87,7 +88,7 @@ export default function Home() {
               Open a board
             </h2>
             <p className="text-muted-foreground text-sm">
-              Type the 8-digit code from the counter. It changes every morning.
+              Type the 8-digit code. It changes every morning.
             </p>
           </div>
           <div className="w-full max-w-xs">
@@ -108,27 +109,31 @@ export default function Home() {
             </p>
             <p>
               DrawPin is an attempt to point that at the room instead. You draw
-              one small thing, it goes up next to what strangers drew this
-              morning, and at the end of the week the room decides which one it
-              liked. Nothing to install, nothing to sign up for, and it costs
-              the café nothing to run.
+              one small thing, it goes up next to what everyone else drew today,
+              and at the end of the week the room decides which one it liked.
+            </p>
+            <p>
+              That was the idea, anyway. It turns out a room doesn&apos;t have
+              to be a café — a classroom, a party, an office, a group chat with
+              nothing going on. Nothing to install, nothing to sign up for, and
+              it costs nothing to run.
             </p>
           </div>
         </section>
 
         <section className="bg-muted flex flex-col items-start gap-3 rounded-xl px-6 py-6">
           <h2 className="text-xl font-semibold tracking-tight">
-            Running a café, bar, or anywhere people wait?
+            Thinking of starting one?
           </h2>
           <p className="text-muted-foreground max-w-xl text-sm leading-relaxed">
-            Print one QR code and the board looks after itself. Every drawing is
-            checked before it appears, the week rolls over on its own, and a
+            Put up one QR code and the board looks after itself. Every drawing
+            is checked before it appears, the week rolls over on its own, and a
             winner is crowned without you touching anything. You get one screen:
             the code to print, a pause switch, and the ability to take anything
             down.
           </p>
           <Link href="/login" className={buttonVariants({ size: "lg" })}>
-            Create a board — free
+            Start a board — free
           </Link>
         </section>
       </main>

@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://drawpin.io"),
   title: "DrawPin",
   description:
-    "Scan a QR code, draw a tile, and vote for the weekly winner at your local spot.",
+    "Scan a code, draw a tile, and vote for the week's best. A shared drawing board for any group.",
   openGraph: {
     type: "website",
     siteName: "DrawPin",
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
     // thing actually is — somebody seeing this link in a group chat has never
     // heard of DrawPin, and "Draw it. Pin it." twice tells them nothing.
     description:
-      "Scan a QR code, draw a tile, and vote for the weekly winner at your local spot.",
+      "Scan a code, draw a tile, and vote for the week's best. A shared drawing board for any group.",
     images: [{ url: "/og-v2.png", width: 1200, height: 630, alt: "DrawPin" }],
   },
   twitter: { card: "summary_large_image" },

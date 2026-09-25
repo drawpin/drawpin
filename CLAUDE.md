@@ -1,6 +1,8 @@
 # DrawPin — Claude Instructions
 
-DrawPin is a free, mobile-web drawing board for local spots (coffee shops, restaurants). Customers scan a printed QR code or enter a daily 8-digit code, draw a tile, see everyone's tiles live, vote for the weekly winner, and crown a monthly super winner. No app download. Drawing needs no account; voting, winning and reporting need a Google sign-in (ADR-004).
+DrawPin is a free, mobile-web shared drawing board for any group of people — a restaurant, a classroom, a party, a group chat. Whoever sets a board up decides what it's for. People scan a printed QR code or enter a daily 8-digit code, draw a tile, see everyone's tiles live, vote for the weekly winner, and crown a monthly super winner. No app download. Drawing needs no account; voting, winning and reporting need a Google sign-in (ADR-004).
+
+**The code says `venue`; the product doesn't.** The schema, the types and the internal names are venue-shaped because a place with tables is what it was designed around, and that stays. Anything a person reads says *board*, and never assumes a business.
 
 **Before any feature work, read `docs/PLAN.md`.** It is the locked v1 scope. Do not add features, change behavior, or pick new libraries beyond it without asking.
 
