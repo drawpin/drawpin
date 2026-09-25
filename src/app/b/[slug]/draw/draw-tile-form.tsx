@@ -601,14 +601,14 @@ export function DrawTileForm({
               size="sm"
               aria-pressed={assist}
               disabled={pending}
-              title="Hold still at the end of a line or shape to snap it straight"
+              title="Hold still at the end of a line or shape to snap it perfect"
               onClick={() => {
                 const next = !assist;
                 setAssist(next);
                 remember(ASSIST_STORAGE_KEY, String(next));
               }}
             >
-              Assist
+              Snap
             </Button>
             <Button
               type="button"
@@ -621,7 +621,7 @@ export function DrawTileForm({
               aria-label="Undo"
             >
               {/* Arrows rather than words, so the row still fits a phone
-                  with Assist in it: undo and redo are the one pair of icons
+                  with Snap in it: undo and redo are the one pair of icons
                   everyone already reads. */}
               <svg
                 viewBox="0 0 24 24"

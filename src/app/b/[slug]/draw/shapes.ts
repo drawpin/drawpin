@@ -4,11 +4,16 @@ export type Point = [x: number, y: number];
 /** The shapes the shape tool draws. The line is also the ruler. */
 export type ShapeKind = "line" | "rectangle" | "ellipse";
 
+/**
+ * Named for what people reach for — a circle and a square, not an oval and a
+ * rectangle — and dragged out that way (see {@link keepsPerfect}). Underneath
+ * they're still an ellipse and a rectangle, since Shift and the snap assist
+ * can stretch them.
+ */
 export const SHAPES: { value: ShapeKind; name: string }[] = [
   { value: "line", name: "Line" },
-  { value: "rectangle", name: "Rectangle" },
-  // "Oval", as MS Paint calls it: the word people already have for it.
-  { value: "ellipse", name: "Oval" },
+  { value: "ellipse", name: "Circle" },
+  { value: "rectangle", name: "Square" },
 ];
 
 /**
@@ -41,12 +46,24 @@ const MIN_SHAPE_SPAN = 3;
 const EIGHTH_TURN = Math.PI / 4;
 
 /**
+ * Whether a shape being dragged is kept perfect, given whether Shift is held.
+ *
+ * A circle and a square are perfect unless Shift is held: their names
+ * promise it, and a phone has no Shift to ask for it. Holding Shift on a
+ * keyboard is how to stretch one into an oval or a rectangle. A line is the
+ * other way round — free unless Shift snaps its angle.
+ */
+export function keepsPerfect(shape: ShapeKind, shiftKey: boolean): boolean {
+  return shape === "line" ? shiftKey : !shiftKey;
+}
+
+/**
  * Where a shape being dragged out ends.
  *
- * Unconstrained, it's wherever the pointer is. Constrained (Shift held on a
- * keyboard), a rectangle becomes a square and an ellipse a circle, sized by the
- * longer side of the drag and staying on the side the pointer went; a line
- * snaps to the nearest horizontal, vertical or 45° angle, keeping its length.
+ * Unconstrained, it's wherever the pointer is. Constrained, a rectangle
+ * becomes a square and an ellipse a circle, sized by the longer side of the
+ * drag and staying on the side the pointer went; a line snaps to the nearest
+ * horizontal, vertical or 45° angle, keeping its length.
  */
 export function shapeEnd(
   shape: ShapeKind,
