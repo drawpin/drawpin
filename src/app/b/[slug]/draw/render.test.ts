@@ -186,6 +186,7 @@ describe("drawShape", () => {
       lineTo: record("lineTo"),
       rect: record("rect"),
       ellipse: record("ellipse"),
+      closePath: record("closePath"),
       stroke: record("stroke"),
     };
     return { context, calls };
@@ -232,6 +233,42 @@ describe("drawShape", () => {
     });
 
     expect(calls).toContain(`ellipse(50,20,50,20,0,0,${Math.PI * 2})`);
+  });
+
+  it("turns an oval by its rotation", () => {
+    const { context, calls } = recorder();
+    drawShape(context, {
+      ...base,
+      shape: "ellipse",
+      from: [0, 0],
+      to: [100, 40],
+      rotation: 0.5,
+    });
+
+    expect(calls).toContain(`ellipse(50,20,50,20,0.5,0,${Math.PI * 2})`);
+  });
+
+  it("draws a polygon through its corners and closes it", () => {
+    const { context, calls } = recorder();
+    drawShape(context, {
+      ...base,
+      shape: "polygon",
+      points: [
+        [10, 10],
+        [90, 10],
+        [50, 80],
+      ],
+    });
+
+    expect(calls).toEqual(
+      expect.arrayContaining([
+        "moveTo(10,10)",
+        "lineTo(90,10)",
+        "lineTo(50,80)",
+        "closePath()",
+      ]),
+    );
+    expect(context.lineJoin).toBe("miter");
   });
 
   it("uses the chosen colour and size", () => {

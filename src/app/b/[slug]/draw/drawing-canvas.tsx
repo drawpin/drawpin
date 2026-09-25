@@ -25,6 +25,7 @@ import {
   WHOLE_TILE,
   zoomAround,
 } from "./render";
+import { recognizeShape } from "./recognize";
 import { isTooSmall, shapeEnd } from "./shapes";
 import { isShapeTool, type Tool } from "./tools";
 
@@ -45,9 +46,20 @@ type DrawingCanvasProps = {
    */
   tool: Tool;
   showGrid: boolean;
+  /**
+   * Holding a pen or marker stroke still at the end snaps it to the line or
+   * shape it looks like (see recognize.ts).
+   */
+  assist: boolean;
   disabled?: boolean;
   onDraw: (op: DrawOp) => void;
 };
+
+/** How long a finger has to stay still before the assist snaps the stroke. */
+const HOLD_MS = 500;
+
+/** How far, in CSS pixels, a finger can drift and still count as still. */
+const HOLD_SLOP = 8;
 
 /** Where a finger is, in CSS pixels within the canvas. */
 type Finger = { x: number; y: number };
@@ -67,7 +79,7 @@ export const DrawingCanvas = forwardRef<
   DrawingCanvasHandle,
   DrawingCanvasProps
 >(function DrawingCanvas(
-  { ops, color, size, tool, showGrid, disabled, onDraw },
+  { ops, color, size, tool, showGrid, assist, disabled, onDraw },
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -78,6 +90,13 @@ export const DrawingCanvas = forwardRef<
   // being moved around rather than drawn on.
   const fingers = useRef(new Map<number, Finger>());
   const gesture = useRef<Gesture | null>(null);
+  // The snap assist's timer, and where the finger was when it last started:
+  // moving further than HOLD_SLOP from there starts it again.
+  const holdTimer = useRef<number | null>(null);
+  const holdAnchor = useRef<Finger | null>(null);
+  // What a snapped shape does as the finger keeps moving: a line's far end
+  // follows it, so it can be swung and stretched; a closed shape stays put.
+  const snapped = useRef<"line" | "fixed" | null>(null);
   const [backingSize, setBackingSize] = useState(TILE_SIZE);
   const [view, setView] = useState<View>(WHOLE_TILE);
 
@@ -105,6 +124,48 @@ export const DrawingCanvas = forwardRef<
   }, [ops, showGrid, view]);
 
   useEffect(redraw, [redraw, backingSize]);
+
+  // A snap due after the canvas is gone has nothing to snap.
+  useEffect(() => {
+    const timer = holdTimer;
+    return () => {
+      if (timer.current !== null) clearTimeout(timer.current);
+    };
+  }, []);
+
+  function cancelHold() {
+    if (holdTimer.current !== null) {
+      clearTimeout(holdTimer.current);
+      holdTimer.current = null;
+    }
+  }
+
+  function startHold(finger: Finger) {
+    cancelHold();
+    holdAnchor.current = finger;
+    holdTimer.current = window.setTimeout(snapToShape, HOLD_MS);
+  }
+
+  /** The finger has been still long enough: swap the stroke for its shape. */
+  function snapToShape() {
+    holdTimer.current = null;
+    const drawing = active.current;
+    if (drawing?.kind !== "stroke") return;
+
+    const geometry = recognizeShape(drawing.points);
+    if (!geometry) return;
+
+    active.current = {
+      kind: "shape",
+      color: drawing.color,
+      size: drawing.size,
+      ...geometry,
+    };
+    snapped.current = geometry.shape === "line" ? "line" : "fixed";
+    // A small buzz where the phone can, so the change is felt as well as seen.
+    navigator.vibrate?.(10);
+    redraw();
+  }
 
   // The canvas is as wide as its container, which changes with the window and
   // when a phone is turned.
@@ -164,7 +225,11 @@ export const DrawingCanvas = forwardRef<
       // improvement: without it a stroke ends when the finger leaves the
       // canvas, which is survivable.
     }
-    fingers.current.set(event.pointerId, fingerAt(event, rect));
+    const finger = fingerAt(event, rect);
+    fingers.current.set(event.pointerId, finger);
+    cancelHold();
+    holdAnchor.current = null;
+    snapped.current = null;
 
     if (fingers.current.size >= 2) {
       // A second finger means they're moving the drawing, not drawing on it.
@@ -213,6 +278,9 @@ export const DrawingCanvas = forwardRef<
       seed: Math.floor(Math.random() * 2 ** 31),
       simulatePressure: event.pointerType !== "pen",
     };
+    // Spray is meant to be rough, and a straightened eraser line is not
+    // something anyone reaches for, so only pen and marker snap.
+    if (assist && (tool === "pen" || tool === "marker")) startHold(finger);
     redraw();
   }
 
@@ -255,6 +323,7 @@ export const DrawingCanvas = forwardRef<
     if (!drawing) return;
 
     if (drawing.kind === "shape") {
+      if (drawing.shape === "polygon" || snapped.current === "fixed") return;
       // Only where the finger is now matters, so batched points are skipped.
       const [x, y] = toTilePoint(event, rect);
       drawing.to = shapeEnd(
@@ -277,12 +346,23 @@ export const DrawingCanvas = forwardRef<
     } else {
       stroke.points.push(toTilePoint(event, rect));
     }
+
+    // Still moving: the hold starts over from here.
+    const finger = fingers.current.get(event.pointerId)!;
+    if (
+      holdAnchor.current &&
+      distanceBetween(finger, holdAnchor.current) > HOLD_SLOP
+    ) {
+      startHold(finger);
+    }
     redraw();
   }
 
   function handlePointerUp(event: PointerEvent<HTMLCanvasElement>) {
     fingers.current.delete(event.pointerId);
     if (fingers.current.size < 2) gesture.current = null;
+    cancelHold();
+    holdAnchor.current = null;
 
     const drawing = active.current;
     // A stroke or shape only counts when the finger that drew it was the only
@@ -291,7 +371,11 @@ export const DrawingCanvas = forwardRef<
     active.current = null;
 
     // A tap with the shape tool isn't a shape; drop it rather than leave a dot.
-    if (drawing.kind === "shape" && isTooSmall(drawing.from, drawing.to)) {
+    if (
+      drawing.kind === "shape" &&
+      drawing.shape !== "polygon" &&
+      isTooSmall(drawing.from, drawing.to)
+    ) {
       redraw();
       return;
     }

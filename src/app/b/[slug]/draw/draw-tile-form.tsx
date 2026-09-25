@@ -47,6 +47,7 @@ const DEFAULT_ERASER_SIZE = 36;
 const COLOR_STORAGE_KEY = "drawpin:brush-color";
 const RECENTS_STORAGE_KEY = "drawpin:recent-colors";
 const GRID_STORAGE_KEY = "drawpin:show-grid";
+const ASSIST_STORAGE_KEY = "drawpin:snap-assist";
 
 const NAME_STORAGE_KEY = "drawpin:display-name";
 
@@ -116,6 +117,7 @@ export function DrawTileForm({
   const storedSize = Number(useStored(SIZE_STORAGE_KEY));
   const storedEraserSize = Number(useStored(ERASER_SIZE_STORAGE_KEY));
   const storedGrid = useStored(GRID_STORAGE_KEY);
+  const storedAssist = useStored(ASSIST_STORAGE_KEY);
 
   const [pickedBrush, setBrush] = useState<Brush | null>(null);
   const [pickedColor, setColor] = useState<string | null>(null);
@@ -126,6 +128,7 @@ export function DrawTileForm({
   const [pickedSize, setSize] = useState<number | null>(null);
   const [pickedEraserSize, setEraserSize] = useState<number | null>(null);
   const [pickedGrid, setShowGrid] = useState<boolean | null>(null);
+  const [pickedAssist, setAssist] = useState<boolean | null>(null);
 
   const brush =
     pickedBrush ??
@@ -151,6 +154,9 @@ export function DrawTileForm({
       : DEFAULT_ERASER_SIZE);
   const size = isErasing ? eraserSize : brushSize;
   const showGrid = pickedGrid ?? storedGrid === "true";
+  // Off until someone turns it on: a pause mid-stroke would otherwise snap a
+  // drawing that was never meant to be a shape.
+  const assist = pickedAssist ?? storedAssist === "true";
   // Things undone but not yet replaced, newest last.
   const [undone, setUndone] = useState<DrawOp[]>([]);
   // Drawing comes first and alone; who you are and what to call it are asked
@@ -295,6 +301,7 @@ export function DrawTileForm({
         // The guide is for drawing; the details step is a last look at the
         // tile as the board will show it.
         showGrid={showGrid && step === "drawing"}
+        assist={assist}
         disabled={pending}
         onDraw={addOp}
       />
@@ -519,14 +526,45 @@ export function DrawTileForm({
             </Button>
             <Button
               type="button"
+              variant={assist ? "default" : "outline"}
+              size="sm"
+              aria-pressed={assist}
+              disabled={pending}
+              title="Hold still at the end of a line or shape to snap it straight"
+              onClick={() => {
+                const next = !assist;
+                setAssist(next);
+                remember(ASSIST_STORAGE_KEY, String(next));
+              }}
+            >
+              Assist
+            </Button>
+            <Button
+              type="button"
               variant="ghost"
               size="sm"
               disabled={pending || ops.length === 0}
               onClick={undo}
               title="Undo (Ctrl+Z)"
               aria-keyshortcuts="Control+Z Meta+Z"
+              aria-label="Undo"
             >
-              Undo
+              {/* Arrows rather than words, so the row still fits a phone
+                  with Assist in it: undo and redo are the one pair of icons
+                  everyone already reads. */}
+              <svg
+                viewBox="0 0 24 24"
+                className="size-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <path d="M9 14 4 9l5-5" />
+                <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+              </svg>
             </Button>
             <Button
               type="button"
@@ -536,8 +574,21 @@ export function DrawTileForm({
               onClick={redo}
               title="Redo (Ctrl+Shift+Z)"
               aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y"
+              aria-label="Redo"
             >
-              Redo
+              <svg
+                viewBox="0 0 24 24"
+                className="size-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <path d="m15 14 5-5-5-5" />
+                <path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13" />
+              </svg>
             </Button>
             <Button
               type="button"

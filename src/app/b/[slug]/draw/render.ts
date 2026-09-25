@@ -1,6 +1,6 @@
 import { getStroke } from "perfect-freehand";
 import { floodFill } from "./flood-fill";
-import { boxBetween, type Point, type ShapeKind } from "./shapes";
+import { boxBetween, type ShapeGeometry } from "./shapes";
 import { strokeToSvgPath } from "./stroke-path";
 
 /**
@@ -122,18 +122,15 @@ export type Fill = {
 };
 
 /**
- * A line, rectangle or ellipse from the shape tool, kept as its two corners
- * rather than as points so it's drawn exactly: a pen stroke through the same
- * points would round the corners and taper the ends.
+ * A shape from the shape tool or the snap assist, kept as its geometry rather
+ * than as points so it's drawn exactly: a pen stroke through the same points
+ * would round the corners and taper the ends.
  */
 export type Shape = {
   kind: "shape";
-  shape: ShapeKind;
-  from: Point;
-  to: Point;
   color: string;
   size: number;
-};
+} & ShapeGeometry;
 
 /** One thing someone did to the tile, in the order they did it. */
 export type DrawOp = Stroke | Fill | Shape;
@@ -210,6 +207,7 @@ export function drawShape(
     | "lineTo"
     | "rect"
     | "ellipse"
+    | "closePath"
     | "stroke"
     | "strokeStyle"
     | "lineWidth"
@@ -222,10 +220,18 @@ export function drawShape(
   context.strokeStyle = shape.color;
   context.lineWidth = shape.size;
   context.lineCap = "round";
-  context.lineJoin = shape.shape === "rectangle" ? "miter" : "round";
+  context.lineJoin =
+    shape.shape === "rectangle" || shape.shape === "polygon"
+      ? "miter"
+      : "round";
   context.beginPath();
 
-  if (shape.shape === "line") {
+  if (shape.shape === "polygon") {
+    const [first, ...rest] = shape.points;
+    context.moveTo(first[0], first[1]);
+    for (const [x, y] of rest) context.lineTo(x, y);
+    context.closePath();
+  } else if (shape.shape === "line") {
     context.moveTo(shape.from[0], shape.from[1]);
     context.lineTo(shape.to[0], shape.to[1]);
   } else {
@@ -238,7 +244,7 @@ export function drawShape(
         box.y + box.height / 2,
         box.width / 2,
         box.height / 2,
-        0,
+        shape.rotation ?? 0,
         0,
         Math.PI * 2,
       );
