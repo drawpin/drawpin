@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { boardStatsSummary } from "./board-stats";
+import { boardStatsSummary, toBoardStats } from "./stats";
 
 describe("boardStatsSummary", () => {
   it("lists people, total drawings and this week's count", () => {
@@ -18,5 +18,19 @@ describe("boardStatsSummary", () => {
     expect(
       boardStatsSummary({ people: 0, totalDrawings: 0, weekDrawings: 0 }),
     ).toBeNull();
+  });
+});
+
+describe("toBoardStats", () => {
+  it("turns the database's bigint counts into numbers", () => {
+    expect(
+      toBoardStats({ people: "3", total_drawings: "7", week_drawings: "2" }),
+    ).toEqual({ people: 3, totalDrawings: 7, weekDrawings: 2 });
+  });
+
+  it("accepts counts that already arrive as numbers", () => {
+    expect(
+      toBoardStats({ people: 3, total_drawings: 7, week_drawings: 2 }),
+    ).toEqual({ people: 3, totalDrawings: 7, weekDrawings: 2 });
   });
 });
