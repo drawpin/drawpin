@@ -86,7 +86,13 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
           <h1 className="text-2xl font-semibold tracking-tight">
             {board.name}
           </h1>
-          {stats && <BoardStatsLine stats={stats} />}
+          {stats && (
+            <BoardStatsLine
+              venueId={board.id}
+              weekId={week?.id ?? null}
+              initialStats={stats}
+            />
+          )}
           <Link
             href={`/b/${slug}/hall-of-fame`}
             className="text-muted-foreground text-sm underline underline-offset-4"

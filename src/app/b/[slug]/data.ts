@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { cache } from "react";
 import { createPublicClient } from "@/lib/supabase/public";
+import { type BoardStats, type BoardStatsRow, toBoardStats } from "./stats";
 import {
   olderThanCursorFilter,
   TILE_PAGE_SIZE,
@@ -47,16 +48,6 @@ export const getBoard = cache(async (slug: string): Promise<Board | null> => {
   };
 });
 
-/** Public participation numbers shown on a board. */
-export type BoardStats = {
-  /** Distinct people who have drawn on the board (all weeks). */
-  people: number;
-  /** Live drawings the board still holds (all weeks). */
-  totalDrawings: number;
-  /** Live drawings in the week that is taking posts now. */
-  weekDrawings: number;
-};
-
 /**
  * Reads a board's participation stats through the `board_stats` function.
  *
@@ -73,22 +64,14 @@ export async function getBoardStats(
 ): Promise<BoardStats | null> {
   const { data, error } = await createPublicClient()
     .rpc("board_stats", { p_venue_id: venueId })
-    .single<{
-      people: number;
-      total_drawings: number;
-      week_drawings: number;
-    }>();
+    .single<BoardStatsRow>();
 
   if (error) {
     console.error(`Could not load board stats: ${error.message}`);
     return null;
   }
 
-  return {
-    people: Number(data.people),
-    totalDrawings: Number(data.total_drawings),
-    weekDrawings: Number(data.week_drawings),
-  };
+  return toBoardStats(data);
 }
 
 /** The week a board is posting to right now. */
