@@ -12,7 +12,8 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "knip": "knip"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
@@ -24,7 +25,6 @@
     "@tensorflow/tfjs-backend-wasm": "^4.22.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.3.0",
-    "lucide-react": "^1.46.0",
     "next": "16.3.5",
     "nsfwjs": "^4.3.0",
     "perfect-freehand": "^1.2.3",
@@ -49,6 +49,7 @@
     "eslint-config-next": "16.3.5",
     "eslint-config-prettier": "^10.1.8",
     "jsdom": "^30.0.1",
+    "knip": "^6.38.0",
     "prettier": "^3.9.7",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "shadcn": "^4.21.0",

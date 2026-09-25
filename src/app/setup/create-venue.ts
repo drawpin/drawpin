@@ -3,7 +3,7 @@ import { createBoardSlug } from "@/lib/slug";
 /** The subset of a Postgres error returned by supabase-js that this needs. */
 type InsertError = { code: string; message: string };
 
-export type VenueRow = {
+type VenueRow = {
   owner_id: string;
   name: string;
   slug: string;
