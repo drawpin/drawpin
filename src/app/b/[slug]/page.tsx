@@ -22,16 +22,17 @@ export async function generateMetadata({
 
   return {
     title: `${board.name} · DrawPin`,
-    // Shared into a group chat, the venue is the thing being sent — so the
+    // Shared into a group chat, the board is the thing being sent — so the
     // card carries its name alone, without the site's name after it, and the
-    // line under it is an invitation to this board rather than a slogan the
-    // picture already shows.
+    // line under it invites the person who was sent it. They have never heard
+    // of DrawPin and are deciding whether to tap, so it says what to do rather
+    // than what the page contains.
     openGraph: {
       type: "website",
       siteName: "DrawPin",
       title: board.name,
       description:
-        "Draw a tile, see everyone else's, and vote for this week's winner.",
+        "Tap to join the drawing board! One tile each per day, vote for your favorite!",
       url: `/b/${slug}`,
       images: [{ url: "/og-v2.png", width: 1200, height: 630, alt: "DrawPin" }],
     },
