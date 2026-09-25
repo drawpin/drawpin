@@ -45,13 +45,28 @@ export type ProfanityListEntry = z.infer<typeof entrySchema>;
 const MIN_SEVERITY = 3;
 
 /**
+ * Ordinary words that terms in the source list turn up inside, which it
+ * doesn't exempt itself. Found by running the 10,000 most common English
+ * words through the list, plus everyday words just below that — a caption
+ * about grapes or a therapist was being refused. Merged into each term's own
+ * exceptions, so the term is still caught everywhere else, including inside
+ * run-together text.
+ */
+const EXTRA_EXCEPTIONS: Record<string, string[]> = {
+  cialis: ["specialis"],
+  paki: ["pakistan"],
+  rape: ["grape", "drape", "scrape", "trapez", "therapeu", "rapeseed"],
+  rapist: ["therapist"],
+};
+
+/**
  * Turns raw `@dsojevic/profanity-list` entries into {@link BlockedTerm}s:
  * keeps entries at or above {@link MIN_SEVERITY} (regardless of category —
  * see the module doc), splits each `match` on `|` into separate terms,
- * strips `*` elongation markers (DrawPin's blocklist doesn't chase
- * elongation, same as before this list existed — e.g. `lo*ng` becomes the
- * plain word `long`), and expands each entry's `exceptions` against every
- * one of its alternates.
+ * strips `*` elongation markers (the blocklist catches stretched letters
+ * itself, for every term — see `spellingsOf` in blocklist.ts — so `lo*ng`
+ * becomes the plain word `long`), and expands each entry's `exceptions`
+ * against every one of its alternates, adding {@link EXTRA_EXCEPTIONS}.
  *
  * Exported separately from {@link defaultProfanityTerms} so this transform
  * can be unit-tested against small, made-up entries instead of the real
@@ -74,7 +89,9 @@ export function selectProfanityTerms(
     );
 
     for (const alt of alternates) {
-      terms.push({ term: normalizeForBlocklist(alt), exceptions });
+      const term = normalizeForBlocklist(alt);
+      const extra = (EXTRA_EXCEPTIONS[term] ?? []).map(normalizeForBlocklist);
+      terms.push({ term, exceptions: [...exceptions, ...extra] });
     }
   }
 
