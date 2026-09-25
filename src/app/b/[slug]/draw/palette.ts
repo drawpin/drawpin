@@ -1,20 +1,19 @@
 /**
  * The colours everyone starts from.
  *
- * Deliberately few and deliberately chosen: a curated palette is what stops
- * amateur drawings looking muddy, which matters more here than freedom does
- * (issue #39). Anyone who wants an exact colour can still reach the phone's
- * own picker.
+ * Six, so the row fits a phone without scrolling: the colours most drawings
+ * are made of, white included for drawing over colour. A short curated row is
+ * what stops amateur drawings looking muddy (issue #39); anything else is one
+ * tap away through the hex field or the colour wheel, and stays in Recent.
+ * Black comes first because it is the default brush colour.
  */
 export const BASE_COLORS = [
   { name: "Black", value: "#111827" },
+  { name: "White", value: "#ffffff" },
   { name: "Red", value: "#ef4444" },
-  { name: "Orange", value: "#f97316" },
   { name: "Yellow", value: "#eab308" },
   { name: "Green", value: "#22c55e" },
   { name: "Blue", value: "#3b82f6" },
-  { name: "Purple", value: "#a855f7" },
-  { name: "Brown", value: "#92400e" },
 ] as const;
 
 /**
@@ -26,45 +25,23 @@ export const BASE_COLORS = [
  */
 export const RECENT_LIMIT = 5;
 
-function toRgb(hex: string): [number, number, number] {
-  const value = Number.parseInt(hex.replace("#", ""), 16);
-  return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
-}
-
-function toHex([red, green, blue]: [number, number, number]): string {
-  const part = (channel: number) =>
-    Math.round(Math.min(Math.max(channel, 0), 255))
-      .toString(16)
-      .padStart(2, "0");
-  return `#${part(red)}${part(green)}${part(blue)}`;
-}
-
-/** Moves a colour `amount` of the way towards another. */
-function mix(from: string, towards: string, amount: number): string {
-  const a = toRgb(from);
-  const b = toRgb(towards);
-  return toHex([
-    a[0] + (b[0] - a[0]) * amount,
-    a[1] + (b[1] - a[1]) * amount,
-    a[2] + (b[2] - a[2]) * amount,
-  ]);
-}
-
 /**
- * Five versions of a colour, darkest first, with the original in the middle.
+ * Reads what someone typed into the hex field.
  *
- * Mixing towards black and white rather than nudging lightness keeps the
- * colour recognisably itself: a lighter red still reads as red, where a
- * lightness shift can drift somewhere pink and surprising.
+ * Keeps only hex digits, so a pasted `#FF8800` works as well as a typed
+ * `ff8800`, and stops at six. The colour is returned once all six are there,
+ * lowercased to match everything else in the palette; until then only the
+ * partial draft comes back, so half-typed values never become colours.
  */
-export function shadesOf(color: string): string[] {
-  return [
-    mix(color, "#000000", 0.4),
-    mix(color, "#000000", 0.2),
-    color,
-    mix(color, "#ffffff", 0.3),
-    mix(color, "#ffffff", 0.55),
-  ];
+export function parseHexInput(raw: string): {
+  draft: string;
+  color: string | null;
+} {
+  const draft = raw.replace(/[^0-9a-f]/gi, "").slice(0, 6);
+  return {
+    draft,
+    color: draft.length === 6 ? `#${draft.toLowerCase()}` : null,
+  };
 }
 
 /**

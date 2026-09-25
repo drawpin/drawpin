@@ -3,6 +3,7 @@
 import {
   startTransition,
   useActionState,
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -20,9 +21,15 @@ import {
   type DrawOp,
   type DrawingCanvasHandle,
 } from "./drawing-canvas";
-import { BASE_COLORS, parseRecents, shadesOf, withRecent } from "./palette";
+import {
+  BASE_COLORS,
+  parseHexInput,
+  parseRecents,
+  withRecent,
+} from "./palette";
 import type { Brush } from "./render";
 import type { PostTileState } from "./schema";
+import { historyShortcut, isTypingTarget } from "./shortcuts";
 
 /** Brush sizes in tile units, so they mean the same on any screen. */
 const MIN_SIZE = 4;
@@ -43,8 +50,6 @@ const ERASER_SIZE_STORAGE_KEY = "drawpin:eraser-size";
 /** Erasing is usually coarser work than drawing, so it starts bigger. */
 const DEFAULT_ERASER_SIZE = 36;
 
-/** How long a press has to last before it counts as asking for shades. */
-const HOLD_MS = 350;
 const COLOR_STORAGE_KEY = "drawpin:brush-color";
 const RECENTS_STORAGE_KEY = "drawpin:recent-colors";
 const GRID_STORAGE_KEY = "drawpin:show-grid";
@@ -116,8 +121,9 @@ export function DrawTileForm({
   const [pickedBrush, setBrush] = useState<Brush | null>(null);
   const [pickedColor, setColor] = useState<string | null>(null);
   const [pickedRecents, setRecents] = useState<string[] | null>(null);
-  // Which base colour is showing its shades, if any.
-  const [openShades, setOpenShades] = useState<string | null>(null);
+  // What's in the hex field while someone is typing in it; `null` shows the
+  // current colour.
+  const [hexDraft, setHexDraft] = useState<string | null>(null);
   const [pickedSize, setSize] = useState<number | null>(null);
   const [pickedEraserSize, setEraserSize] = useState<number | null>(null);
   const [pickedGrid, setShowGrid] = useState<boolean | null>(null);
@@ -153,18 +159,6 @@ export function DrawTileForm({
   const [sizeOpen, setSizeOpen] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const canvasRef = useRef<DrawingCanvasHandle>(null);
-  const holdTimer = useRef<number | null>(null);
-  // A press that lasted long enough is followed by a click; without this the
-  // click would close the shades the press just opened.
-  const holdFired = useRef(false);
-
-  function cancelHold() {
-    if (holdTimer.current !== null) {
-      clearTimeout(holdTimer.current);
-      holdTimer.current = null;
-    }
-  }
-
   const nameRef = useRef<HTMLInputElement>(null);
 
   // Remember the visitor's name between posts. Read after hydration and
@@ -233,21 +227,42 @@ export function DrawTileForm({
     setUndone([]);
   }
 
-  function undo() {
+  // Stable, so the keyboard shortcuts below don't re-subscribe every render.
+  const undo = useCallback(() => {
     setOps((current) => {
       const last = current.at(-1);
       if (last) setUndone((redoable) => [...redoable, last]);
       return current.slice(0, -1);
     });
-  }
+  }, []);
 
-  function redo() {
+  const redo = useCallback(() => {
     setUndone((current) => {
       const last = current.at(-1);
       if (last) setOps((drawn) => [...drawn, last]);
       return current.slice(0, -1);
     });
-  }
+  }, []);
+
+  // Ctrl/Cmd+Z and friends, while drawing. The details step has the name and
+  // caption fields, where those keys belong to the text being typed.
+  useEffect(() => {
+    if (step !== "drawing" || pending) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (isTypingTarget(event.target)) return;
+      const action = historyShortcut(event);
+      if (!action) return;
+
+      // Otherwise the browser runs its own undo on whatever has focus.
+      event.preventDefault();
+      if (action === "undo") undo();
+      else redo();
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [step, pending, undo, redo]);
 
   function goToDetails() {
     if (ops.length === 0) {
@@ -318,9 +333,8 @@ export function DrawTileForm({
             </Button>
           </fieldset>
 
-          {/* One scrolling row rather than a wrap: eight swatches and the
-              picker never fit a phone, and a lone "+" on its own line looks
-              like a mistake. */}
+          {/* One row rather than a wrap, scrolling on the narrowest phones:
+              a lone wheel on its own line looks like a mistake. */}
           <fieldset
             className="flex gap-2 overflow-x-auto pb-1"
             disabled={pending}
@@ -330,47 +344,24 @@ export function DrawTileForm({
               <button
                 key={option.value}
                 type="button"
-                aria-label={`${option.name}, hold for shades`}
+                aria-label={option.name}
                 aria-pressed={color === option.value}
-                onClick={() => {
-                  if (holdFired.current) {
-                    holdFired.current = false;
-                    return;
-                  }
-                  // Tapping the colour you already have opens its shades, so
-                  // there's a way in for anyone who never tries holding.
-                  if (color === option.value) {
-                    setOpenShades((current) =>
-                      current === option.value ? null : option.value,
-                    );
-                    return;
-                  }
-                  setOpenShades(null);
-                  chooseColor(option.value);
-                }}
-                onPointerDown={() => {
-                  holdFired.current = false;
-                  holdTimer.current = window.setTimeout(() => {
-                    holdFired.current = true;
-                    setOpenShades(option.value);
-                    chooseColor(option.value);
-                  }, HOLD_MS);
-                }}
-                onPointerUp={cancelHold}
-                onPointerLeave={cancelHold}
-                onPointerCancel={cancelHold}
-                // A long press on a phone would otherwise offer to copy it.
-                onContextMenu={(event) => event.preventDefault()}
+                onClick={() => chooseColor(option.value)}
                 className="size-9 shrink-0 rounded-full border-2 aria-pressed:border-black aria-pressed:ring-2 aria-pressed:ring-offset-2"
                 style={{ backgroundColor: option.value }}
               />
             ))}
 
+            {/* The phone's own colour picker, drawn as a wheel so it reads as
+                "any colour" rather than a mystery "+". */}
             <label
-              className="text-muted-foreground flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 border-dashed text-xs"
-              aria-label="More colours"
+              className="size-9 shrink-0 cursor-pointer rounded-full border-2"
+              style={{
+                background:
+                  "conic-gradient(#ef4444, #eab308, #22c55e, #06b6d4, #3b82f6, #a855f7, #ef4444)",
+              }}
+              aria-label="Colour wheel"
             >
-              +
               <input
                 type="color"
                 value={color}
@@ -380,22 +371,41 @@ export function DrawTileForm({
             </label>
           </fieldset>
 
-          {openShades && (
-            <fieldset className="flex flex-wrap gap-2" disabled={pending}>
-              <legend className="sr-only">Shades</legend>
-              {shadesOf(openShades).map((shade) => (
-                <button
-                  key={shade}
-                  type="button"
-                  aria-label={`Shade ${shade}`}
-                  aria-pressed={color === shade}
-                  onClick={() => chooseColor(shade)}
-                  className="size-8 rounded-full border-2 aria-pressed:border-black aria-pressed:ring-2 aria-pressed:ring-offset-2"
-                  style={{ backgroundColor: shade }}
-                />
-              ))}
-            </fieldset>
-          )}
+          <div className="flex items-center gap-2">
+            <Label
+              htmlFor="hex-color"
+              className="text-muted-foreground text-xs"
+            >
+              Hex
+            </Label>
+            <div className="border-input focus-within:border-ring flex items-center rounded-md border px-2">
+              <span
+                className="text-muted-foreground font-mono text-sm"
+                aria-hidden
+              >
+                #
+              </span>
+              <input
+                id="hex-color"
+                type="text"
+                autoComplete="off"
+                spellCheck={false}
+                // Seven, so a pasted "#RRGGBB" fits before the # is dropped.
+                maxLength={7}
+                value={hexDraft ?? color.replace("#", "")}
+                disabled={pending}
+                onChange={(event) => {
+                  const typed = parseHexInput(event.target.value);
+                  setHexDraft(typed.draft);
+                  if (typed.color) chooseColor(typed.color);
+                }}
+                // Leaving the field shows the colour actually in use, so a
+                // half-typed value doesn't linger looking like it applied.
+                onBlur={() => setHexDraft(null)}
+                className="w-20 bg-transparent py-1 font-mono text-sm uppercase outline-none"
+              />
+            </div>
+          </div>
 
           {recents.length > 0 && (
             <fieldset
@@ -461,6 +471,8 @@ export function DrawTileForm({
               size="sm"
               disabled={pending || ops.length === 0}
               onClick={undo}
+              title="Undo (Ctrl+Z)"
+              aria-keyshortcuts="Control+Z Meta+Z"
             >
               Undo
             </Button>
@@ -470,6 +482,8 @@ export function DrawTileForm({
               size="sm"
               disabled={pending || undone.length === 0}
               onClick={redo}
+              title="Redo (Ctrl+Shift+Z)"
+              aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y"
             >
               Redo
             </Button>
