@@ -6,8 +6,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 const SCRIPT_SRC =
   "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
 
-export { TURNSTILE_FIELD } from "@/lib/turnstile/field";
-
 type TurnstileApi = {
   render: (
     element: HTMLElement,

@@ -10,13 +10,13 @@ import { strokeToSvgPath } from "./stroke-path";
 export const TILE_SIZE = 768;
 
 /** Lines in the guide grid, across and down. */
-export const GRID_CELLS = 8;
+const GRID_CELLS = 8;
 
 /** What the stroke was drawn with. */
 export type Brush = "pen" | "marker" | "spray" | "eraser";
 
 /** The tile's paper, and so what the eraser paints back onto it. */
-export const PAPER = "#ffffff";
+const PAPER = "#ffffff";
 
 export type Stroke = {
   kind: "stroke";

@@ -1,5 +1,5 @@
 /** One thing that has to be true for DrawPin to work. */
-export type HealthCheck = {
+type HealthCheck = {
   name: string;
   ok: boolean;
   /** What went wrong, for the log. Never anything secret. */

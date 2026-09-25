@@ -11,7 +11,5 @@ export const setupSchema = z.object({
   }),
 });
 
-export type SetupInput = z.infer<typeof setupSchema>;
-
 export type SetupState =
   { status: "idle" } | { status: "error"; message: string };

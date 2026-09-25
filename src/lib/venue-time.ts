@@ -1,7 +1,7 @@
 import { Temporal } from "temporal-polyfill";
 
 /** Days and weeks roll over at this local hour (docs/PLAN.md, Scope v1). */
-export const RESET_HOUR = 4;
+const RESET_HOUR = 4;
 
 const MONDAY = 1;
 
