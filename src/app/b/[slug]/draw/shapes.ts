@@ -12,6 +12,26 @@ export const SHAPES: { value: ShapeKind; name: string }[] = [
 ];
 
 /**
+ * Where a shape sits on the tile, before colour and size.
+ *
+ * The three tray shapes are two corners. An oval can also be turned, and a
+ * polygon is a list of corners: both only come from the snap assist, which
+ * keeps a freehand oval at the angle it was drawn and straightens the edges of
+ * a triangle or a tilted four-sided shape without moving its corners.
+ */
+export type ShapeGeometry =
+  | { shape: "line"; from: Point; to: Point }
+  | { shape: "rectangle"; from: Point; to: Point }
+  | {
+      shape: "ellipse";
+      from: Point;
+      to: Point;
+      /** Radians, about the oval's centre. */
+      rotation?: number;
+    }
+  | { shape: "polygon"; points: Point[] };
+
+/**
  * Below this, in tile units, a drag is treated as a tap: there's no shape
  * anyone meant to draw that small, and placing one would leave a stray dot.
  */
