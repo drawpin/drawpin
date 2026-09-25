@@ -64,12 +64,22 @@ each of the three needs you to open an account or pick up a phone first.
 ## 2. The UI and copy pass (#40)
 
 Four rounds are merged (#83, #84, #85, #86) — the things that read as broken.
+
+**The outward voice changed on 2026-09-24.** DrawPin is a shared drawing board
+for any group; a place with tables is one kind. The home page, both link-card
+descriptions, setup, login, the legal pages, `CLAUDE.md` and `docs/PLAN.md` were
+swept together. The code stays venue-shaped — the schema, the types and the
+internal names — because that's what it was designed around. Anything a person
+reads says _board_. New copy has to keep that line.
+
 What's left:
 
 ### Blocked on you
 
 - [ ] **"Why I made this" in your own words.** The home page carries my
-      placeholder.
+      placeholder. It now ends by admitting the café was just where the idea
+      started — keep that turn if you rewrite it, because it's what makes the
+      wider framing honest rather than a retrofit.
 - [ ] **A real board on the home page.** Screenshots or a live demo instead of
       describing one. Wants a board worth showing, which wants #65.
 

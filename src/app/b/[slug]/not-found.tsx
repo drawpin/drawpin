@@ -9,7 +9,7 @@ export default function BoardNotFound() {
           Board not found
         </h1>
         <p className="text-muted-foreground max-w-sm">
-          Check the link, or scan the QR code at the venue again.
+          Check the link, or scan the board&apos;s code again.
         </p>
       </div>
       {/* A stale link is the likeliest way anyone gets here, and the code on

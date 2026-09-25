@@ -3,7 +3,9 @@
 > Source of truth for v1 scope. Changes require an ADR in `docs/adr/` and a version bump here.
 
 ## Concept
-Free, web-based drawing boards for local spots (coffee shops, restaurants). Scan a printed QR or enter an 8-digit code, Kahoot-style. No app download, and no account needed to draw. Signing in with Google is what puts a drawing in the running: draw a tile, see everyone's tiles, vote for the weekly winner, and crown a monthly super winner.
+Free, web-based shared drawing boards for any group of people — a restaurant, a classroom, a party, a group chat. Whoever sets a board up decides what it's for. Scan a printed QR or enter an 8-digit code, Kahoot-style. No app download, and no account needed to draw. Signing in with Google is what puts a drawing in the running: draw a tile, see everyone's tiles, vote for the weekly winner, and crown a monthly super winner.
+
+A place with tables is one kind of group and the one the product was designed around — printed codes, a daily rotation, an owner who prints one thing and walks away — so the model keeps that shape: a board has an owner, a time zone and a code. The outward copy does not assume a business.
 
 ## Scope v1
 ### Joining

@@ -16,7 +16,7 @@ describe("setupSchema", () => {
       name: "   ",
       timezone: "Europe/Paris",
     });
-    expect(result.error?.issues[0].message).toBe("Enter your venue's name.");
+    expect(result.error?.issues[0].message).toBe("Enter a name for your board.");
   });
 
   it("caps the name at 120 characters", () => {

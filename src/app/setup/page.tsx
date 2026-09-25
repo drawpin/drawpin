@@ -31,7 +31,7 @@ export default async function SetupPage() {
           Set up your board
         </h1>
         <p className="text-muted-foreground text-sm">
-          Customers will see your venue name when they scan your QR code.
+          Everyone sees this name when they scan your code.
         </p>
       </div>
       <SetupForm timeZones={listTimeZones()} />

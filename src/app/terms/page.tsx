@@ -19,17 +19,17 @@ export default function TermsPage() {
       </div>
 
       <p>
-        DrawPin is free, for venues and for the people drawing on their boards.
-        It&apos;s provided as it is, with no promise that it will always be
+        DrawPin is free, for whoever sets up a board and for everyone drawing on
+        it. It&apos;s provided as it is, with no promise that it will always be
         available.
       </p>
 
       <section className="flex flex-col gap-2">
         <h2 className="font-medium">What you draw stays yours</h2>
         <p>
-          Your drawing is yours. By posting it you let us and the venue show it
-          on that venue&apos;s board, and — if it wins a week — keep showing it
-          in that venue&apos;s Hall of Fame, which is kept indefinitely. Boards
+          Your drawing is yours. By posting it you let us and the board&apos;s
+          owner show it on that board, and — if it wins a week — keep showing it
+          in that board&apos;s Hall of Fame, which is kept indefinitely. Boards
           are public: anyone with the link can see what&apos;s on them.
         </p>
       </section>
@@ -46,8 +46,8 @@ export default function TermsPage() {
         </ul>
         <p>
           Every name, caption and drawing is checked automatically before it
-          appears. Signed-in customers can report anything that slips through,
-          and the venue&apos;s owner can remove anything on their own board.
+          appears. Anyone signed in can report anything that slips through, and
+          a board&apos;s owner can remove anything on their own board.
         </p>
       </section>
 
@@ -62,7 +62,7 @@ export default function TermsPage() {
           <li>One vote per account in a monthly final.</li>
         </ul>
         <p>
-          Days and weeks turn over at 4:00 AM in the venue&apos;s own time zone.
+          Days and weeks turn over at 4:00 AM in the board&apos;s own time zone.
         </p>
       </section>
 
@@ -71,7 +71,7 @@ export default function TermsPage() {
         <p>
           We can remove anything that breaks these rules and stop serving
           someone who keeps breaking them, or who is trying to break the voting.
-          A venue owner can remove any drawing from their board, including one
+          A board&apos;s owner can remove any drawing from it, including one
           that had already won — in which case that week is judged again without
           it.
         </p>
