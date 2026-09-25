@@ -46,11 +46,12 @@ export default function Home() {
           <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
             A shared drawing board for wherever your people are
           </h1>
+          {/* The mechanics belong to How it works, right underneath. Saying
+              them twice makes the first telling read like fine print. */}
           <p className="text-muted-foreground max-w-xl text-lg text-pretty">
-            Put up a code. Everyone draws one tile a day on the same board, and
-            the week&apos;s best gets voted for. A restaurant, a classroom, a
-            group chat — you decide. No app, and no account until you want to
-            vote.
+            Create a board, put your code out for everyone to see, and let the
+            competition speak for itself. A restaurant, a classroom, a group
+            chat — you decide.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <a href="#join" className={buttonVariants({ size: "lg" })}>
@@ -128,9 +129,7 @@ export default function Home() {
           <p className="text-muted-foreground max-w-xl text-sm leading-relaxed">
             Put up one QR code and the board looks after itself. Every drawing
             is checked before it appears, the week rolls over on its own, and a
-            winner is crowned without you touching anything. You get one screen:
-            the code to print, a pause switch, and the ability to take anything
-            down.
+            winner is crowned without you touching anything.
           </p>
           <Link href="/login" className={buttonVariants({ size: "lg" })}>
             Start a board — free
