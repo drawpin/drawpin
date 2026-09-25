@@ -1546,3 +1546,75 @@ describe("weeks", () => {
     ).rejects.toThrow(/weeks_venue_id_starts_at_key/);
   });
 });
+
+describe("board_stats", () => {
+  async function callStats(venueId: string) {
+    const result = await db.query<{
+      people: number;
+      total_drawings: number;
+      week_drawings: number;
+    }>(`select * from board_stats($1)`, [venueId]);
+    const row = result.rows[0];
+    return {
+      people: Number(row.people),
+      total: Number(row.total_drawings),
+      week: Number(row.week_drawings),
+    };
+  }
+
+  it("counts distinct people and every live drawing on the board", async () => {
+    const { venueId } = await seedBoard();
+
+    // seedBoard: five tiles from two devices, all in one (past) week.
+    const stats = await callStats(venueId);
+    expect(stats.people).toBe(2);
+    expect(stats.total).toBe(5);
+  });
+
+  it("counts this week only against the week taking posts now", async () => {
+    const { venueId, weekId } = await seedBoard();
+
+    // The seeded week's posting window is in the past, so nothing is "this week".
+    expect((await callStats(venueId)).week).toBe(0);
+
+    // Move it over now: all five of its tiles become this week's.
+    await db.query(
+      `update weeks set starts_at = now() - interval '1 day',
+                        posting_ends_at = now() + interval '6 days',
+                        voting_ends_at = now() + interval '13 days'
+       where id = $1`,
+      [weekId],
+    );
+    expect((await callStats(venueId)).week).toBe(5);
+  });
+
+  it("ignores removed tiles", async () => {
+    const { venueId, tileIds } = await seedBoard();
+
+    await db.query(`update tiles set status = 'removed' where id = $1`, [
+      tileIds[0],
+    ]);
+
+    expect((await callStats(venueId)).total).toBe(4);
+  });
+
+  it("lets a visitor read the totals without reading a device id", async () => {
+    const { venueId } = await seedBoard();
+
+    await db.exec("set role anon");
+    try {
+      const result = await db.query<{ people: number }>(
+        `select people from board_stats($1)`,
+        [venueId],
+      );
+      expect(Number(result.rows[0].people)).toBe(2);
+
+      // The same count by hand is refused: device_id is not the visitor's to read.
+      await expect(
+        db.query(`select count(distinct device_id) from tiles`),
+      ).rejects.toThrow(/permission denied/i);
+    } finally {
+      await db.exec("reset role");
+    }
+  });
+});
