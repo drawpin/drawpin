@@ -1,20 +1,19 @@
 /**
  * The colours everyone starts from.
  *
- * Deliberately few and deliberately chosen: a curated palette is what stops
- * amateur drawings looking muddy, which matters more here than freedom does
- * (issue #39). Anyone who wants an exact colour can still reach the phone's
- * own picker.
+ * Six, so the row fits a phone without scrolling: the colours most drawings
+ * are made of, white included for drawing over colour. A short curated row is
+ * what stops amateur drawings looking muddy (issue #39); anything else is one
+ * tap away through the hex field or the colour wheel, and stays in Recent.
+ * Black comes first because it is the default brush colour.
  */
 export const BASE_COLORS = [
   { name: "Black", value: "#111827" },
+  { name: "White", value: "#ffffff" },
   { name: "Red", value: "#ef4444" },
-  { name: "Orange", value: "#f97316" },
   { name: "Yellow", value: "#eab308" },
   { name: "Green", value: "#22c55e" },
   { name: "Blue", value: "#3b82f6" },
-  { name: "Purple", value: "#a855f7" },
-  { name: "Brown", value: "#92400e" },
 ] as const;
 
 /**
@@ -56,15 +55,50 @@ function mix(from: string, towards: string, amount: number): string {
  * Mixing towards black and white rather than nudging lightness keeps the
  * colour recognisably itself: a lighter red still reads as red, where a
  * lightness shift can drift somewhere pink and surprising.
+ *
+ * White is the exception: nothing is lighter than it, so its two lighter
+ * shades would just be white again — a row with the same swatch three times.
+ * It gets four greys stepping down to it instead, with white at the light end.
  */
 export function shadesOf(color: string): string[] {
+  const base = color.toLowerCase();
+  const lighter = [mix(base, "#ffffff", 0.3), mix(base, "#ffffff", 0.55)];
+
+  if (lighter.includes(base)) {
+    return [
+      mix(base, "#000000", 0.8),
+      mix(base, "#000000", 0.6),
+      mix(base, "#000000", 0.4),
+      mix(base, "#000000", 0.2),
+      base,
+    ];
+  }
+
   return [
-    mix(color, "#000000", 0.4),
-    mix(color, "#000000", 0.2),
-    color,
-    mix(color, "#ffffff", 0.3),
-    mix(color, "#ffffff", 0.55),
+    mix(base, "#000000", 0.4),
+    mix(base, "#000000", 0.2),
+    base,
+    ...lighter,
   ];
+}
+
+/**
+ * Reads what someone typed into the hex field.
+ *
+ * Keeps only hex digits, so a pasted `#FF8800` works as well as a typed
+ * `ff8800`, and stops at six. The colour is returned once all six are there,
+ * lowercased to match everything else in the palette; until then only the
+ * partial draft comes back, so half-typed values never become colours.
+ */
+export function parseHexInput(raw: string): {
+  draft: string;
+  color: string | null;
+} {
+  const draft = raw.replace(/[^0-9a-f]/gi, "").slice(0, 6);
+  return {
+    draft,
+    color: draft.length === 6 ? `#${draft.toLowerCase()}` : null,
+  };
 }
 
 /**

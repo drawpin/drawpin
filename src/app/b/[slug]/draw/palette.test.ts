@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import {
   BASE_COLORS,
+  parseHexInput,
   parseRecents,
   RECENT_LIMIT,
   shadesOf,
@@ -53,6 +54,59 @@ describe("shadesOf", () => {
     for (const shade of shadesOf("#ffffff")) {
       expect(shade).toMatch(/^#[0-9a-f]{6}$/);
     }
+  });
+
+  it("gives white a row of greys instead of white three times", () => {
+    const shades = shadesOf("#ffffff");
+
+    expect(shades).toEqual([
+      "#333333",
+      "#666666",
+      "#999999",
+      "#cccccc",
+      "#ffffff",
+    ]);
+  });
+
+  it("treats an uppercase colour the same as a lowercase one", () => {
+    expect(shadesOf("#FFFFFF")).toEqual(shadesOf("#ffffff"));
+    expect(shadesOf("#3B82F6")[2]).toBe("#3b82f6");
+  });
+});
+
+describe("BASE_COLORS", () => {
+  it("offers six, white among them", () => {
+    expect(BASE_COLORS).toHaveLength(6);
+    expect(BASE_COLORS.map((color) => color.value)).toContain("#ffffff");
+  });
+
+  it("starts with black, the default brush colour", () => {
+    expect(BASE_COLORS[0].name).toBe("Black");
+  });
+});
+
+describe("parseHexInput", () => {
+  it("returns a colour once six digits are in", () => {
+    expect(parseHexInput("ff8800")).toEqual({
+      draft: "ff8800",
+      color: "#ff8800",
+    });
+  });
+
+  it("accepts a pasted value with its #, in any case", () => {
+    expect(parseHexInput("#FF8800").color).toBe("#ff8800");
+  });
+
+  it("keeps a half-typed value as a draft without making it a colour", () => {
+    expect(parseHexInput("ff8")).toEqual({ draft: "ff8", color: null });
+  });
+
+  it("drops anything that isn't a hex digit", () => {
+    expect(parseHexInput("zz12 34gg56").draft).toBe("123456");
+  });
+
+  it("stops at six digits", () => {
+    expect(parseHexInput("1234567890").draft).toBe("123456");
   });
 });
 
