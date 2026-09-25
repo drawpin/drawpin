@@ -10,6 +10,7 @@ import { localDayFor } from "@/lib/venue-time";
 import { getBoard } from "../data";
 import { DrawTileForm } from "./draw-tile-form";
 import { BLOCKED_ATTEMPT_LIMIT } from "./post-tile";
+import { SignInFirst } from "./sign-in-first";
 
 export async function generateMetadata({
   params,
@@ -88,11 +89,14 @@ export default async function DrawPage({
           {blocked}
         </p>
       ) : (
-        <DrawTileForm
-          slug={slug}
-          turnstileSiteKey={serverEnv().NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-          username={customer?.username ?? null}
-        />
+        <>
+          {!customer && <SignInFirst next={`/b/${slug}/draw`} />}
+          <DrawTileForm
+            slug={slug}
+            turnstileSiteKey={serverEnv().NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+            username={customer?.username ?? null}
+          />
+        </>
       )}
     </main>
   );
