@@ -123,6 +123,8 @@ export function DrawTileForm({
   // The colour panel, and the colour it opened on — what it's left on is only
   // added to Recent if it differs.
   const [panelOpen, setPanelOpen] = useState(false);
+  // Clear throws away the whole drawing, so it asks first.
+  const [confirmingClear, setConfirmingClear] = useState(false);
   const [panelStart, setPanelStart] = useState<string | null>(null);
   const [pickedSize, setSize] = useState<number | null>(null);
   const [pickedEraserSize, setEraserSize] = useState<number | null>(null);
@@ -647,15 +649,46 @@ export function DrawTileForm({
               variant="ghost"
               size="sm"
               disabled={pending || ops.length === 0}
-              onClick={() => {
-                canvasRef.current?.cancelSelection();
-                setOps([]);
-                setUndone([]);
-              }}
+              aria-expanded={confirmingClear}
+              onClick={() => setConfirmingClear((open) => !open)}
             >
               Clear
             </Button>
           </div>
+
+          {confirmingClear && ops.length > 0 && (
+            <div
+              role="alertdialog"
+              aria-label="Clear the drawing"
+              className="flex items-center justify-between gap-2 rounded-md border px-3 py-2"
+            >
+              <span className="text-sm">Clear your whole drawing?</span>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setConfirmingClear(false)}
+                >
+                  Keep it
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  disabled={pending}
+                  onClick={() => {
+                    canvasRef.current?.cancelSelection();
+                    setOps([]);
+                    setUndone([]);
+                    setConfirmingClear(false);
+                  }}
+                >
+                  Clear
+                </Button>
+              </div>
+            </div>
+          )}
 
           {sizeOpen && (
             <div className="flex items-center gap-3">
