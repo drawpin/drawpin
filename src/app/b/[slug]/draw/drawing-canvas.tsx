@@ -77,6 +77,11 @@ type DrawingCanvasProps = {
    * shape it looks like (see recognize.ts).
    */
   assist: boolean;
+  /**
+   * Whether the pen's width follows pressure (or, without a stylus, speed).
+   * Off, it draws an even line on every device.
+   */
+  pressure: boolean;
   disabled?: boolean;
   /**
    * The size is being changed: show the brush at that size in the middle of
@@ -110,7 +115,18 @@ export const DrawingCanvas = forwardRef<
   DrawingCanvasHandle,
   DrawingCanvasProps
 >(function DrawingCanvas(
-  { ops, color, size, tool, showGrid, assist, disabled, previewSize, onDraw },
+  {
+    ops,
+    color,
+    size,
+    tool,
+    showGrid,
+    assist,
+    pressure,
+    disabled,
+    previewSize,
+    onDraw,
+  },
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -465,6 +481,7 @@ export const DrawingCanvas = forwardRef<
       // Fixed now so the spray lands in the same places on every redraw.
       seed: Math.floor(Math.random() * 2 ** 31),
       simulatePressure: event.pointerType !== "pen",
+      even: tool === "pen" && !pressure,
     };
     // Spray is meant to be rough, and a straightened eraser line is not
     // something anyone reaches for, so only pen and marker snap.

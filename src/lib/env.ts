@@ -25,6 +25,26 @@ const serverEnvSchema = z.object({
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
 
+/**
+ * The address this deployment is served at, for links back to it: sign-in
+ * redirects and the board's QR code.
+ *
+ * A Vercel preview gets its own address per branch, so no single `SITE_URL`
+ * can point at them all; a sign-in from a preview would land wherever
+ * `SITE_URL` says instead. Previews use the branch address Vercel gives
+ * them, and everything else uses `SITE_URL`.
+ */
+export function siteUrlFor(env: {
+  SITE_URL: string;
+  VERCEL_ENV?: string;
+  VERCEL_BRANCH_URL?: string;
+}): string {
+  if (env.VERCEL_ENV === "preview" && env.VERCEL_BRANCH_URL) {
+    return `https://${env.VERCEL_BRANCH_URL}`;
+  }
+  return env.SITE_URL;
+}
+
 let cached: ServerEnv | undefined;
 
 /**
@@ -47,6 +67,9 @@ export function serverEnv(): ServerEnv {
     throw new Error(`Invalid environment variables — ${problems}`);
   }
 
-  cached = result.data;
+  cached = {
+    ...result.data,
+    SITE_URL: siteUrlFor({ ...process.env, ...result.data }),
+  };
   return cached;
 }
