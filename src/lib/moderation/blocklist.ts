@@ -38,17 +38,88 @@ const LEET_REPLACEMENTS: Record<string, string> = {
 };
 
 /**
- * Lowercases, strips accents, and undoes common letter/number swaps, so
- * `Ｂ.A.D`, `bád` and `b4d` all normalize to the same text.
+ * Cyrillic and Greek letters that look like Latin ones. NFKD doesn't touch
+ * them — they're different letters, not accented ones — so a word typed with
+ * a Cyrillic "о" would otherwise sail past the list looking identical.
+ */
+const LOOKALIKES: Record<string, string> = {
+  а: "a",
+  в: "b",
+  е: "e",
+  ё: "e",
+  і: "i",
+  ї: "i",
+  ј: "j",
+  к: "k",
+  м: "m",
+  н: "h",
+  о: "o",
+  р: "p",
+  с: "c",
+  ѕ: "s",
+  т: "t",
+  у: "y",
+  х: "x",
+  α: "a",
+  β: "b",
+  ε: "e",
+  η: "n",
+  ι: "i",
+  κ: "k",
+  ν: "v",
+  ο: "o",
+  ρ: "p",
+  τ: "t",
+  υ: "u",
+  χ: "x",
+};
+
+/**
+ * Lowercases, strips accents, and undoes common letter/number swaps and
+ * look-alike letters from other alphabets, so `Ｂ.A.D`, `bád`, `b4d` and a
+ * Cyrillic `bаd` all normalize to the same text.
  */
 export function normalizeForBlocklist(text: string): string {
   return text
     .normalize("NFKD")
     .replace(/[̀-ͯ]/g, "")
     .toLowerCase()
+    .replace(/[^\x00-\x7f]/g, (char) => LOOKALIKES[char] ?? char)
     .replace(/[01345 7@$]/g, (char) => LEET_REPLACEMENTS[char] ?? char)
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
+}
+
+/**
+ * `f u c k` → `fuck`: a run of three or more single letters is read as one
+ * word. A single short gap — "a b" — is left alone.
+ */
+function joinSingleLetters(text: string): string {
+  return text.replace(/\b(?:[a-z0-9] ){2,}[a-z0-9]\b/g, (run) =>
+    run.replace(/ /g, ""),
+  );
+}
+
+/**
+ * The spellings a caption might be hiding a word behind, each checked the
+ * same way as the text itself: as typed; with spaced or dotted single letters
+ * joined up; with a letter stretched three or more times cut back to two and
+ * to one (`gooook` → `gook`, `fuuuck` → `fuck`); and with "ph" read as "f".
+ *
+ * Only runs of three or more are squeezed, so ordinary double letters — "as",
+ * "good", "class" — are never changed into something else. There is
+ * deliberately no allowance for typos: one letter away from a slur or a swear
+ * is also "bigger", "where", "pitch" and "ditch".
+ */
+function spellingsOf(normalized: string): string[] {
+  const spellings = new Set<string>();
+  for (const text of [normalized, joinSingleLetters(normalized)]) {
+    spellings.add(text);
+    spellings.add(text.replace(/([a-z])\1{2,}/g, "$1$1"));
+    spellings.add(text.replace(/([a-z])\1{2,}/g, "$1"));
+    spellings.add(text.replace(/ph/g, "f"));
+  }
+  return [...spellings];
 }
 
 /** Parses `MODERATION_BLOCKLIST`: a comma-separated list of words or phrases. */
@@ -89,17 +160,22 @@ export function findBlockedTerm(
   }
 
   // Padded so a term at either end still matches on word boundaries.
-  const normalized = ` ${normalizeForBlocklist(text)} `;
+  const spellings = spellingsOf(normalizeForBlocklist(text)).map(
+    (spelling) => ` ${spelling} `,
+  );
   for (const entry of blockedTerms) {
     const term = typeof entry === "string" ? entry : entry.term;
     const exceptions = typeof entry === "string" ? undefined : entry.exceptions;
-    const haystack = exceptions?.length
-      ? withoutExceptions(normalized, exceptions)
-      : normalized;
 
-    if (haystack.includes(` ${term} `)) return { term };
-    // Also catch it inside a longer run of letters, e.g. "xxbadwordxx".
-    if (term.length >= 4 && haystack.includes(term)) return { term };
+    for (const spelling of spellings) {
+      const haystack = exceptions?.length
+        ? withoutExceptions(spelling, exceptions)
+        : spelling;
+
+      if (haystack.includes(` ${term} `)) return { term };
+      // Also catch it inside a longer run of letters, e.g. "xxbadwordxx".
+      if (term.length >= 4 && haystack.includes(term)) return { term };
+    }
   }
 
   return null;

@@ -4,6 +4,7 @@ import {
   normalizeForBlocklist,
   parseBlocklist,
 } from "./blocklist";
+import { defaultProfanityTerms } from "./profanity-terms";
 
 describe("normalizeForBlocklist", () => {
   it("lowercases, strips accents, and undoes letter/number swaps", () => {
@@ -68,5 +69,77 @@ describe("findBlockedTerm", () => {
     const term = { term: "arse", exceptions: ["sparse"] };
     expect(findBlockedTerm("the data is sparse", [term])).toBeNull();
     expect(findBlockedTerm("what an arse", [term])).toEqual({ term: "arse" });
+  });
+});
+
+describe("findBlockedTerm: disguised spellings", () => {
+  const terms = parseBlocklist("badword, darn");
+
+  it.each([
+    ["spaced out", "b a d w o r d"],
+    ["dotted", "b.a.d.w.o.r.d"],
+    ["stretched", "baaaadword"],
+    ["stretched on a double letter", "darrrrn"],
+    ["in Cyrillic look-alikes", "bаdwоrd"],
+    ["in Greek look-alikes", "bαdwοrd"],
+  ])("catches a word %s", (_how, text) => {
+    expect(findBlockedTerm(text, terms)).not.toBeNull();
+  });
+
+  it("reads ph as f", () => {
+    expect(findBlockedTerm("phudge", parseBlocklist("fudge"))).toEqual({
+      term: "fudge",
+    });
+  });
+
+  it("leaves a single short gap alone", () => {
+    // "a b" is two letters, not a word spelled out.
+    expect(findBlockedTerm("plan a b", parseBlocklist("ab"))).toBeNull();
+  });
+});
+
+describe("findBlockedTerm: with the real list", () => {
+  const terms = defaultProfanityTerms();
+
+  it.each(["f u c k", "f.u.c.k", "fuuuuck", "phuck", "fuсk"])(
+    "catches %j",
+    (text) => {
+      expect(findBlockedTerm(text, terms)).not.toBeNull();
+    },
+  );
+
+  // One letter away from a swear, or a swear hidden inside an ordinary
+  // word: every one of these has to keep getting through.
+  it.each([
+    "Scunthorpe",
+    "class assignment",
+    "cocktail",
+    "bigger",
+    "where",
+    "pitch",
+    "ditch",
+    "birch",
+    "as good as it gets",
+    "passing the photograph",
+    "soooo cool",
+    "yesss",
+    "hmmm",
+    "USA",
+    "Essex",
+    "Sussex",
+    "Dickens",
+    "assessment",
+    "grape",
+    "drape",
+    "scrape",
+    "trapeze",
+    "specialist",
+    "specialists",
+    "Pakistan",
+    "therapist",
+    "therapeutic",
+    "Blue Bottle",
+  ])("lets %j through", (text) => {
+    expect(findBlockedTerm(text, terms)).toBeNull();
   });
 });
