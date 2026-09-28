@@ -1,6 +1,9 @@
 /** Public participation numbers shown on a board. */
 export type BoardStats = {
-  /** Distinct people who have drawn on the board (all weeks). */
+  /**
+   * Distinct people who have drawn on the board (all weeks): accounts, plus a
+   * device for each guest tile left from before guests stopped posting.
+   */
   people: number;
   /** Live drawings the board still holds (all weeks). */
   totalDrawings: number;
