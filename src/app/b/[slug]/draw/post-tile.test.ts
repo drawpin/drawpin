@@ -252,11 +252,15 @@ describe("postTile", () => {
     deps.moderate = vi.fn<PostTileDeps["moderate"]>(async () => ({
       allowed: false,
       reason: "openai:hate",
+      category: "hateful",
     }));
 
+    // What was found, and how many tries are left before the lockout.
     expect(await postTile(input(), deps)).toEqual({
       ok: false,
       reason: "blocked",
+      category: "hateful",
+      triesLeft: 2,
     });
     expect(store.tiles).toHaveLength(0);
     expect(store.images.size).toBe(0);
@@ -273,10 +277,11 @@ describe("postTile", () => {
     deps.moderate = vi.fn<PostTileDeps["moderate"]>(async () => ({
       allowed: false,
       reason: "openai:hate",
+      category: "hateful",
     }));
 
-    expect(reasonOf(await postTile(input(), deps))).toBe("blocked");
-    expect(reasonOf(await postTile(input(), deps))).toBe("blocked");
+    expect(await postTile(input(), deps)).toMatchObject({ triesLeft: 2 });
+    expect(await postTile(input(), deps)).toMatchObject({ triesLeft: 1 });
     expect(reasonOf(await postTile(input(), deps))).toBe("locked");
 
     // Locked out even with a clean drawing, without moderating it again.

@@ -74,7 +74,8 @@ export default function PrivacyPage() {
           <li>
             <strong>OpenAI</strong> checks every name, caption and drawing
             before it goes on the board, so we send those three things to their
-            moderation service.
+            moderation service, and each drawing and caption to one of their
+            models that reads what&apos;s written and drawn in it.
           </li>
           <li>
             <strong>Cloudflare</strong> runs the check that tells a person from

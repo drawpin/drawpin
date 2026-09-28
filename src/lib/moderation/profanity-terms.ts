@@ -20,6 +20,7 @@
 import { z } from "zod";
 import profanityEn from "@dsojevic/profanity-list/en.json";
 import { normalizeForBlocklist, type BlockedTerm } from "./blocklist";
+import { categoryForTags } from "./categories";
 
 const entrySchema = z.object({
   id: z.string(),
@@ -91,7 +92,11 @@ export function selectProfanityTerms(
     for (const alt of alternates) {
       const term = normalizeForBlocklist(alt);
       const extra = (EXTRA_EXCEPTIONS[term] ?? []).map(normalizeForBlocklist);
-      terms.push({ term, exceptions: [...exceptions, ...extra] });
+      terms.push({
+        term,
+        exceptions: [...exceptions, ...extra],
+        category: categoryForTags(entry.tags),
+      });
     }
   }
 

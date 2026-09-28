@@ -36,8 +36,9 @@ Drawing needs no account. **Competing does.**
 - **1 post per device per day** (day resets 4:00 AM venue time). A signed-in post must also pass **1 post per account per day**, so a second device doesn't buy a second post.
 
 ### Moderation (automatic only)
-- Every username, caption, and drawing is checked by a blocklist + OpenAI moderation (text + image).
-- A blocked post shows "This couldn't be posted" and does **not** use up the daily post.
+- Every username, caption, and drawing is checked by a blocklist + OpenAI moderation (text + image). Every drawing is also read by a vision model (`gpt-4.1-mini`) for written words, hate symbols and sexual content, and the words it reads go through the blocklist too (ADR-006).
+- Family-friendly policy: slurs, hate symbols, and genitals or sexual acts are blocked. Religious and national symbols, and nudity without genitals, are allowed. Anything borderline is blocked.
+- A blocked post says what kind of problem it was (hateful, sexual, violent, contact details or language) and how many tries are left, but never the word that matched. It does **not** use up the daily post.
 - **3 blocked attempts in a day locks the device until the next 4:00 AM reset.**
 - If moderation can't be reached, the post is refused with "try again in a minute" and does **not** use up the daily post. It's never published unchecked, and posting works again as soon as moderation is back.
 - No staff approval. Signed-in customers can **report a tile**, which flags it for the owner; reporting needs an account so a report is attributable and not endlessly repeatable.
