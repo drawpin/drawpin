@@ -10,6 +10,8 @@ import {
   type Shape,
   screenToTile,
   sprayDots,
+  type Stroke,
+  strokeOptions,
   TILE_SIZE,
   WHOLE_TILE,
   zoomAround,
@@ -103,6 +105,36 @@ describe("zoomAround", () => {
     const back = zoomAround(zoomed, 1, 200, 200, 343);
 
     expect(back).toEqual(WHOLE_TILE);
+  });
+});
+
+describe("strokeOptions", () => {
+  const pen: Stroke = {
+    kind: "stroke",
+    points: [[0, 0, 0.5]],
+    color: "#000000",
+    size: 12,
+    brush: "pen",
+    seed: 1,
+    simulatePressure: true,
+  };
+
+  it("thins a pen with pressure on, simulated from speed without a stylus", () => {
+    expect(strokeOptions(pen)).toMatchObject({
+      thinning: 0.5,
+      simulatePressure: true,
+    });
+  });
+
+  it("keeps a pen with pressure off the same width all the way", () => {
+    expect(strokeOptions({ ...pen, even: true })).toMatchObject({
+      thinning: 0,
+      simulatePressure: false,
+    });
+  });
+
+  it("keeps the marker even whatever the pen is set to", () => {
+    expect(strokeOptions({ ...pen, brush: "marker" }).thinning).toBe(0);
   });
 });
 

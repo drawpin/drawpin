@@ -34,6 +34,12 @@ export type Stroke = {
   seed: number;
   /** Mice and fingers report no real pressure, so it's simulated from speed. */
   simulatePressure: boolean;
+  /**
+   * A pen stroke drawn with pressure off: the same width all the way, on any
+   * device. Kept on the stroke, so turning pressure on or off never changes
+   * what's already drawn.
+   */
+  even?: boolean;
 };
 
 /**
@@ -165,6 +171,26 @@ export type Scene = {
   showGrid: boolean;
 };
 
+/**
+ * How a stroke's width behaves. A marker, an eraser and a pen with pressure
+ * off keep one width all the way — an even line is what makes a shaky one
+ * look deliberate. A pen with pressure on thins with a stylus's pressure, or
+ * with speed where there's no stylus to ask.
+ */
+export function strokeOptions(stroke: Stroke) {
+  const evenWidth =
+    stroke.brush === "marker" ||
+    stroke.brush === "eraser" ||
+    stroke.even === true;
+  return {
+    size: stroke.size,
+    thinning: evenWidth ? 0 : 0.5,
+    smoothing: evenWidth ? 0.6 : 0.5,
+    streamline: evenWidth ? 0.6 : 0.5,
+    simulatePressure: evenWidth ? false : stroke.simulatePressure,
+  };
+}
+
 function drawStroke(context: CanvasRenderingContext2D, stroke: Stroke) {
   if (stroke.brush === "spray") {
     const dots = sprayDots(stroke.points, stroke.size, stroke.seed);
@@ -190,20 +216,12 @@ function drawStroke(context: CanvasRenderingContext2D, stroke: Stroke) {
     return;
   }
 
-  // A marker has no pressure at all — an even line is what makes a shaky one
-  // look deliberate — and enough transparency that crossing an earlier stroke
-  // darkens where they meet. An eraser is the same shape in the colour of the
-  // paper: the tile is always white underneath, so there's nothing to reveal.
+  // A marker has enough transparency that crossing an earlier stroke darkens
+  // where they meet. An eraser is the same shape in the colour of the paper:
+  // the tile is always white underneath, so there's nothing to reveal.
   const isMarker = stroke.brush === "marker";
   const isEraser = stroke.brush === "eraser";
-  const evenWidth = isMarker || isEraser;
-  const outline = getStroke(stroke.points, {
-    size: stroke.size,
-    thinning: evenWidth ? 0 : 0.5,
-    smoothing: evenWidth ? 0.6 : 0.5,
-    streamline: evenWidth ? 0.6 : 0.5,
-    simulatePressure: evenWidth ? false : stroke.simulatePressure,
-  });
+  const outline = getStroke(stroke.points, strokeOptions(stroke));
 
   context.save();
   if (isMarker) context.globalAlpha = 0.85;

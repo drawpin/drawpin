@@ -44,6 +44,7 @@ const COLOR_STORAGE_KEY = "drawpin:brush-color";
 const RECENTS_STORAGE_KEY = "drawpin:recent-colors";
 const GRID_STORAGE_KEY = "drawpin:show-grid";
 const ASSIST_STORAGE_KEY = "drawpin:snap-assist";
+const PRESSURE_STORAGE_KEY = "drawpin:pen-pressure";
 
 const initialState: PostTileState = { status: "idle" };
 
@@ -120,6 +121,7 @@ export function DrawTileForm({
   const storedEraserSize = Number(useStored(ERASER_SIZE_STORAGE_KEY));
   const storedGrid = useStored(GRID_STORAGE_KEY);
   const storedAssist = useStored(ASSIST_STORAGE_KEY);
+  const storedPressure = useStored(PRESSURE_STORAGE_KEY);
 
   const [pickedBrush, setBrush] = useState<Brush | null>(null);
   const [pickedColor, setColor] = useState<string | null>(null);
@@ -134,6 +136,7 @@ export function DrawTileForm({
   const [pickedEraserSize, setEraserSize] = useState<number | null>(null);
   const [pickedGrid, setShowGrid] = useState<boolean | null>(null);
   const [pickedAssist, setAssist] = useState<boolean | null>(null);
+  const [pickedPressure, setPressure] = useState<boolean | null>(null);
 
   const brush =
     pickedBrush ??
@@ -162,6 +165,9 @@ export function DrawTileForm({
   // Off until someone turns it on: a pause mid-stroke would otherwise snap a
   // drawing that was never meant to be a shape.
   const assist = pickedAssist ?? storedAssist === "true";
+  // Off by default, so the pen draws the same even line on every device;
+  // on, it follows a stylus's pressure, or the speed of a finger or mouse.
+  const pressure = pickedPressure ?? storedPressure === "true";
   // Things undone but not yet replaced, newest last.
   const [undone, setUndone] = useState<DrawOp[]>([]);
   // Drawing comes first and alone; who you are and what to call it are asked
@@ -340,6 +346,7 @@ export function DrawTileForm({
         // tile as the board will show it.
         showGrid={showGrid && step === "drawing"}
         assist={assist}
+        pressure={pressure}
         disabled={pending}
         previewSize={previewingSize}
         onDraw={addOp}
@@ -722,6 +729,24 @@ export function DrawTileForm({
                 className="flex-1 accent-black"
                 autoFocus
               />
+              {tool === "pen" && (
+                // With the pen's size, since it's how the pen's width behaves.
+                <Button
+                  type="button"
+                  variant={pressure ? "default" : "outline"}
+                  size="sm"
+                  aria-pressed={pressure}
+                  disabled={pending}
+                  title="Let the pen's width follow how hard you press, or how fast you draw"
+                  onClick={() => {
+                    const next = !pressure;
+                    setPressure(next);
+                    remember(PRESSURE_STORAGE_KEY, String(next));
+                  }}
+                >
+                  Pressure
+                </Button>
+              )}
             </div>
           )}
 

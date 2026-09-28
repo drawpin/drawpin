@@ -32,7 +32,7 @@ Drawing for fun needs no account. **Posting and competing do.**
 
 ### Tiles (default mode)
 - Each tile = a drawing + optional typed caption (max 80 chars).
-- Drawing tools: pen, marker, spray, eraser, paint bucket, and shapes (line, circle, square — the line doubles as a ruler; circles and squares come out perfect, and Shift stretches them on a keyboard). Six base colours plus a colour wheel and hex field. A Snap toggle (hold still at the end of a stroke to straighten it into a line or shape) and a lasso (circle part of the drawing to move or resize it) were added with the shapes, all from the first test round's feedback.
+- Drawing tools: pen, marker, spray, eraser, paint bucket, and shapes (line, circle, square — the line doubles as a ruler; circles and squares come out perfect, and Shift stretches them on a keyboard). Six base colours plus a colour wheel and hex field. A Snap toggle (hold still at the end of a stroke to straighten it into a line or shape) and a lasso (circle part of the drawing to move or resize it) were added with the shapes, all from the first test round's feedback. The pen draws an even line on every device by default; a Pressure switch makes its width follow a stylus's pressure, or the speed of a finger or mouse.
 - Posting needs a Google sign-in (ADR-007). A tile shows that account's username. A guest can draw as much as they like, but nothing they draw goes on the board.
 - **1 post per account per day and 1 per device per day** (day resets 4:00 AM venue time), so a second device doesn't buy a second post.
 
