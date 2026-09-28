@@ -583,6 +583,26 @@ export function screenToTile(
 }
 
 /**
+ * Moves the view so the drawing follows a drag of `dxCss`, `dyCss` on screen:
+ * dragging right shows more of the left of the tile.
+ *
+ * @param cssSize - The canvas element's width in CSS pixels; it's square.
+ */
+export function panBy(
+  view: View,
+  dxCss: number,
+  dyCss: number,
+  cssSize: number,
+): View {
+  const visible = TILE_SIZE / view.scale;
+  return clampView({
+    scale: view.scale,
+    offsetX: view.offsetX - (dxCss / cssSize) * visible,
+    offsetY: view.offsetY - (dyCss / cssSize) * visible,
+  });
+}
+
+/**
  * Zooms to `scale` while holding one point still under the fingers.
  *
  * Anchoring is what makes a pinch feel attached to the drawing rather than to

@@ -12,12 +12,12 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   backingSizeFor,
-  clampView,
   type DrawOp,
   drawSelectionFrame,
   fillAt,
   type Lifted,
   liftSelection,
+  panBy,
   renderScene,
   renderTile,
   screenToTile,
@@ -135,6 +135,10 @@ export const DrawingCanvas = forwardRef<
   const [floating, setFloating] = useState<Floating | null>(null);
   const [backingSize, setBackingSize] = useState(TILE_SIZE);
   const [view, setView] = useState<View>(WHOLE_TILE);
+  // A mouse moving the view with its right or middle button: where the drag
+  // started and the view then. In state as well as a ref for the cursor.
+  const panning = useRef<{ origin: Finger; view: View } | null>(null);
+  const [grabbing, setGrabbing] = useState(false);
 
   const redraw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -312,6 +316,15 @@ export const DrawingCanvas = forwardRef<
       // canvas, which is survivable.
     }
     const finger = fingerAt(event, rect);
+
+    if (event.pointerType === "mouse" && event.button !== 0) {
+      // A right or middle button drags the view instead of drawing: a mouse
+      // has no second finger to move a zoomed-in tile with.
+      panning.current = { origin: finger, view };
+      setGrabbing(true);
+      return;
+    }
+
     fingers.current.set(event.pointerId, finger);
     cancelHold();
     holdAnchor.current = null;
@@ -395,6 +408,21 @@ export const DrawingCanvas = forwardRef<
   }
 
   function handlePointerMove(event: PointerEvent<HTMLCanvasElement>) {
+    const pan = panning.current;
+    if (pan) {
+      const rect = event.currentTarget.getBoundingClientRect();
+      const finger = fingerAt(event, rect);
+      setView(
+        panBy(
+          pan.view,
+          finger.x - pan.origin.x,
+          finger.y - pan.origin.y,
+          rect.width,
+        ),
+      );
+      return;
+    }
+
     if (!fingers.current.has(event.pointerId)) return;
     const rect = event.currentTarget.getBoundingClientRect();
     fingers.current.set(event.pointerId, fingerAt(event, rect));
@@ -414,17 +442,13 @@ export const DrawingCanvas = forwardRef<
         start.midpoint.y,
         rect.width,
       );
-      const visible = TILE_SIZE / zoomed.scale;
       setView(
-        clampView({
-          scale: zoomed.scale,
-          offsetX:
-            zoomed.offsetX -
-            ((midpoint.x - start.midpoint.x) / rect.width) * visible,
-          offsetY:
-            zoomed.offsetY -
-            ((midpoint.y - start.midpoint.y) / rect.width) * visible,
-        }),
+        panBy(
+          zoomed,
+          midpoint.x - start.midpoint.x,
+          midpoint.y - start.midpoint.y,
+          rect.width,
+        ),
       );
       return;
     }
@@ -488,6 +512,12 @@ export const DrawingCanvas = forwardRef<
   }
 
   function handlePointerUp(event: PointerEvent<HTMLCanvasElement>) {
+    if (panning.current) {
+      panning.current = null;
+      setGrabbing(false);
+      return;
+    }
+
     fingers.current.delete(event.pointerId);
     if (fingers.current.size < 2) gesture.current = null;
     cancelHold();
@@ -552,13 +582,24 @@ export const DrawingCanvas = forwardRef<
         aria-label="Drawing area"
         // Stops the page scrolling or zooming while a finger is on the tile;
         // pinching is handled here instead.
-        className="aspect-square w-full touch-none rounded-lg border bg-white"
+        className={`aspect-square w-full touch-none rounded-lg border bg-white ${
+          grabbing ? "cursor-grabbing" : ""
+        }`}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
         onWheel={handleWheel}
+        // The right button moves the view, so its menu would only get in the way.
+        onContextMenu={(event) => event.preventDefault()}
       />
+
+      {view.scale > 1 && !floating && (
+        // Only where there's a mouse: on a touch screen two fingers move it.
+        <p className="bg-background/80 text-muted-foreground pointer-events-none absolute top-2 left-2 hidden rounded px-2 py-1 text-xs shadow pointer-fine:block">
+          Right-click and drag to move
+        </p>
+      )}
 
       {view.scale > 1 && (
         <Button

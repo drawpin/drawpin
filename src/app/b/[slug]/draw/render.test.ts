@@ -5,6 +5,7 @@ import {
   clampView,
   drawShape,
   MAX_ZOOM,
+  panBy,
   type Shape,
   screenToTile,
   sprayDots,
@@ -101,6 +102,32 @@ describe("zoomAround", () => {
     const back = zoomAround(zoomed, 1, 200, 200, 343);
 
     expect(back).toEqual(WHOLE_TILE);
+  });
+});
+
+describe("panBy", () => {
+  it("keeps the point under the pointer as it drags", () => {
+    const zoomed = { scale: 4, offsetX: 300, offsetY: 300 };
+    const before = screenToTile(zoomed, 100, 100, 343);
+    const moved = panBy(zoomed, 40, -25, 343);
+    const after = screenToTile(moved, 140, 75, 343);
+
+    expect(after[0]).toBeCloseTo(before[0], 5);
+    expect(after[1]).toBeCloseTo(before[1], 5);
+  });
+
+  it("stops at the edge of the tile", () => {
+    const zoomed = { scale: 2, offsetX: 10, offsetY: 10 };
+
+    expect(panBy(zoomed, 500, 500, 343)).toEqual({
+      scale: 2,
+      offsetX: 0,
+      offsetY: 0,
+    });
+  });
+
+  it("does nothing on the whole tile", () => {
+    expect(panBy(WHOLE_TILE, 80, 80, 343)).toEqual(WHOLE_TILE);
   });
 });
 
