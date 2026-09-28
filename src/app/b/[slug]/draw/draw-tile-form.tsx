@@ -45,8 +45,6 @@ const RECENTS_STORAGE_KEY = "drawpin:recent-colors";
 const GRID_STORAGE_KEY = "drawpin:show-grid";
 const ASSIST_STORAGE_KEY = "drawpin:snap-assist";
 
-const NAME_STORAGE_KEY = "drawpin:display-name";
-
 const initialState: PostTileState = { status: "idle" };
 
 const subscribeToNothing = () => () => {};
@@ -86,7 +84,10 @@ export function DrawTileForm({
 }: {
   slug: string;
   turnstileSiteKey: string;
-  /** The signed-in customer's name, or `null` when posting as a guest. */
+  /**
+   * The signed-in customer's name, or `null` for a guest, who can draw as
+   * much as they like but can't post (ADR-007).
+   */
   username: string | null;
 }) {
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
@@ -164,20 +165,6 @@ export function DrawTileForm({
   const [sizeOpen, setSizeOpen] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const canvasRef = useRef<DrawingCanvasHandle>(null);
-  const nameRef = useRef<HTMLInputElement>(null);
-
-  // Remember the visitor's name between posts. Read after hydration and
-  // written straight to the uncontrolled input to avoid a hydration mismatch.
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(NAME_STORAGE_KEY);
-      if (saved && nameRef.current && !nameRef.current.value) {
-        nameRef.current.value = saved;
-      }
-    } catch {
-      // Storage can be blocked (private mode); the name just isn't remembered.
-    }
-  }, []);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -189,14 +176,6 @@ export function DrawTileForm({
     }
 
     const formData = new FormData(event.currentTarget);
-    const displayName = String(formData.get("displayName") ?? "").trim();
-    try {
-      if (displayName) localStorage.setItem(NAME_STORAGE_KEY, displayName);
-      else localStorage.removeItem(NAME_STORAGE_KEY);
-    } catch {
-      // See above: remembering the name is best-effort.
-    }
-
     try {
       const image = await canvasRef.current!.toBlob();
       formData.set("image", image, "tile.png");
@@ -694,37 +673,32 @@ export function DrawTileForm({
             </p>
           )}
 
-          {/* Nothing is asked about the drawing until there is one. */}
-          <Button
-            type="button"
-            size="lg"
-            disabled={!hydrated || pending}
-            onClick={goToDetails}
-          >
-            Post my tile
-          </Button>
+          {username ? (
+            // Nothing is asked about the drawing until there is one.
+            <Button
+              type="button"
+              size="lg"
+              disabled={!hydrated || pending}
+              onClick={goToDetails}
+            >
+              Post my tile
+            </Button>
+          ) : (
+            // The sign-in button is its own form, so it can't sit inside this
+            // one; the page shows it above the canvas (SignInFirst).
+            <p className="text-muted-foreground text-center text-sm">
+              You&apos;re drawing for fun. Guest drawings don&apos;t go on the
+              board.
+            </p>
+          )}
         </>
       ) : (
         <>
-          {username ? (
-            // Signed in: the tile goes up under the name on their account, so
-            // there's nothing to ask and nothing to type.
-            <p className="text-muted-foreground text-sm">
-              Posting as <span className="font-medium">{username}</span>
-            </p>
-          ) : (
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="displayName">Name (optional)</Label>
-              <Input
-                ref={nameRef}
-                id="displayName"
-                name="displayName"
-                maxLength={40}
-                autoComplete="nickname"
-                placeholder="Leave blank to post anonymously"
-              />
-            </div>
-          )}
+          {/* The tile goes up under the name on their account, so there's
+              nothing to ask and nothing to type. */}
+          <p className="text-muted-foreground text-sm">
+            Posting as <span className="font-medium">{username}</span>
+          </p>
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="caption">Caption (optional)</Label>

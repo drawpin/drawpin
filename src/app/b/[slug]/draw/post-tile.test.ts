@@ -128,7 +128,7 @@ const input = (overrides: Partial<PostTileInput> = {}): PostTileInput => ({
   caption: "hello",
   image: new Uint8Array([1, 2, 3]),
   ipHash: null,
-  userId: null,
+  userId: "user-1",
   ...overrides,
 });
 
@@ -142,8 +142,8 @@ beforeEach(() => {
     store,
     processImage: vi.fn(async () => Buffer.from("webp")),
     moderate: vi.fn<PostTileDeps["moderate"]>(async () => ({ allowed: true })),
-    nameTag: (deviceId, name) =>
-      `${deviceId}/${name}`.length.toString().padStart(4, "0"),
+    nameTag: (userId, name) =>
+      `${userId}/${name}`.length.toString().padStart(4, "0"),
     newId: () => `tile-${++ids}`,
     now: () => clock,
     logError: vi.fn(),
@@ -166,23 +166,19 @@ describe("postTile", () => {
         id: "tile-1",
         week_id: "week-1",
         device_id: "device-1",
-        user_id: null,
+        user_id: "user-1",
         display_name: "Ahmad",
-        name_tag: "0014",
+        name_tag: "0012",
         caption: "hello",
         image_path: "venue-1/week-1/tile-1.webp",
       },
     ]);
   });
 
-  it("posts anonymously with no name tag", async () => {
-    await postTile(input({ displayName: null, caption: null }), deps);
+  it("posts without a caption", async () => {
+    await postTile(input({ caption: null }), deps);
 
-    expect(store.tiles[0]).toMatchObject({
-      display_name: null,
-      name_tag: null,
-      caption: null,
-    });
+    expect(store.tiles[0].caption).toBeNull();
   });
 
   it("allows one post per device per venue-local day", async () => {
@@ -205,11 +201,18 @@ describe("postTile", () => {
     expect((await postTile(input(), deps)).ok).toBe(true);
   });
 
-  it("lets other devices post on the same day", async () => {
+  it("lets other people post on the same day", async () => {
     await postTile(input(), deps);
-    expect((await postTile(input({ deviceId: "device-2" }), deps)).ok).toBe(
-      true,
-    );
+    const other = input({ deviceId: "device-2", userId: "user-2" });
+    expect((await postTile(other, deps)).ok).toBe(true);
+  });
+
+  it("stops a second account posting again from the same device", async () => {
+    await postTile(input(), deps);
+
+    const result = await postTile(input({ userId: "user-2" }), deps);
+
+    expect(reasonOf(result)).toBe("already-posted");
   });
 
   it("refuses unknown and paused boards", async () => {
@@ -437,20 +440,8 @@ describe("burst protection", () => {
   });
 });
 
-describe("signed-in posting", () => {
+describe("the account's daily post", () => {
   const userId = "user-1";
-
-  it("records the account on the tile", async () => {
-    await postTile(input({ userId }), deps);
-
-    expect(store.tiles[0].user_id).toBe(userId);
-  });
-
-  it("leaves a guest tile without one", async () => {
-    await postTile(input(), deps);
-
-    expect(store.tiles[0].user_id).toBeNull();
-  });
 
   it("stops the same account posting again from another device", async () => {
     await postTile(input({ userId, deviceId: "phone" }), deps);
@@ -481,11 +472,5 @@ describe("signed-in posting", () => {
 
     expect(store.accountClaims.size).toBe(0);
     expect(store.claims.get("venue-1:device-1:2026-09-16")).toBe(false);
-  });
-
-  it("still limits a guest by device alone", async () => {
-    await postTile(input(), deps);
-
-    expect(reasonOf(await postTile(input(), deps))).toBe("already-posted");
   });
 });

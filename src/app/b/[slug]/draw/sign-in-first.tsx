@@ -1,27 +1,19 @@
 import { GoogleSignIn } from "@/components/google-sign-in";
 
 /**
- * The last moment at which signing in is still worth anything.
+ * The way from drawing for fun to posting, shown to guests above the canvas.
  *
- * A guest tile goes up on the board but can't be voted for or win, and
- * posting claims the device's one drawing for the day either way
- * (`post-tile.ts`). So a guest who draws first has spent their day on a tile
- * nobody can vote for, and signing in afterwards doesn't give it back.
- *
- * The board's `AccountBar` makes the same offer, but it sits under the tile
- * feed — which nobody scrolls to after tapping "Draw a tile" at the top of
- * the page. This one is in front of the canvas, before anything is spent.
- *
- * It never blocks: drawing needs no account (docs/PLAN.md, Accounts).
+ * Only an account can post (ADR-007), and signing in leaves the page for
+ * Google, which loses whatever is on the canvas. So this sits in front of the
+ * canvas, where it's seen before anything is drawn, rather than under it.
  */
 export function SignInFirst({ next }: { next: string }) {
   return (
     <div className="flex flex-col gap-2 rounded-lg border px-3 py-3">
-      <p className="text-sm font-medium">Sign in before you draw</p>
+      <p className="text-sm font-medium">Sign in to post</p>
       <p className="text-muted-foreground text-xs">
-        You get one drawing a day. Drawn as a guest it still goes up on the
-        board, but nobody can vote for it — and signing in afterwards won&apos;t
-        change that.
+        As a guest you can draw as much as you like, but nothing goes on the
+        board. Sign in before you start: a drawing doesn&apos;t carry over.
       </p>
       <GoogleSignIn next={next} size="sm" />
     </div>

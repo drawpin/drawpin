@@ -27,10 +27,10 @@ export type NewTile = {
   id: string;
   week_id: string;
   device_id: string;
-  /** The poster's account, or `null` for a guest tile. */
-  user_id: string | null;
-  display_name: string | null;
-  name_tag: string | null;
+  /** The poster's account. Only an account can post (ADR-007). */
+  user_id: string;
+  display_name: string;
+  name_tag: string;
   caption: string | null;
   image_path: string;
 };
@@ -91,7 +91,7 @@ export type PostTileDeps = {
   store: TileStore;
   processImage: (upload: Uint8Array) => Promise<Buffer>;
   moderate: (content: TileContent) => Promise<ModerationDecision>;
-  nameTag: (deviceId: string, displayName: string) => string;
+  nameTag: (userId: string, displayName: string) => string;
   newId: () => string;
   now: () => Date;
   logError: (message: string, error: unknown) => void;
@@ -100,13 +100,14 @@ export type PostTileDeps = {
 export type PostTileInput = {
   slug: string;
   deviceId: string;
-  displayName: string | null;
+  /** The account's username. */
+  displayName: string;
   caption: string | null;
   image: Uint8Array;
   /** The visitor's hashed network, or `null` when no proxy reported one. */
   ipHash: string | null;
-  /** The signed-in account, or `null` when posting as a guest. */
-  userId: string | null;
+  /** The signed-in account. Guests draw for fun and never post (ADR-007). */
+  userId: string;
 };
 
 export type PostTileFailure =
@@ -135,8 +136,8 @@ export type PostTileResult =
   | { ok: false; reason: Exclude<PostTileFailure, "blocked"> };
 
 /**
- * Posts a tile to a venue's current week, enforcing one post per device per
- * venue-local day (docs/PLAN.md, Tiles).
+ * Posts a signed-in customer's tile to a venue's current week, enforcing one
+ * post per device and per account per venue-local day (docs/PLAN.md, Tiles).
  *
  * The order matters:
  * 1. A device already locked out by 3 blocked attempts is turned away before
@@ -149,8 +150,8 @@ export type PostTileResult =
  * 4. If moderation can't be reached, the post is refused rather than published
  *    unchecked, and the day stays available.
  * 5. The claim is a single conditional update, so two posts racing from the
- *    same device can't both win. A signed-in post claims its account's day as
- *    well, so a second device doesn't buy a second post (docs/PLAN.md, Tiles).
+ *    same device can't both win. The account's day is claimed as well, so a
+ *    second device doesn't buy a second post (docs/PLAN.md, Tiles).
  * 6. If saving fails after the claim, the claim is released and any uploaded
  *    image deleted, so a server error doesn't cost the visitor their post.
  */
@@ -246,19 +247,17 @@ export async function postTile(
   );
   if (!claimed) return { ok: false, reason: "already-posted" };
 
-  if (input.userId) {
-    const claimedAccount = await store.claimAccountPost(
-      venue.id,
-      input.userId,
-      localDay,
+  const claimedAccount = await store.claimAccountPost(
+    venue.id,
+    input.userId,
+    localDay,
+  );
+  if (!claimedAccount) {
+    await rollback(
+      () => store.releaseDailyPost(venue.id, input.deviceId, localDay),
+      deps,
     );
-    if (!claimedAccount) {
-      await rollback(
-        () => store.releaseDailyPost(venue.id, input.deviceId, localDay),
-        deps,
-      );
-      return { ok: false, reason: "already-posted" };
-    }
+    return { ok: false, reason: "already-posted" };
   }
 
   const tileId = deps.newId();
@@ -275,9 +274,7 @@ export async function postTile(
       device_id: input.deviceId,
       user_id: input.userId,
       display_name: input.displayName,
-      name_tag: input.displayName
-        ? deps.nameTag(input.deviceId, input.displayName)
-        : null,
+      name_tag: deps.nameTag(input.userId, input.displayName),
       caption: input.caption,
       image_path: imagePath,
     });
@@ -287,13 +284,10 @@ export async function postTile(
       () => store.releaseDailyPost(venue.id, input.deviceId, localDay),
       deps,
     );
-    if (input.userId) {
-      const userId = input.userId;
-      await rollback(
-        () => store.releaseAccountPost(venue.id, userId, localDay),
-        deps,
-      );
-    }
+    await rollback(
+      () => store.releaseAccountPost(venue.id, input.userId, localDay),
+      deps,
+    );
     if (uploaded) await rollback(() => store.deleteImage(imagePath), deps);
     return { ok: false, reason: "failed" };
   }

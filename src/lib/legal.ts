@@ -8,4 +8,4 @@
 export const CONTACT_EMAIL = "hello@drawpin.io";
 
 /** Shown on the policy pages, so people can see whether anything moved. */
-export const POLICIES_UPDATED = "21 September 2026";
+export const POLICIES_UPDATED = "28 September 2026";

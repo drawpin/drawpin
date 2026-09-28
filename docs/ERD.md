@@ -94,7 +94,7 @@ A drawing plus optional caption and username, posted to one week.
 | `id` | `uuid` | PK |
 | `week_id` | `uuid` | FK → `weeks` |
 | `device_id` | `uuid` | FK → `devices`, `on delete restrict` |
-| `user_id` | `uuid` | FK → `profiles`, nullable, `on delete set null`. Null is a guest tile: shown on the board, never votable, never eligible to win |
+| `user_id` | `uuid` | FK → `profiles`, nullable, `on delete set null`. Null is a guest tile from before ADR-007: shown on the board, never votable, never eligible to win. New tiles always have one |
 | `display_name` | `text` | null means anonymous |
 | `name_tag` | `char(4)` | 4 digits; set together with `display_name` |
 | `caption` | `varchar(80)` | nullable |

@@ -72,9 +72,12 @@ export default async function DrawPage({
   );
 
   const customer = await getCustomer(createAdminClient());
+  // A guest never posts, so today's limits don't stop them drawing for fun.
   const blocked = board.isPaused
     ? "This board is paused, so posting is off right now."
-    : await todaysBlocker(board);
+    : customer
+      ? await todaysBlocker(board)
+      : null;
 
   return (
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 px-4 py-6">
