@@ -2,8 +2,8 @@ import { signInWithGoogle } from "@/app/auth/sign-in";
 import { Button } from "@/components/ui/button";
 
 /**
- * Signs a customer in with Google so they can compete and vote (ADR-004).
- * Drawing works without it, so this is never in anyone's way.
+ * Signs a customer in with Google so they can post, compete and vote
+ * (ADR-004, ADR-007). Drawing for fun works without it.
  *
  * @param next - The page to come back to afterwards.
  */

@@ -1,7 +1,7 @@
 # ADR-004: Customer Accounts with Google Sign-In
 
 ## Status
-Accepted
+Accepted. Guest posting is withdrawn by ADR-007: a guest can draw but not post.
 
 ## Context
 `docs/PLAN.md` through v7 had **no customer accounts**: "no app download, no

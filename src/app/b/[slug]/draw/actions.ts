@@ -19,6 +19,8 @@ import { type PostTileFailure, postTile } from "./post-tile";
 import { type PostTileState, postTileFormSchema } from "./schema";
 import { SupabaseTileStore } from "./supabase-tile-store";
 
+const SIGN_IN_TO_POST = "Sign in with Google to post your drawing.";
+
 // A blocked post isn't here: its message depends on what was found and how
 // many tries are left (see blocked-message.ts).
 const FAILURE_MESSAGES: Record<Exclude<PostTileFailure, "blocked">, string> = {
@@ -45,7 +47,6 @@ export async function postTileAction(
 ): Promise<PostTileState> {
   const parsed = postTileFormSchema.safeParse({
     slug: formData.get("slug"),
-    displayName: formData.get("displayName"),
     caption: formData.get("caption"),
     image: formData.get("image"),
   });
@@ -57,38 +58,39 @@ export async function postTileAction(
   const challenge = await checkTurnstile(formData.get(TURNSTILE_FIELD));
   if (challenge) return { status: "error", message: challenge };
 
-  const { slug, displayName, caption, image } = parsed.data;
+  const { slug, caption, image } = parsed.data;
   const admin = createAdminClient();
 
   try {
+    // Guests draw for fun; only an account can post (ADR-007). Checked
+    // before a device is created or anything is moderated or stored.
+    const customer = await getCustomer(admin);
+    if (!customer) return { status: "error", message: SIGN_IN_TO_POST };
+
     const env = serverEnv();
     const secret = env.DEVICE_COOKIE_SECRET;
     const signals = await readDeviceSignals(formData, secret);
     const deviceId = await ensureDeviceId(admin, signals);
-    // Null for a guest, which is still a perfectly good way to post.
-    const customer = await getCustomer(admin);
     const blockedTerms = parseBlocklist(env.MODERATION_BLOCKLIST);
 
     const result = await postTile(
       {
         slug,
         deviceId,
-        // A signed-in tile is posted under the account's name, whatever the
-        // form carried: the field isn't even rendered for them.
-        displayName: customer?.username ?? displayName,
+        displayName: customer.username,
         caption,
         image: new Uint8Array(await image.arrayBuffer()),
         ipHash: signals.ipHash,
-        userId: customer?.id ?? null,
+        userId: customer.id,
       },
       {
         store: new SupabaseTileStore(admin),
         processImage: processTileImage,
         moderate: (content) =>
           moderateTile(content, { apiKey: env.OPENAI_API_KEY, blockedTerms }),
-        // Tags follow the account when there is one, so the same person
-        // gets the same tag on every device.
-        nameTag: (id, name) => nameTagFor(customer?.id ?? id, name, secret),
+        // Tags follow the account, so the same person gets the same tag on
+        // every device.
+        nameTag: (_deviceId, name) => nameTagFor(customer.id, name, secret),
         newId: () => crypto.randomUUID(),
         now: () => new Date(),
         logError: console.error,

@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { MAX_UPLOAD_BYTES } from "@/lib/tile-image";
 
-// Control characters would let a name or caption break the board's layout
-// or smuggle invisible text; captions and names are single-line.
+// Control characters would let a caption break the board's layout or
+// smuggle invisible text; captions are single-line.
 const NO_CONTROL_CHARS = /^[^\p{Cc}]*$/u;
 
 /** Trims a text field and treats an empty value as "not provided". */
@@ -20,7 +20,6 @@ const optionalText = (max: number, label: string) =>
 
 export const postTileFormSchema = z.object({
   slug: z.string().min(1),
-  displayName: optionalText(40, "name"),
   caption: optionalText(80, "caption"),
   image: z
     .instanceof(Blob, { message: "Draw something first." })

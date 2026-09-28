@@ -19,17 +19,32 @@ export default function PrivacyPage() {
 
       <p>
         DrawPin is a shared drawing board — for a restaurant, a classroom, a
-        group of friends, whatever it was set up for. You can draw on it without
-        an account. Signing in is only needed to be voted for, to vote, and to
-        report a drawing.
+        group of friends, whatever it was set up for. You can draw on it for fun
+        without an account. Signing in is needed to post a drawing to the board,
+        to vote, and to report a drawing.
       </p>
 
       <section className="flex flex-col gap-2">
-        <h2 className="font-medium">What we keep when you draw as a guest</h2>
+        <h2 className="font-medium">
+          What we keep when you draw without signing in
+        </h2>
+        <p>
+          Nothing. Without an account a drawing can&apos;t be posted, so it
+          never leaves your device.
+        </p>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h2 className="font-medium">What we keep when you sign in</h2>
         <ul className="list-disc pl-5">
           <li>
-            Your drawing, and the name and caption you posted with it. These are
-            public — anyone with the board&apos;s link can see them.
+            The email address on your Google account, and the name on it — the
+            name is only used to suggest a username, which you can change.
+          </li>
+          <li>The username you choose, which is shown on your drawings.</li>
+          <li>
+            Each drawing you post, and its caption. These are public — anyone
+            with the board&apos;s link can see them.
           </li>
           <li>
             An identifier stored in a cookie on your device, so the one drawing
@@ -41,17 +56,6 @@ export default function PrivacyPage() {
             fingerprint themselves, and the hashes can&apos;t be turned back
             into them.
           </li>
-        </ul>
-      </section>
-
-      <section className="flex flex-col gap-2">
-        <h2 className="font-medium">What we keep when you sign in</h2>
-        <ul className="list-disc pl-5">
-          <li>
-            The email address on your Google account, and the name on it — the
-            name is only used to suggest a username, which you can change.
-          </li>
-          <li>The username you choose, which is shown on your drawings.</li>
           <li>Your votes, and any drawings you report.</li>
         </ul>
       </section>
@@ -134,8 +138,9 @@ export default function PrivacyPage() {
       <section className="flex flex-col gap-2">
         <h2 className="font-medium">Children</h2>
         <p>
-          Drawing needs no account and we ask nothing about who you are. Signing
-          in uses a Google account, which has its own age rules.
+          Drawing for fun needs no account and we ask nothing about who you are.
+          Posting, voting and reporting use a Google account, which has its own
+          age rules.
         </p>
       </section>
 

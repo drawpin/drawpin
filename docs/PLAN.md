@@ -1,9 +1,9 @@
-# DrawPin — Product Plan (v8, locked)
+# DrawPin — Product Plan (v9, locked)
 
 > Source of truth for v1 scope. Changes require an ADR in `docs/adr/` and a version bump here.
 
 ## Concept
-Free, web-based shared drawing boards for any group of people — a restaurant, a classroom, a party, a group chat. Whoever sets a board up decides what it's for. Scan a printed QR or enter an 8-digit code, Kahoot-style. No app download, and no account needed to draw. Signing in with Google is what puts a drawing in the running: draw a tile, see everyone's tiles, vote for the weekly winner, and crown a monthly super winner.
+Free, web-based shared drawing boards for any group of people — a restaurant, a classroom, a party, a group chat. Whoever sets a board up decides what it's for. Scan a printed QR or enter an 8-digit code, Kahoot-style. No app download, and no account needed to draw for fun. Signing in with Google is what puts a drawing on the board: draw a tile, see everyone's tiles, vote for the weekly winner, and crown a monthly super winner.
 
 A place with tables is one kind of group and the one the product was designed around — printed codes, a daily rotation, an owner who prints one thing and walks away — so the model keeps that shape: a board has an owner, a time zone and a code. The outward copy does not assume a business.
 
@@ -14,13 +14,14 @@ A place with tables is one kind of group and the one the product was designed ar
 - No wall TV/tablet. The board is viewed on phones.
 - Location checks (IP/geofence) are out of scope for v1.
 
-### Accounts (ADR-004)
-Drawing needs no account. **Competing does.**
+### Accounts (ADR-004, ADR-007)
+Drawing for fun needs no account. **Posting and competing do.**
 
 | | Anonymous | Signed in |
 |---|---|---|
 | See the board | yes | yes |
-| Draw a tile | yes, shown as a guest | yes, under their username |
+| Draw | yes, for fun: it isn't posted | yes |
+| Post a tile to the board | no | yes, under their username |
 | Be voted for, and win | no | yes |
 | Vote | no | yes, from any device |
 | Report a tile | no | yes |
@@ -32,8 +33,8 @@ Drawing needs no account. **Competing does.**
 ### Tiles (default mode)
 - Each tile = a drawing + optional typed caption (max 80 chars).
 - Drawing tools: pen, marker, spray, eraser, paint bucket, and shapes (line, circle, square — the line doubles as a ruler; circles and squares come out perfect, and Shift stretches them on a keyboard). Six base colours plus a colour wheel and hex field. A Snap toggle (hold still at the end of a stroke to straighten it into a line or shape) and a lasso (circle part of the drawing to move or resize it) were added with the shapes, all from the first test round's feedback.
-- Posting as a guest or signed in. A guest tile shows the optional name typed with it and is marked as not in the running; a signed-in tile shows that account's username.
-- **1 post per device per day** (day resets 4:00 AM venue time). A signed-in post must also pass **1 post per account per day**, so a second device doesn't buy a second post.
+- Posting needs a Google sign-in (ADR-007). A tile shows that account's username. A guest can draw as much as they like, but nothing they draw goes on the board.
+- **1 post per account per day and 1 per device per day** (day resets 4:00 AM venue time), so a second device doesn't buy a second post.
 
 ### Moderation (automatic only)
 - Every username, caption, and drawing is checked by a blocklist + OpenAI moderation (text + image). Every drawing is also read by a vision model (`gpt-4.1-mini`) for written words, hate symbols and sexual content, and the words it reads go through the blocklist too (ADR-006).
@@ -51,7 +52,7 @@ Drawing needs no account. **Competing does.**
 - **Anyone signed in can vote** (drawing not required). 3 votes per account per week, from any device.
 - Vote rules (defaults): each vote goes on a different tile, you can't vote on your own tile, and votes are final.
 - Voting flow: pick up to 3 tiles, then cast them in one confirmation. Votes not cast yet stay available for the rest of the voting week.
-- Guest tiles appear on the voting screen but can't be selected: only tiles posted by an account are votable and eligible to win.
+- Guest tiles posted before v9 appear on the voting screen but can't be selected: only tiles posted by an account are votable and eligible to win.
 - End of week N+1: the tile with the most votes is **week N's winner** and goes into the venue's Hall of Fame. Ties are broken by the earlier post. A tile needs **at least 1 vote** to win; a week with no votes has no winner.
 - Live vote counts stay hidden until voting closes.
 - Accepted risk: someone determined can make a second Google account. Out of scope to chase at this scale; Turnstile still applies to voting.
@@ -64,7 +65,7 @@ Drawing needs no account. **Competing does.**
 - Opening the app during a final shows a "Vote for this month's super winner" prompt.
 
 ### Abuse limiting (layered)
-Account (where there is one) + signed device ID cookie + browser fingerprint (hashed) + IP rate limit (hashed) + Cloudflare Turnstile on post and vote. The device layers carry guest posting on their own, and add to the account limit for signed-in posting.
+Account + signed device ID cookie + browser fingerprint (hashed) + IP rate limit (hashed) + Cloudflare Turnstile on post and vote. The device layers add to the account limit.
 
 ### Owner admin (bare minimum)
 - Owners sign in by email magic link (Supabase Auth), single-use, short expiry, rate-limited, Turnstile on login. Customers sign in with Google; the two are separate roles on one auth system.
@@ -76,7 +77,7 @@ Account (where there is one) + signed device ID cookie + browser fingerprint (ha
 
 ### Data retention
 - Weekly winners and monthly super winners (the Hall of Fame) are kept forever.
-- All other tiles and images, guest tiles included, are deleted 30 days after that week's voting ends.
+- All other tiles and images are deleted 30 days after that week's voting ends.
 - Daily posting records are deleted after 30 days; devices unused for 90 days with no tiles or votes are deleted.
 - Only hashes of IPs and fingerprints are stored.
 
@@ -113,11 +114,8 @@ one can still draw as a guest. None of these are v1.
 **Downloading your own drawings** (#57) is the one worth pulling forward
 soonest: everything but a winner is deleted 30 days after voting, image and
 all, so today a screenshot is the only way anyone keeps what they drew.
-Downloading would need an account — a guest sees the option and is asked to
-sign in when they tap it, since that is the moment an account is worth
-something to them. The catch to solve first is that signing in does not make a
-guest tile theirs, so the account has to adopt what the device posted. Not v1
-as it stands.
+Since v9 every new tile belongs to an account, so downloading is a matter of
+listing an account's own tiles. Not v1 as it stands.
 
 ## Phases
 1. Owner signs in → creates board → customers open QR → username → draw tile → live feed on phones *(done)*
@@ -147,6 +145,8 @@ v6 changes: scheduling moved from an hourly cron to on-demand transitions plus a
 v7 changes: the weekly Hall of Fame is a single winner (at least 1 vote) instead of a top 7; added the monthly final among up to 4 weekly winners and the monthly super winner; defined the voting flow and hidden live counts; noted the per-device voting limitation; added retention for posting records and unused devices.
 
 v8 changes: customer accounts added (ADR-004) — Google sign-in for customers, anonymous drawing stays but guest tiles can't be voted for or win, votes and the monthly final move from per device to per account, a signed-in post must pass both the account and the device daily limit, reporting a tile becomes possible and joins the owner screen, and accounts move from the back pocket into phase 3 so voting and winners are built on them once instead of twice.
+
+v9 changes: guests draw for fun only (ADR-007). Posting needs a Google sign-in, so every tile belongs to an account; guest tiles posted before v9 stay until the normal 30-day clean-up.
 
 ## Diagrams
 

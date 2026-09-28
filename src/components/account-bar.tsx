@@ -6,8 +6,8 @@ import type { Customer } from "@/lib/customer";
 /**
  * Who the visitor is on this board, and the way in if they're a guest.
  *
- * Guests can draw perfectly well, so this never blocks anything — it's the
- * nudge for the things an account unlocks (docs/PLAN.md, Accounts).
+ * Guests can draw for fun without it; posting, voting and winning need an
+ * account (docs/PLAN.md, Accounts).
  */
 export function AccountBar({
   customer,
@@ -34,10 +34,10 @@ export function AccountBar({
 
   return (
     <div className="flex flex-col gap-2 rounded-lg border px-3 py-3">
-      <p className="text-sm font-medium">Want to be in the running?</p>
+      <p className="text-sm font-medium">Want your drawing on the board?</p>
       <p className="text-muted-foreground text-xs">
-        Anyone can draw. Signing in lets your tile be voted for, and lets you
-        vote on last week&apos;s board from any device.
+        Anyone can draw for fun. Signing in lets you post a tile each day, be
+        voted for, and vote on last week&apos;s board from any device.
       </p>
       <GoogleSignIn next={next} size="sm" />
     </div>
