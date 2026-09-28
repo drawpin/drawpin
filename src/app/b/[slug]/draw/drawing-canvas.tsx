@@ -40,7 +40,7 @@ import {
   sameRect,
 } from "./selection";
 import { isTooSmall, keepsPerfect, type Point, shapeEnd } from "./shapes";
-import { cursorFor, isShapeTool, type Tool } from "./tools";
+import { cursorFor, isShapeTool, type Tool, toolName } from "./tools";
 
 export type { DrawOp } from "./render";
 
@@ -78,6 +78,11 @@ type DrawingCanvasProps = {
    */
   assist: boolean;
   disabled?: boolean;
+  /**
+   * The size is being changed: show the brush at that size in the middle of
+   * the canvas, since on a phone there's no pointer to show it on.
+   */
+  previewSize?: boolean;
   onDraw: (op: DrawOp) => void;
 };
 
@@ -105,7 +110,7 @@ export const DrawingCanvas = forwardRef<
   DrawingCanvasHandle,
   DrawingCanvasProps
 >(function DrawingCanvas(
-  { ops, color, size, tool, showGrid, assist, disabled, onDraw },
+  { ops, color, size, tool, showGrid, assist, disabled, previewSize, onDraw },
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -135,6 +140,8 @@ export const DrawingCanvas = forwardRef<
   // In state rather than a ref: the Done and Cancel buttons show with it.
   const [floating, setFloating] = useState<Floating | null>(null);
   const [backingSize, setBackingSize] = useState(TILE_SIZE);
+  // The canvas's width on screen, for sizing the brush preview.
+  const [cssWidth, setCssWidth] = useState(0);
   const [view, setView] = useState<View>(WHOLE_TILE);
   // A mouse moving the view with its right or middle button: where the drag
   // started and the view then. In state as well as a ref for the cursor.
@@ -235,9 +242,19 @@ export const DrawingCanvas = forwardRef<
   // A new size, zoom or tool changes the outline without the pointer moving.
   useEffect(placeOutline, [placeOutline]);
 
-  /** Follows a mouse or stylus; a finger has no hover and covers the spot. */
+  /**
+   * Follows a mouse or stylus as it hovers, and a finger while it's down: the
+   * ring shows past the fingertip, which hides the spot it's erasing. Two
+   * fingers are moving the view, so there's nothing to show.
+   */
   function trackHover(event: PointerEvent<HTMLCanvasElement>) {
-    if (event.pointerType === "touch") return;
+    if (
+      event.pointerType === "touch" &&
+      (!fingers.current.has(event.pointerId) || fingers.current.size > 1)
+    ) {
+      endHover();
+      return;
+    }
     hover.current = fingerAt(
       event,
       event.currentTarget.getBoundingClientRect(),
@@ -302,6 +319,7 @@ export const DrawingCanvas = forwardRef<
       const width = canvas.getBoundingClientRect().width;
       if (width > 0) {
         setBackingSize(backingSizeFor(width, window.devicePixelRatio));
+        setCssWidth(width);
       }
     };
 
@@ -372,6 +390,7 @@ export const DrawingCanvas = forwardRef<
     }
 
     fingers.current.set(event.pointerId, finger);
+    trackHover(event);
     cancelHold();
     holdAnchor.current = null;
     snapped.current = null;
@@ -559,6 +578,7 @@ export const DrawingCanvas = forwardRef<
   }
 
   function handlePointerUp(event: PointerEvent<HTMLCanvasElement>) {
+    if (event.pointerType === "touch") endHover();
     if (panning.current) {
       panning.current = null;
       setGrabbing(false);
@@ -649,6 +669,25 @@ export const DrawingCanvas = forwardRef<
         aria-hidden
         className="pointer-events-none absolute top-0 left-0 hidden rounded-full border border-black/70 shadow-[0_0_0_1px_rgba(255,255,255,0.9)]"
       />
+
+      {previewSize && cssWidth > 0 && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-black/70 shadow-[0_0_0_1px_rgba(255,255,255,0.9)]"
+          style={{
+            width: brushWidthOnScreen(size, view, cssWidth),
+            height: brushWidthOnScreen(size, view, cssWidth),
+            // The eraser is the paper's colour, so it shows as a ring alone.
+            background: tool === "eraser" ? "transparent" : color,
+          }}
+        />
+      )}
+
+      {/* Which tool is in hand, on touch screens, where the toolbar can be
+          scrolled out of sight; a mouse shows it with the cursor. */}
+      <p className="bg-background/80 text-muted-foreground pointer-events-none absolute top-2 right-2 hidden rounded px-2 py-1 text-xs shadow pointer-coarse:block">
+        {toolName(tool)}
+      </p>
 
       {view.scale > 1 && !floating && (
         // Only where there's a mouse: on a touch screen two fingers move it.

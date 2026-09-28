@@ -32,3 +32,13 @@ export function cursorFor(tool: Tool): string {
   if (tool === "fill") return "cell";
   return "crosshair";
 }
+
+/** What a tool is called on its button, for showing which one is in hand. */
+export function toolName(tool: Tool): string {
+  if (tool === "fill") return "Fill";
+  if (tool === "lasso") return "Lasso";
+  return (
+    [...BRUSHES, ...SHAPES].find((option) => option.value === tool)?.name ??
+    tool
+  );
+}
