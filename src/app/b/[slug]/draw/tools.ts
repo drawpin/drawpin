@@ -19,3 +19,16 @@ export const BRUSHES: { value: Brush; name: string }[] = [
 export function isShapeTool(tool: Tool): tool is ShapeKind {
   return SHAPES.some((shape) => shape.value === tool);
 }
+
+/**
+ * The mouse cursor over the canvas for each tool, as a CSS `cursor` value.
+ *
+ * Built-in cursors for now; a tool can switch to its own picture later
+ * (`url(...) x y, crosshair`) without anything else changing. The eraser has
+ * none because the canvas draws its outline instead, at the size it erases.
+ */
+export function cursorFor(tool: Tool): string {
+  if (tool === "eraser") return "none";
+  if (tool === "fill") return "cell";
+  return "crosshair";
+}

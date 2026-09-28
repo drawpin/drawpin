@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   backingSizeFor,
+  brushWidthOnScreen,
   type DrawOp,
   drawSelectionFrame,
   fillAt,
@@ -39,7 +40,7 @@ import {
   sameRect,
 } from "./selection";
 import { isTooSmall, keepsPerfect, type Point, shapeEnd } from "./shapes";
-import { isShapeTool, type Tool } from "./tools";
+import { cursorFor, isShapeTool, type Tool } from "./tools";
 
 export type { DrawOp } from "./render";
 
@@ -139,6 +140,11 @@ export const DrawingCanvas = forwardRef<
   // started and the view then. In state as well as a ref for the cursor.
   const panning = useRef<{ origin: Finger; view: View } | null>(null);
   const [grabbing, setGrabbing] = useState(false);
+  // Where a mouse or stylus is hovering, for the eraser's outline. Moved by
+  // writing to the element directly: a re-render per mouse move would redraw
+  // the whole drawing.
+  const hover = useRef<Finger | null>(null);
+  const outlineRef = useRef<HTMLDivElement>(null);
 
   const redraw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -203,6 +209,46 @@ export const DrawingCanvas = forwardRef<
   }
 
   useEffect(redraw, [redraw, backingSize]);
+
+  /** Puts the eraser's outline under the pointer, at the size it erases. */
+  const placeOutline = useCallback(() => {
+    const outline = outlineRef.current;
+    const canvas = canvasRef.current;
+    if (!outline || !canvas) return;
+
+    const at = hover.current;
+    if (!at || tool !== "eraser" || disabled || grabbing) {
+      outline.style.display = "none";
+      return;
+    }
+    const width = brushWidthOnScreen(
+      size,
+      view,
+      canvas.getBoundingClientRect().width,
+    );
+    outline.style.display = "block";
+    outline.style.width = `${width}px`;
+    outline.style.height = `${width}px`;
+    outline.style.transform = `translate(${at.x - width / 2}px, ${at.y - width / 2}px)`;
+  }, [tool, size, view, disabled, grabbing]);
+
+  // A new size, zoom or tool changes the outline without the pointer moving.
+  useEffect(placeOutline, [placeOutline]);
+
+  /** Follows a mouse or stylus; a finger has no hover and covers the spot. */
+  function trackHover(event: PointerEvent<HTMLCanvasElement>) {
+    if (event.pointerType === "touch") return;
+    hover.current = fingerAt(
+      event,
+      event.currentTarget.getBoundingClientRect(),
+    );
+    placeOutline();
+  }
+
+  function endHover() {
+    hover.current = null;
+    placeOutline();
+  }
 
   // A snap due after the canvas is gone has nothing to snap.
   useEffect(() => {
@@ -408,6 +454,7 @@ export const DrawingCanvas = forwardRef<
   }
 
   function handlePointerMove(event: PointerEvent<HTMLCanvasElement>) {
+    trackHover(event);
     const pan = panning.current;
     if (pan) {
       const rect = event.currentTarget.getBoundingClientRect();
@@ -582,16 +629,25 @@ export const DrawingCanvas = forwardRef<
         aria-label="Drawing area"
         // Stops the page scrolling or zooming while a finger is on the tile;
         // pinching is handled here instead.
-        className={`aspect-square w-full touch-none rounded-lg border bg-white ${
-          grabbing ? "cursor-grabbing" : ""
-        }`}
+        className="aspect-square w-full touch-none rounded-lg border bg-white"
+        style={{ cursor: grabbing ? "grabbing" : cursorFor(tool) }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
+        onPointerLeave={endHover}
         onWheel={handleWheel}
         // The right button moves the view, so its menu would only get in the way.
         onContextMenu={(event) => event.preventDefault()}
+      />
+
+      {/* The eraser's size and position, since it leaves nothing to see
+          until it's used. A dark ring inside a light one shows on any
+          colour. */}
+      <div
+        ref={outlineRef}
+        aria-hidden
+        className="pointer-events-none absolute top-0 left-0 hidden rounded-full border border-black/70 shadow-[0_0_0_1px_rgba(255,255,255,0.9)]"
       />
 
       {view.scale > 1 && !floating && (
