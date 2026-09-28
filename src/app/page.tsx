@@ -10,7 +10,7 @@ const STEPS = [
   },
   {
     title: "Draw one tile",
-    body: "A few colours, a few brushes, and a caption if you want one. Sign in with Google to post it: one drawing each per day, so the board stays everyone's rather than one person's.",
+    body: "A few colours, a few brushes, and a caption if you want one. One drawing each per day, so the board stays everyone's rather than one person's.",
   },
   {
     title: "Come back and vote",
@@ -116,8 +116,8 @@ export default function Home() {
             <p>
               That was the idea, anyway. It turns out a room doesn&apos;t have
               to be a café — a classroom, a party, an office, a group chat with
-              nothing going on. Nothing to install, just a Google sign-in to
-              post, and it costs nothing to run.
+              nothing going on. Nothing to install, nothing to sign up for, and
+              it costs nothing to run.
             </p>
           </div>
         </section>
