@@ -1571,6 +1571,35 @@ describe("board_stats", () => {
     expect(stats.total).toBe(5);
   });
 
+  it("counts an account once, whichever devices it posted from", async () => {
+    const { venueId, weekId, artistDeviceId, voterDeviceId } =
+      await seedBoard();
+    const accountId = crypto.randomUUID();
+    await db.exec(
+      `insert into auth.users (id, email) values ('${accountId}', '${accountId}@example.com');
+       insert into profiles (id, username) values ('${accountId}', 'Ahmad');`,
+    );
+    const before = await callStats(venueId);
+
+    // One person posts from both of the board's devices on two days.
+    await db.query(
+      `insert into tiles (week_id, device_id, user_id, image_path) values
+         ($1, $2, $4, 'tiles/a.webp'), ($1, $3, $4, 'tiles/b.webp')`,
+      [weekId, artistDeviceId, voterDeviceId, accountId],
+    );
+
+    const after = await callStats(venueId);
+    expect(after.people).toBe(before.people + 1);
+    expect(after.total).toBe(before.total + 2);
+  });
+
+  it("counts old guest tiles by the device that posted them", async () => {
+    const { venueId } = await seedBoard();
+
+    // seedBoard's tiles have no account: two devices, two artists.
+    expect((await callStats(venueId)).people).toBe(2);
+  });
+
   it("counts this week only against the week taking posts now", async () => {
     const { venueId, weekId } = await seedBoard();
 
