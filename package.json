@@ -14,7 +14,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "knip": "knip",
-    "moderation:eval": "vitest run --config vitest.eval.config.mts"
+    "moderation:eval": "vitest run --config vitest.eval.config.mts",
+    "preview:seed": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/seed-preview.mts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
