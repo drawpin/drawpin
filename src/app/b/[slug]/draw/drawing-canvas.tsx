@@ -623,22 +623,32 @@ export const DrawingCanvas = forwardRef<
     onDraw(drawing);
   }
 
-  /** Zooming with a wheel, for anyone drawing with a mouse or trackpad. */
-  function handleWheel(event: React.WheelEvent<HTMLCanvasElement>) {
-    if (disabled) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    const finger = fingerAt(event, rect);
-    const factor = Math.exp(-event.deltaY / 300);
-    setView((current) =>
-      zoomAround(
-        current,
-        current.scale * factor,
-        finger.x,
-        finger.y,
-        rect.width,
-      ),
-    );
-  }
+  // Zooming with a wheel, for anyone drawing with a mouse or trackpad. React
+  // listens for wheel events passively, so its onWheel can't stop the page
+  // scrolling (or, for a trackpad pinch, zooming) at the same time and the
+  // tile slides out from under the pointer; a listener of our own can.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || disabled) return;
+
+    function handleWheel(event: WheelEvent) {
+      event.preventDefault();
+      const rect = canvas!.getBoundingClientRect();
+      const factor = Math.exp(-event.deltaY / 300);
+      setView((current) =>
+        zoomAround(
+          current,
+          current.scale * factor,
+          event.clientX - rect.left,
+          event.clientY - rect.top,
+          rect.width,
+        ),
+      );
+    }
+
+    canvas.addEventListener("wheel", handleWheel, { passive: false });
+    return () => canvas.removeEventListener("wheel", handleWheel);
+  }, [disabled]);
 
   return (
     <div className="relative">
@@ -656,7 +666,6 @@ export const DrawingCanvas = forwardRef<
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
         onPointerLeave={endHover}
-        onWheel={handleWheel}
         // The right button moves the view, so its menu would only get in the way.
         onContextMenu={(event) => event.preventDefault()}
       />
