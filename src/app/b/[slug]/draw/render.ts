@@ -583,6 +583,20 @@ export function screenToTile(
 }
 
 /**
+ * How wide a brush of `size` tile units looks on screen, in CSS pixels, at
+ * the canvas's size and zoom: the eraser's outline is drawn at this width.
+ *
+ * @param cssSize - The canvas element's width in CSS pixels; it's square.
+ */
+export function brushWidthOnScreen(
+  size: number,
+  view: View,
+  cssSize: number,
+): number {
+  return size * (cssSize / TILE_SIZE) * view.scale;
+}
+
+/**
  * Moves the view so the drawing follows a drag of `dxCss`, `dyCss` on screen:
  * dragging right shows more of the left of the tile.
  *

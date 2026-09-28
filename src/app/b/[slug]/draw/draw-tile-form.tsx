@@ -47,6 +47,9 @@ const ASSIST_STORAGE_KEY = "drawpin:snap-assist";
 
 const initialState: PostTileState = { status: "idle" };
 
+/** How long the brush stays shown on the canvas after its size last changed. */
+const SIZE_PREVIEW_MS = 800;
+
 const subscribeToNothing = () => () => {};
 
 /**
@@ -165,6 +168,26 @@ export function DrawTileForm({
   // once there's something to post.
   const [step, setStep] = useState<"drawing" | "details">("drawing");
   const [sizeOpen, setSizeOpen] = useState(false);
+  // Shows the brush on the canvas while its size changes, and for a moment
+  // after, so a tap on the slider is seen too.
+  const [previewingSize, setPreviewingSize] = useState(false);
+  const previewTimer = useRef<number | null>(null);
+
+  function previewSize() {
+    setPreviewingSize(true);
+    if (previewTimer.current !== null) clearTimeout(previewTimer.current);
+    previewTimer.current = window.setTimeout(
+      () => setPreviewingSize(false),
+      SIZE_PREVIEW_MS,
+    );
+  }
+
+  useEffect(() => {
+    const timer = previewTimer;
+    return () => {
+      if (timer.current !== null) clearTimeout(timer.current);
+    };
+  }, []);
   const [localError, setLocalError] = useState<string | null>(null);
   const canvasRef = useRef<DrawingCanvasHandle>(null);
 
@@ -318,6 +341,7 @@ export function DrawTileForm({
         showGrid={showGrid && step === "drawing"}
         assist={assist}
         disabled={pending}
+        previewSize={previewingSize}
         onDraw={addOp}
       />
 
@@ -686,6 +710,7 @@ export function DrawTileForm({
                 disabled={pending}
                 onChange={(event) => {
                   const next = Number(event.target.value);
+                  previewSize();
                   if (isErasing) {
                     setEraserSize(next);
                     remember(ERASER_SIZE_STORAGE_KEY, String(next));

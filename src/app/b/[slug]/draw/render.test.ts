@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import {
   backingSizeFor,
+  brushWidthOnScreen,
   clampView,
   drawShape,
   MAX_ZOOM,
@@ -102,6 +103,17 @@ describe("zoomAround", () => {
     const back = zoomAround(zoomed, 1, 200, 200, 343);
 
     expect(back).toEqual(WHOLE_TILE);
+  });
+});
+
+describe("brushWidthOnScreen", () => {
+  it("scales with the canvas's size", () => {
+    expect(brushWidthOnScreen(36, WHOLE_TILE, TILE_SIZE / 2)).toBe(18);
+  });
+
+  it("grows as the view zooms in", () => {
+    const zoomed = { scale: 4, offsetX: 0, offsetY: 0 };
+    expect(brushWidthOnScreen(36, zoomed, TILE_SIZE)).toBe(144);
   });
 });
 
