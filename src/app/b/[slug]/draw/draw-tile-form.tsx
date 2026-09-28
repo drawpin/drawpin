@@ -9,6 +9,24 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
+import {
+  ArrowClockwiseIcon,
+  ArrowCounterClockwiseIcon,
+  CircleIcon,
+  EraserIcon,
+  GridFourIcon,
+  HighlighterIcon,
+  type Icon,
+  LassoIcon,
+  LineSegmentIcon,
+  MagnetIcon,
+  PaintBucketIcon,
+  PenIcon,
+  ShapesIcon,
+  SprayBottleIcon,
+  SquareIcon,
+  TrashIcon,
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,7 +45,48 @@ import type { Brush } from "./render";
 import type { PostTileState } from "./schema";
 import { type ShapeKind, SHAPES } from "./shapes";
 import { historyShortcut, isTypingTarget } from "./shortcuts";
+import { ToolButton } from "./tool-button";
 import { BRUSHES, isShapeTool, type Tool } from "./tools";
+
+const BRUSH_ICONS: Record<Brush, Icon> = {
+  pen: PenIcon,
+  marker: HighlighterIcon,
+  spray: SprayBottleIcon,
+  eraser: EraserIcon,
+};
+
+const SHAPE_ICONS: Record<ShapeKind, Icon> = {
+  line: LineSegmentIcon,
+  ellipse: CircleIcon,
+  rectangle: SquareIcon,
+};
+
+/** An on/off button that's on: the primary blue on the tint. */
+const PRESSED =
+  "aria-pressed:border-primary aria-pressed:bg-secondary aria-pressed:text-primary";
+
+/**
+ * A colour swatch: a circle as wide as its grid column, at least 44px on a
+ * 375px phone. The ring shows which colour is in hand.
+ */
+const SWATCH =
+  "border-border focus-visible:ring-highlight aria-pressed:ring-primary aspect-square w-full max-w-12 cursor-pointer justify-self-center rounded-full border outline-none focus-visible:ring-3 aria-pressed:ring-2 aria-pressed:ring-offset-2";
+
+/** The brush size as a dot in the brush's colour, or an outline for the eraser. */
+function SizeDot({ size, color }: { size: number; color: string | null }) {
+  const diameter = Math.min(Math.max(size / 2.5, 4), 22);
+  return (
+    <span
+      aria-hidden
+      className="border-foreground/40 rounded-full border"
+      style={{
+        width: diameter,
+        height: diameter,
+        backgroundColor: color ?? "transparent",
+      }}
+    />
+  );
+}
 
 /** Brush sizes in tile units, so they mean the same on any screen. */
 const MIN_SIZE = 4;
@@ -354,67 +413,44 @@ export function DrawTileForm({
 
       {step === "drawing" ? (
         <>
-          {/* Two rows — what you draw with, then what else a finger can do —
-              so every tool fits the narrowest phones and there's room for
-              the next one. */}
-          <fieldset className="flex gap-2" disabled={pending}>
-            <legend className="sr-only">Brush</legend>
-            {BRUSHES.map((option) => (
-              <Button
-                key={option.value}
-                type="button"
-                variant={tool === option.value ? "default" : "outline"}
-                size="sm"
-                aria-pressed={tool === option.value}
-                onClick={() =>
-                  switchTool(() => {
-                    setBrush(option.value);
-                    setMode(null);
-                    remember(BRUSH_STORAGE_KEY, option.value);
-                  })
-                }
-              >
-                {option.name}
-              </Button>
-            ))}
-          </fieldset>
-
-          {/* Each of these toggles: pressing it again goes back to the brush,
-              the way the bucket always has. */}
-          <fieldset className="flex gap-2" disabled={pending}>
+          {/* Every tool in one grid of big targets: what you draw with,
+              then what else a finger can do, then how big. */}
+          <fieldset className="grid grid-cols-4 gap-2" disabled={pending}>
             <legend className="sr-only">Tool</legend>
-            <Button
-              type="button"
-              variant={tool === "fill" ? "default" : "outline"}
-              size="sm"
-              aria-pressed={tool === "fill"}
+            {BRUSHES.map((option) => {
+              const BrushIcon = BRUSH_ICONS[option.value];
+              return (
+                <ToolButton
+                  key={option.value}
+                  icon={<BrushIcon />}
+                  label={option.name}
+                  pressed={tool === option.value}
+                  onClick={() =>
+                    switchTool(() => {
+                      setBrush(option.value);
+                      setMode(null);
+                      remember(BRUSH_STORAGE_KEY, option.value);
+                    })
+                  }
+                />
+              );
+            })}
+            {/* Each of these toggles: pressing it again goes back to the
+                brush, the way the bucket always has. */}
+            <ToolButton
+              icon={<PaintBucketIcon />}
+              label="Fill"
+              pressed={tool === "fill"}
               onClick={() =>
                 switchTool(() =>
                   setMode((current) => (current === "fill" ? null : "fill")),
                 )
               }
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden
-              >
-                <path d="m19 11-8-8-8.6 8.6a2 2 0 0 0 0 2.8l5.2 5.2c.8.8 2 .8 2.8 0L19 11Z" />
-                <path d="m5 2 5 5" />
-                <path d="M2 13h15" />
-                <path d="M22 20a2 2 0 1 1-4 0c0-1.6 1.7-2.4 2-4 .3 1.6 2 2.4 2 4Z" />
-              </svg>
-              Fill
-            </Button>
-            <Button
-              type="button"
-              variant={isShapeTool(tool) ? "default" : "outline"}
-              size="sm"
-              aria-pressed={isShapeTool(tool)}
+            />
+            <ToolButton
+              icon={<ShapesIcon />}
+              label="Shapes"
+              pressed={isShapeTool(tool)}
               onClick={() =>
                 switchTool(() =>
                   setMode((current) =>
@@ -422,84 +458,122 @@ export function DrawTileForm({
                   ),
                 )
               }
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                aria-hidden
-              >
-                <rect x="2" y="8" width="10" height="10" />
-                <circle cx="16" cy="9" r="6" />
-              </svg>
-              Shapes
-            </Button>
-            <Button
-              type="button"
-              variant={tool === "lasso" ? "default" : "outline"}
-              size="sm"
-              aria-pressed={tool === "lasso"}
+            />
+            <ToolButton
+              icon={<LassoIcon />}
+              label="Lasso"
+              pressed={tool === "lasso"}
               title="Circle part of your drawing to move or resize it"
               onClick={() =>
                 switchTool(() =>
                   setMode((current) => (current === "lasso" ? null : "lasso")),
                 )
               }
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeDasharray="3 3"
-                aria-hidden
-              >
-                <ellipse cx="12" cy="10" rx="9" ry="6" />
-                <path d="M6 15c-1 2 0 4 2 5" strokeDasharray="none" />
-              </svg>
-              Lasso
-            </Button>
+            />
+            {/* A dot of the current brush: pressing it opens the slider, so
+                the size only takes room when it's being changed. */}
+            <ToolButton
+              icon={<SizeDot size={size} color={isErasing ? null : color} />}
+              label="Size"
+              ariaLabel={`Brush size, ${size}`}
+              expanded={sizeOpen}
+              onClick={() => setSizeOpen((open) => !open)}
+            />
           </fieldset>
 
+          {sizeOpen && (
+            <div className="flex items-center gap-3">
+              <Label
+                htmlFor="brush-size"
+                className="text-muted-foreground text-sm"
+              >
+                {isErasing ? "Eraser" : "Size"}
+              </Label>
+              <input
+                id="brush-size"
+                type="range"
+                min={MIN_SIZE}
+                max={MAX_SIZE}
+                value={size}
+                disabled={pending}
+                onChange={(event) => {
+                  const next = Number(event.target.value);
+                  previewSize();
+                  if (isErasing) {
+                    setEraserSize(next);
+                    remember(ERASER_SIZE_STORAGE_KEY, String(next));
+                  } else {
+                    setSize(next);
+                    remember(SIZE_STORAGE_KEY, String(next));
+                  }
+                }}
+                className="accent-primary h-11 flex-1"
+                autoFocus
+              />
+              {tool === "pen" && (
+                // With the pen's size, since it's how the pen's width behaves.
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  aria-pressed={pressure}
+                  disabled={pending}
+                  title="Let the pen's width follow how hard you press, or how fast you draw"
+                  className={PRESSED}
+                  onClick={() => {
+                    const next = !pressure;
+                    setPressure(next);
+                    remember(PRESSURE_STORAGE_KEY, String(next));
+                  }}
+                >
+                  Pressure
+                </Button>
+              )}
+            </div>
+          )}
+
           {tool === "lasso" && (
-            <p className="text-muted-foreground text-xs">
+            <p className="text-muted-foreground text-sm">
               Draw a loop round part of your drawing, then drag it or its
               corners.
             </p>
           )}
 
           {isShapeTool(tool) && (
-            <fieldset className="flex items-center gap-2" disabled={pending}>
+            <fieldset
+              className="flex flex-wrap items-center gap-2"
+              disabled={pending}
+            >
               <legend className="sr-only">Shape</legend>
-              {SHAPES.map((option) => (
-                <Button
-                  key={option.value}
-                  type="button"
-                  variant={tool === option.value ? "default" : "outline"}
-                  size="sm"
-                  aria-pressed={tool === option.value}
-                  onClick={() => {
-                    setMode(option.value);
-                    setLastShape(option.value);
-                  }}
-                >
-                  {option.name}
-                </Button>
-              ))}
-              <span className="text-muted-foreground text-xs">
+              {SHAPES.map((option) => {
+                const ShapeIcon = SHAPE_ICONS[option.value];
+                return (
+                  <Button
+                    key={option.value}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    aria-pressed={tool === option.value}
+                    className={PRESSED}
+                    onClick={() => {
+                      setMode(option.value);
+                      setLastShape(option.value);
+                    }}
+                  >
+                    <ShapeIcon />
+                    {option.name}
+                  </Button>
+                );
+              })}
+              <span className="text-muted-foreground text-sm">
                 Drag to draw it
               </span>
             </fieldset>
           )}
 
-          {/* One row rather than a wrap, scrolling on the narrowest phones:
-              a lone wheel on its own line looks like a mistake. */}
-          <fieldset
-            className="flex gap-2 overflow-x-auto pb-1"
-            disabled={pending}
-          >
+          {/* Seven columns: the six colours and the wheel fill a 375px phone
+              at 44px each, and grow on anything wider. */}
+          <fieldset className="grid grid-cols-7 gap-1.5" disabled={pending}>
             <legend className="sr-only">Colour</legend>
             {BASE_COLORS.map((option) => (
               <button
@@ -508,7 +582,7 @@ export function DrawTileForm({
                 aria-label={option.name}
                 aria-pressed={color === option.value}
                 onClick={() => chooseColor(option.value)}
-                className="size-9 shrink-0 rounded-full border-2 aria-pressed:border-black aria-pressed:ring-2 aria-pressed:ring-offset-2"
+                className={SWATCH}
                 style={{ backgroundColor: option.value }}
               />
             ))}
@@ -520,7 +594,7 @@ export function DrawTileForm({
               aria-label="Colour wheel"
               aria-expanded={panelOpen}
               onClick={() => (panelOpen ? closePanel() : openPanel())}
-              className="size-9 shrink-0 rounded-full border-2 aria-expanded:border-black aria-expanded:ring-2 aria-expanded:ring-offset-2"
+              className={`${SWATCH} aria-expanded:ring-primary aria-expanded:ring-2 aria-expanded:ring-offset-2`}
               style={{
                 background:
                   "conic-gradient(#ef4444, #eab308, #22c55e, #06b6d4, #3b82f6, #a855f7, #ef4444)",
@@ -531,148 +605,111 @@ export function DrawTileForm({
           {panelOpen && <ColorPanel color={color} onChange={previewColor} />}
 
           {recents.length > 0 && (
-            <fieldset
-              className="flex flex-wrap items-center gap-2"
-              disabled={pending}
-            >
-              <legend className="sr-only">Recent colours</legend>
-              <span className="text-muted-foreground text-xs">Recent</span>
-              {recents.map((recent) => (
-                <button
-                  key={recent}
-                  type="button"
-                  aria-label={`Recent ${recent}`}
-                  aria-pressed={color === recent}
-                  onClick={() => chooseColor(recent)}
-                  className="size-7 rounded-full border-2 aria-pressed:border-black aria-pressed:ring-2 aria-pressed:ring-offset-2"
-                  style={{ backgroundColor: recent }}
-                />
-              ))}
+            <fieldset disabled={pending}>
+              <legend className="text-muted-foreground mb-1.5 text-sm">
+                Recent
+              </legend>
+              <div className="grid grid-cols-7 gap-1.5">
+                {recents.map((recent) => (
+                  <button
+                    key={recent}
+                    type="button"
+                    aria-label={`Recent ${recent}`}
+                    aria-pressed={color === recent}
+                    onClick={() => chooseColor(recent)}
+                    className={SWATCH}
+                    style={{ backgroundColor: recent }}
+                  />
+                ))}
+              </div>
             </fieldset>
           )}
 
-          <div className="flex flex-wrap items-center gap-2">
-            {/* The control is a stroke of the current brush: pressing it opens
-              the slider, so the size only takes room when it's being changed. */}
-            <button
-              type="button"
-              onClick={() => setSizeOpen((open) => !open)}
-              aria-expanded={sizeOpen}
-              aria-label={`Brush size, ${size}`}
-              disabled={pending}
-              className="flex h-9 w-16 items-center justify-center rounded-md border aria-expanded:border-2 aria-expanded:border-black"
-            >
-              <svg viewBox="0 0 56 24" className="h-6 w-12" aria-hidden>
-                <line
-                  x1="6"
-                  y1="12"
-                  x2="50"
-                  y2="12"
-                  stroke={isErasing ? "#d1d5db" : color}
-                  strokeWidth={Math.max(size / 3, 2)}
-                  strokeLinecap="round"
-                />
-              </svg>
-            </button>
-            <Button
-              type="button"
-              variant={showGrid ? "default" : "outline"}
-              size="sm"
-              aria-pressed={showGrid}
-              disabled={pending}
-              onClick={() => {
-                const next = !showGrid;
-                setShowGrid(next);
-                remember(GRID_STORAGE_KEY, String(next));
-              }}
-            >
-              Grid
-            </Button>
-            <Button
-              type="button"
-              variant={assist ? "default" : "outline"}
-              size="sm"
-              aria-pressed={assist}
-              disabled={pending}
-              title="Hold still at the end of a line or shape to snap it perfect"
-              onClick={() => {
-                const next = !assist;
-                setAssist(next);
-                remember(ASSIST_STORAGE_KEY, String(next));
-              }}
-            >
-              Snap
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              disabled={pending || ops.length === 0}
-              onClick={undo}
-              title="Undo (Ctrl+Z)"
-              aria-keyshortcuts="Control+Z Meta+Z"
-              aria-label="Undo"
-            >
-              {/* Arrows rather than words, so the row still fits a phone
-                  with Snap in it: undo and redo are the one pair of icons
-                  everyone already reads. */}
-              <svg
-                viewBox="0 0 24 24"
-                className="size-4"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                aria-pressed={showGrid}
+                disabled={pending}
+                className={PRESSED}
+                onClick={() => {
+                  const next = !showGrid;
+                  setShowGrid(next);
+                  remember(GRID_STORAGE_KEY, String(next));
+                }}
               >
-                <path d="M9 14 4 9l5-5" />
-                <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
-              </svg>
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              disabled={pending || undone.length === 0}
-              onClick={redo}
-              title="Redo (Ctrl+Shift+Z)"
-              aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y"
-              aria-label="Redo"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                className="size-4"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden
+                <GridFourIcon />
+                Grid
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                aria-pressed={assist}
+                disabled={pending}
+                title="Hold still at the end of a line or shape to snap it perfect"
+                className={PRESSED}
+                onClick={() => {
+                  const next = !assist;
+                  setAssist(next);
+                  remember(ASSIST_STORAGE_KEY, String(next));
+                }}
               >
-                <path d="m15 14 5-5-5-5" />
-                <path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13" />
-              </svg>
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              disabled={pending || ops.length === 0}
-              aria-expanded={confirmingClear}
-              onClick={() => setConfirmingClear((open) => !open)}
-            >
-              Clear
-            </Button>
+                <MagnetIcon />
+                Snap
+              </Button>
+            </div>
+            <div className="flex gap-0.5">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                disabled={pending || ops.length === 0}
+                onClick={undo}
+                title="Undo (Ctrl+Z)"
+                aria-keyshortcuts="Control+Z Meta+Z"
+                aria-label="Undo"
+              >
+                <ArrowCounterClockwiseIcon weight="bold" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                disabled={pending || undone.length === 0}
+                onClick={redo}
+                title="Redo (Ctrl+Shift+Z)"
+                aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y"
+                aria-label="Redo"
+              >
+                <ArrowClockwiseIcon weight="bold" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                disabled={pending || ops.length === 0}
+                aria-label="Clear"
+                title="Clear the whole drawing"
+                aria-expanded={confirmingClear}
+                onClick={() => setConfirmingClear((open) => !open)}
+              >
+                <TrashIcon />
+              </Button>
+            </div>
           </div>
 
           {confirmingClear && ops.length > 0 && (
             <div
               role="alertdialog"
               aria-label="Clear the drawing"
-              className="flex items-center justify-between gap-2 rounded-md border px-3 py-2"
+              className="flex items-center justify-between gap-2 rounded-2xl border px-4 py-2"
             >
-              <span className="text-sm">Clear your whole drawing?</span>
+              <span className="text-sm font-medium">
+                Clear your whole drawing?
+              </span>
               <div className="flex gap-2">
                 <Button
                   type="button"
@@ -700,56 +737,6 @@ export function DrawTileForm({
             </div>
           )}
 
-          {sizeOpen && (
-            <div className="flex items-center gap-3">
-              <Label
-                htmlFor="brush-size"
-                className="text-muted-foreground text-xs"
-              >
-                {isErasing ? "Eraser" : "Size"}
-              </Label>
-              <input
-                id="brush-size"
-                type="range"
-                min={MIN_SIZE}
-                max={MAX_SIZE}
-                value={size}
-                disabled={pending}
-                onChange={(event) => {
-                  const next = Number(event.target.value);
-                  previewSize();
-                  if (isErasing) {
-                    setEraserSize(next);
-                    remember(ERASER_SIZE_STORAGE_KEY, String(next));
-                  } else {
-                    setSize(next);
-                    remember(SIZE_STORAGE_KEY, String(next));
-                  }
-                }}
-                className="flex-1 accent-black"
-                autoFocus
-              />
-              {tool === "pen" && (
-                // With the pen's size, since it's how the pen's width behaves.
-                <Button
-                  type="button"
-                  variant={pressure ? "default" : "outline"}
-                  size="sm"
-                  aria-pressed={pressure}
-                  disabled={pending}
-                  title="Let the pen's width follow how hard you press, or how fast you draw"
-                  onClick={() => {
-                    const next = !pressure;
-                    setPressure(next);
-                    remember(PRESSURE_STORAGE_KEY, String(next));
-                  }}
-                >
-                  Pressure
-                </Button>
-              )}
-            </div>
-          )}
-
           {error && (
             <p role="alert" className="text-destructive text-sm">
               {error}
@@ -761,6 +748,7 @@ export function DrawTileForm({
             <Button
               type="button"
               size="lg"
+              className="w-full"
               disabled={!hydrated || pending}
               onClick={goToDetails}
             >
@@ -799,6 +787,7 @@ export function DrawTileForm({
           <Button
             type="submit"
             size="lg"
+            className="w-full"
             disabled={!hydrated || pending || !turnstileToken}
           >
             {/* Checking the drawing is most of the wait, and a second or two

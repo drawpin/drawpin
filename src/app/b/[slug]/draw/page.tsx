@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { XIcon } from "@phosphor-icons/react/ssr";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
+import { buttonVariants } from "@/components/ui/button";
 import { getCustomer } from "@/lib/customer";
 import { readDeviceId } from "@/lib/device";
 import { serverEnv } from "@/lib/env";
@@ -65,12 +67,6 @@ export default async function DrawPage({
   const board = await getBoard(slug);
   if (!board) notFound();
 
-  const backLink = (
-    <Link href={`/b/${slug}`} className="text-sm underline underline-offset-4">
-      Back to the board
-    </Link>
-  );
-
   const customer = await getCustomer(createAdminClient());
   // A guest never posts, so today's limits don't stop them drawing for fun.
   const blocked = board.isPaused
@@ -81,14 +77,25 @@ export default async function DrawPage({
 
   return (
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 px-4 py-6">
-      <div className="flex items-baseline justify-between gap-4">
-        <h1 className="text-2xl font-semibold tracking-tight">Draw a tile</h1>
-        {backLink}
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-extrabold tracking-tight">
+            Draw a tile
+          </h1>
+          <p className="text-muted-foreground truncate text-sm">{board.name}</p>
+        </div>
+        <Link
+          href={`/b/${slug}`}
+          aria-label="Back to the board"
+          title="Back to the board"
+          className={buttonVariants({ variant: "outline", size: "icon" })}
+        >
+          <XIcon weight="bold" />
+        </Link>
       </div>
-      <p className="text-muted-foreground text-sm">{board.name}</p>
 
       {blocked ? (
-        <p role="status" className="bg-muted rounded-lg px-3 py-2 text-sm">
+        <p role="status" className="bg-secondary rounded-2xl px-4 py-3 text-sm">
           {blocked}
         </p>
       ) : (

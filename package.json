@@ -20,6 +20,7 @@
     "@base-ui/react": "^1.8.0",
     "@dsojevic/profanity-list": "^1.0.0",
     "@fingerprintjs/fingerprintjs": "^5.2.0",
+    "@phosphor-icons/react": "^2.1.10",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.116.0",
     "@tensorflow/tfjs": "^4.22.0",

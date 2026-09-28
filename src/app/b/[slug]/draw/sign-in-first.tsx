@@ -9,7 +9,7 @@ import { GoogleSignIn } from "@/components/google-sign-in";
  */
 export function SignInFirst({ next }: { next: string }) {
   return (
-    <div className="flex flex-col gap-2 rounded-lg border px-3 py-3">
+    <div className="bg-secondary flex flex-col gap-2 rounded-2xl px-4 py-4">
       <p className="text-sm font-medium">Sign in to post</p>
       <p className="text-muted-foreground text-xs">
         As a guest you can draw as much as you like, but nothing goes on the
