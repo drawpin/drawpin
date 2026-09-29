@@ -4,13 +4,12 @@ import { Button } from "@/components/ui/button";
 import type { Customer } from "@/lib/customer";
 
 /**
- * Who the visitor is on this board, and the way in if they're a guest.
+ * The way in for a guest, or out for a customer, as one small button in the
+ * board's header under Draw. Always in the same place however many drawings
+ * there are, and never a section of its own.
  *
- * Guests can draw for fun without it; posting, voting and winning need an
- * account (docs/PLAN.md, Accounts).
- *
- * One line near the top of the board either way, so it's in the same place
- * however many drawings there are. The fuller invitation is on the draw
+ * Guests can draw for fun without an account; posting, voting and winning
+ * need one (docs/PLAN.md, Accounts). The fuller invitation is on the draw
  * screen (SignInFirst), where a guest meets it before drawing, and on the
  * vote page.
  */
@@ -23,24 +22,29 @@ export function AccountBar({
 }) {
   if (customer) {
     return (
-      <div className="text-muted-foreground flex items-center justify-between gap-3 text-xs">
-        <span>
-          Drawing as <span className="font-medium">{customer.username}</span>
-        </span>
-        <form action={signOutCustomer}>
-          <input type="hidden" name="next" value={next} />
-          <Button type="submit" variant="ghost" size="sm">
-            Sign out
-          </Button>
-        </form>
-      </div>
+      <form action={signOutCustomer}>
+        <input type="hidden" name="next" value={next} />
+        <Button
+          type="submit"
+          variant="ghost"
+          size="sm"
+          title={`Signed in as ${customer.username}`}
+          className="text-muted-foreground -mr-3.5"
+        >
+          Sign out
+        </Button>
+      </form>
     );
   }
 
   return (
-    <div className="text-muted-foreground flex items-center justify-between gap-3 text-sm">
-      <span>Sign in to post, vote and win.</span>
-      <GoogleSignIn next={next} size="sm" label="Sign in" fullWidth={false} />
-    </div>
+    <GoogleSignIn
+      next={next}
+      size="sm"
+      label="Sign in"
+      variant="ghost"
+      fullWidth={false}
+      className="text-primary -mr-3.5"
+    />
   );
 }

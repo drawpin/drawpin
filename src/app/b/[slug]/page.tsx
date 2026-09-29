@@ -20,12 +20,14 @@ import {
   getPostingWeek,
   getVotingWeek,
   listLiveTiles,
+  peekAtWeek,
 } from "./data";
 import { BoardStatsLine } from "./board-stats";
 import { listWeekTimings } from "./final/data";
 import { VOTES_PER_WEEK } from "./vote/cast-votes";
 import { SupabaseVoteStore } from "./vote/supabase-vote-store";
 import { TileFeed } from "./tile-feed";
+import { PEEK_COUNT, VotePeek } from "./vote-peek";
 
 export async function generateMetadata({
   params,
@@ -85,9 +87,13 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
           customer.id,
         ))
       : VOTES_PER_WEEK;
+  const votePeek =
+    votingWeek && votesLeft > 0
+      ? await peekAtWeek(votingWeek.id, PEEK_COUNT)
+      : null;
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-6 px-4 py-6">
+    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-5 px-4 py-6">
       <div className="flex items-start justify-between gap-4">
         <div className="flex min-w-0 flex-col items-start gap-1">
           <h1 className="text-2xl font-extrabold tracking-tight break-words">
@@ -111,16 +117,21 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
             Hall of Fame
           </Link>
         </div>
-        {!board.isPaused && (
-          <Link href={`/b/${slug}/draw`} className={buttonVariants()}>
-            {/* The pencil tips as if to start drawing. */}
-            <PencilSimpleIcon
-              className="transition-transform duration-200 ease-out group-hover/button:-rotate-12 motion-reduce:transition-none"
-              weight="bold"
-            />
-            Draw
-          </Link>
-        )}
+        {/* Draw, and under it the way in or out: sign-in lives here rather
+            than in a row of its own, so the page stays compact. */}
+        <div className="flex shrink-0 flex-col items-end">
+          {!board.isPaused && (
+            <Link href={`/b/${slug}/draw`} className={buttonVariants()}>
+              {/* The pencil tips as if to start drawing. */}
+              <PencilSimpleIcon
+                className="transition-transform duration-200 ease-out group-hover/button:-rotate-12 motion-reduce:transition-none"
+                weight="bold"
+              />
+              Draw
+            </Link>
+          )}
+          <AccountBar customer={customer} next={`/b/${slug}`} />
+        </div>
       </div>
 
       {board.isPaused && (
@@ -130,21 +141,16 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
         </p>
       )}
 
-      {votingWeek && votesLeft > 0 && (
-        // Orange: the one thing on the board that's happening right now.
-        <Link
+      {votingWeek && votePeek && votePeek.total > 0 && (
+        <VotePeek
           href={`/b/${slug}/vote`}
-          className="bg-attention text-foreground focus-visible:ring-highlight flex items-center justify-between gap-3 rounded-2xl px-4 py-3.5 font-bold outline-none focus-visible:ring-3"
-        >
-          <span>
-            Vote for last week&apos;s best
-            <span className="block text-sm font-medium">
-              {votesLeft} {votesLeft === 1 ? "vote" : "votes"} left, closes{" "}
-              {weekdayFor(new Date(votingWeek.votingEndsAt), board.timezone)}
-            </span>
-          </span>
-          <ArrowRightIcon className="size-5 shrink-0" weight="bold" />
-        </Link>
+          peek={votePeek}
+          votesLeft={votesLeft}
+          closesOn={weekdayFor(
+            new Date(votingWeek.votingEndsAt),
+            board.timezone,
+          )}
+        />
       )}
 
       {monthlyFinal && (
@@ -160,8 +166,6 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
           <ArrowRightIcon className="size-5 shrink-0" weight="bold" />
         </Link>
       )}
-
-      <AccountBar customer={customer} next={`/b/${slug}`} />
 
       <TileFeed
         // Tiles and the pagination cursor belong to one week; start fresh when
