@@ -7,7 +7,7 @@ import {
   TrophyIcon,
 } from "@phosphor-icons/react/ssr";
 import { notFound } from "next/navigation";
-import { AccountMenu } from "@/components/account-menu";
+import { AccountLine } from "@/components/account-line";
 import { buttonVariants } from "@/components/ui/button";
 import { connection } from "next/server";
 import { getCustomer } from "@/lib/customer";
@@ -117,21 +117,16 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
             Hall of Fame
           </Link>
         </div>
-        {/* Draw, and for a signed-in customer their avatar. Guests meet
-            sign-in when they tap Draw or Vote, not here. */}
-        <div className="flex shrink-0 items-center gap-2">
-          {customer && <AccountMenu customer={customer} next={`/b/${slug}`} />}
-          {!board.isPaused && (
-            <Link href={`/b/${slug}/draw`} className={buttonVariants()}>
-              {/* The pencil tips as if to start drawing. */}
-              <PencilSimpleIcon
-                className="transition-transform duration-200 ease-out group-hover/button:-rotate-12 motion-reduce:transition-none"
-                weight="bold"
-              />
-              Draw
-            </Link>
-          )}
-        </div>
+        {!board.isPaused && (
+          <Link href={`/b/${slug}/draw`} className={buttonVariants()}>
+            {/* The pencil tips as if to start drawing. */}
+            <PencilSimpleIcon
+              className="transition-transform duration-200 ease-out group-hover/button:-rotate-12 motion-reduce:transition-none"
+              weight="bold"
+            />
+            Draw
+          </Link>
+        )}
       </div>
 
       {board.isPaused && (
@@ -178,6 +173,10 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
         initialTiles={page?.tiles ?? []}
         initialCursor={page?.nextCursor ?? null}
       />
+
+      {/* Small print at the foot of the board: sign-in turns up on Draw and
+          Vote, where it's needed, so here it's only for whoever looks. */}
+      <AccountLine customer={customer} next={`/b/${slug}`} />
     </main>
   );
 }
