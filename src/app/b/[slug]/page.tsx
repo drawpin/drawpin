@@ -7,7 +7,7 @@ import {
   TrophyIcon,
 } from "@phosphor-icons/react/ssr";
 import { notFound } from "next/navigation";
-import { AccountBar } from "@/components/account-bar";
+import { AccountMenu } from "@/components/account-menu";
 import { buttonVariants } from "@/components/ui/button";
 import { connection } from "next/server";
 import { getCustomer } from "@/lib/customer";
@@ -117,9 +117,10 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
             Hall of Fame
           </Link>
         </div>
-        {/* Draw, and under it the way in or out: sign-in lives here rather
-            than in a row of its own, so the page stays compact. */}
-        <div className="flex shrink-0 flex-col items-end">
+        {/* Draw, and for a signed-in customer their avatar. Guests meet
+            sign-in when they tap Draw or Vote, not here. */}
+        <div className="flex shrink-0 items-center gap-2">
+          {customer && <AccountMenu customer={customer} next={`/b/${slug}`} />}
           {!board.isPaused && (
             <Link href={`/b/${slug}/draw`} className={buttonVariants()}>
               {/* The pencil tips as if to start drawing. */}
@@ -130,7 +131,6 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
               Draw
             </Link>
           )}
-          <AccountBar customer={customer} next={`/b/${slug}`} />
         </div>
       </div>
 
