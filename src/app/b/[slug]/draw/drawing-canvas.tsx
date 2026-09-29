@@ -39,13 +39,7 @@ import {
   resizeFromCorner,
   sameRect,
 } from "./selection";
-import {
-  isOnEighth,
-  isTooSmall,
-  keepsPerfect,
-  type Point,
-  shapeEnd,
-} from "./shapes";
+import { isTooSmall, keepsPerfect, type Point, shapeEnd } from "./shapes";
 import { cursorFor, isShapeTool, type Tool, toolName } from "./tools";
 
 export type { DrawOp } from "./render";
@@ -149,9 +143,7 @@ export const DrawingCanvas = forwardRef<
   const holdAnchor = useRef<Finger | null>(null);
   // What a snapped shape does as the finger keeps moving: a line's far end
   // follows it, so it can be swung and stretched; a closed shape stays put.
-  // A line the assist straightened ("straight") keeps to level, upright and
-  // 45° as it swings, or the wobble of a lifting finger would undo the snap.
-  const snapped = useRef<"line" | "straight" | "fixed" | null>(null);
+  const snapped = useRef<"line" | "fixed" | null>(null);
   // The loop being drawn with the lasso, in tile units.
   const lassoLoop = useRef<Point[] | null>(null);
   // A selection being moved (no corner) or resized (by a corner), measured
@@ -327,12 +319,7 @@ export const DrawingCanvas = forwardRef<
       size: drawing.size,
       ...geometry,
     };
-    snapped.current =
-      geometry.shape !== "line"
-        ? "fixed"
-        : isOnEighth(geometry.from, geometry.to)
-          ? "straight"
-          : "line";
+    snapped.current = geometry.shape === "line" ? "line" : "fixed";
     // A small buzz where the phone can, so the change is felt as well as seen.
     navigator.vibrate?.(10);
     redraw();
@@ -579,8 +566,7 @@ export const DrawingCanvas = forwardRef<
         drawing.shape,
         drawing.from,
         [x, y],
-        snapped.current === "straight" ||
-          keepsPerfect(drawing.shape, event.shiftKey),
+        keepsPerfect(drawing.shape, event.shiftKey),
       );
       redraw();
       return;
