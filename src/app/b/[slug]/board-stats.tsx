@@ -87,5 +87,17 @@ export function BoardStatsLine({
   const summary = boardStatsSummary(stats);
   if (!summary) return null;
 
-  return <p className="text-muted-foreground text-sm">{summary}</p>;
+  // Each part stays whole: a narrow header wraps between "15 drawings" and
+  // "5 this week", never inside one.
+  const parts = summary.split(" · ");
+  return (
+    <p className="text-muted-foreground text-sm">
+      {parts.map((part, index) => (
+        <span key={part} className="whitespace-nowrap">
+          {part}
+          {index < parts.length - 1 && " · "}
+        </span>
+      ))}
+    </p>
+  );
 }
