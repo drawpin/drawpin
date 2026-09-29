@@ -1,13 +1,19 @@
 "use client";
 
 import { Popover } from "@base-ui/react/popover";
+import { useEffect, useRef, useState } from "react";
+
+/** How long the slider stays after it's let go of, so the final size is seen. */
+const CLOSE_AFTER_RELEASE_MS = 350;
 
 /**
  * The brush size, as the last button in the tool rail: a dot at the current
  * size, which opens an upright slider beside it (chosen from prototypes on
  * 2026-09-28). Size is changed now and then rather than every stroke, so it
  * only takes room while it's being changed; the popover closes as soon as
- * someone draws, like a tool's tips.
+ * someone draws, like a tool's tips, or once the slider is let go of.
+ * Letting go means a finger or mouse lifting: arrow keys change it one step
+ * at a time, so keyboard users keep it until they move on or press Escape.
  *
  * The slider is a native range stood on its end, so it keeps the keyboard,
  * screen-reader and touch behaviour of a real slider. Browsers without
@@ -33,9 +39,25 @@ export function SizePopout({
   onChange: (next: number) => void;
 }) {
   const diameter = Math.min(Math.max(size / 2.5, 4), 22);
+  const [open, setOpen] = useState(false);
+  const closeTimer = useRef<number | null>(null);
+
+  function cancelClose() {
+    if (closeTimer.current !== null) clearTimeout(closeTimer.current);
+    closeTimer.current = null;
+  }
+
+  // A close due after the button is gone has nothing to close.
+  useEffect(() => cancelClose, []);
 
   return (
-    <Popover.Root>
+    <Popover.Root
+      open={open}
+      onOpenChange={(next) => {
+        cancelClose();
+        setOpen(next);
+      }}
+    >
       <Popover.Trigger
         disabled={disabled}
         aria-label={`${label}, ${size}`}
@@ -64,6 +86,15 @@ export function SizePopout({
               aria-label={label}
               aria-orientation="vertical"
               onChange={(event) => onChange(Number(event.target.value))}
+              // Grabbing it again before it closes keeps it open.
+              onPointerDown={cancelClose}
+              onPointerUp={() => {
+                cancelClose();
+                closeTimer.current = window.setTimeout(
+                  () => setOpen(false),
+                  CLOSE_AFTER_RELEASE_MS,
+                );
+              }}
               className="accent-primary h-40 w-11 cursor-pointer [direction:rtl] [writing-mode:vertical-lr]"
             />
             <span className="text-muted-foreground text-xs font-semibold tabular-nums">
