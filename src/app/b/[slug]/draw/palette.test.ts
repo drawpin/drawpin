@@ -11,8 +11,8 @@ import {
 } from "./palette";
 
 describe("BASE_COLORS", () => {
-  it("offers six, white among them", () => {
-    expect(BASE_COLORS).toHaveLength(6);
+  it("offers eight, white among them", () => {
+    expect(BASE_COLORS).toHaveLength(8);
     expect(BASE_COLORS.map((color) => color.value)).toContain("#ffffff");
   });
 
@@ -68,6 +68,7 @@ describe("withRecent", () => {
 
   it("drops the colour used longest ago, not the one added first", () => {
     const full = [
+      "#000007",
       "#000006",
       "#000005",
       "#000004",
@@ -84,6 +85,7 @@ describe("withRecent", () => {
     expect(after).toEqual([
       "#0000ff",
       "#000001",
+      "#000007",
       "#000006",
       "#000005",
       "#000004",
@@ -100,12 +102,12 @@ describe("withRecent: only mixed colours", () => {
     expect(withRecent(recents, "#ef4444")).toBe(recents);
   });
 
-  it("keeps up to six, to sit beside the colour creator", () => {
+  it("keeps up to seven, to sit beside the colour creator", () => {
     let recents: string[] = [];
     for (let i = 1; i <= 9; i++) {
       recents = withRecent(recents, `#0000${i.toString(16).padStart(2, "0")}`);
     }
-    expect(recents).toHaveLength(6);
+    expect(recents).toHaveLength(7);
   });
 });
 

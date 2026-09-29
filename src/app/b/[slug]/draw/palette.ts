@@ -1,8 +1,9 @@
 /**
  * The colours everyone starts from.
  *
- * Six, so the row fits a phone without scrolling: the colours most drawings
- * are made of, white included for drawing over colour. A short curated row is
+ * Eight, so the row fits a phone without scrolling and reaches as far as the
+ * canvas: the colours most drawings are made of, in rainbow order after black
+ * and white, white included for drawing over colour. A short curated row is
  * what stops amateur drawings looking muddy (issue #39); anything else is one
  * tap away through the colour creator, and stays in Your colours.
  * Black comes first because it is the default brush colour.
@@ -11,19 +12,21 @@ export const BASE_COLORS = [
   { name: "Black", value: "#111827" },
   { name: "White", value: "#ffffff" },
   { name: "Red", value: "#ef4444" },
+  { name: "Orange", value: "#f97316" },
   { name: "Yellow", value: "#eab308" },
   { name: "Green", value: "#22c55e" },
   { name: "Blue", value: "#3b82f6" },
+  { name: "Purple", value: "#a855f7" },
 ] as const;
 
 /**
  * How many of your own colours to keep within reach.
  *
- * Six, so with the colour creator beside them they fill the same seven-wide
+ * Seven, so with the colour creator beside them they fill the same eight-wide
  * row as the defaults. The row is there to get back to a colour you mixed,
  * and a longer one stops being that: it becomes a second palette to read.
  */
-export const RECENT_LIMIT = 6;
+export const RECENT_LIMIT = 7;
 
 function isBaseColor(color: string): boolean {
   return BASE_COLORS.some((option) => option.value === color);

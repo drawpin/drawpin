@@ -652,7 +652,7 @@ export function DrawTileForm({
               <legend className="text-muted-foreground mb-1.5 text-sm">
                 Your colours
               </legend>
-              <div className="grid grid-cols-7 gap-1.5">
+              <div className="grid grid-cols-8 gap-1">
                 {/* Drawn as a wheel so it reads as "any colour". */}
                 <button
                   type="button"
@@ -686,12 +686,12 @@ export function DrawTileForm({
               </div>
             )}
 
-            {/* The defaults, the same six every time. */}
+            {/* The defaults, the same eight every time. */}
             <fieldset disabled={pending}>
               <legend className="text-muted-foreground mb-1.5 text-sm">
                 Colours
               </legend>
-              <div className="grid grid-cols-7 gap-1.5">
+              <div className="grid grid-cols-8 gap-1">
                 {BASE_COLORS.map((option) => (
                   <button
                     key={option.value}
