@@ -27,6 +27,7 @@ import {
   SquareIcon,
   TrashIcon,
 } from "@phosphor-icons/react";
+import { signInWithGoogle } from "@/app/auth/sign-in";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,6 +46,8 @@ import type { Brush } from "./render";
 import type { PostTileState } from "./schema";
 import { type ShapeKind, SHAPES } from "./shapes";
 import { historyShortcut, isTypingTarget } from "./shortcuts";
+import { saveDraft, takeDraft } from "./draft";
+import { GuestPostButton } from "./guest-post-button";
 import { ToolButton } from "./tool-button";
 import { BRUSHES, isShapeTool, type Tool } from "./tools";
 
@@ -107,6 +110,9 @@ const ASSIST_STORAGE_KEY = "drawpin:snap-assist";
 const PRESSURE_STORAGE_KEY = "drawpin:pen-pressure";
 
 const initialState: PostTileState = { status: "idle" };
+
+/** The guest's sign-in form, outside the drawing's form. */
+const SIGN_IN_FORM_ID = "draw-sign-in";
 
 /** How long the brush stays shown on the canvas after its size last changed. */
 const SIZE_PREVIEW_MS = 800;
@@ -255,6 +261,8 @@ export function DrawTileForm({
     };
   }, []);
   const [localError, setLocalError] = useState<string | null>(null);
+  // Set when a drawing kept across sign-in has just been put back.
+  const [restored, setRestored] = useState(false);
   const canvasRef = useRef<DrawingCanvasHandle>(null);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -352,6 +360,17 @@ export function DrawTileForm({
     });
   }, []);
 
+  // A drawing kept for the trip to sign in (draft.ts) comes back once. Read
+  // after hydration: storage only exists in the browser, and the server
+  // renders an empty canvas.
+  useEffect(() => {
+    const draft = takeDraft(slug);
+    if (!draft) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- restoring from browser storage, which the server render can't see
+    setOps(draft);
+    setRestored(true);
+  }, [slug]);
+
   // Ctrl/Cmd+Z and friends, while drawing. The details step has the name and
   // caption fields, where those keys belong to the text being typed.
   useEffect(() => {
@@ -387,434 +406,468 @@ export function DrawTileForm({
   const error = localError ?? (state.status === "error" ? state.message : null);
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <input type="hidden" name="slug" value={slug} />
-      <input
-        type="hidden"
-        name={TURNSTILE_FIELD}
-        value={turnstileToken ?? ""}
-      />
-      <DeviceFingerprintField />
+    <>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <input type="hidden" name="slug" value={slug} />
+        <input
+          type="hidden"
+          name={TURNSTILE_FIELD}
+          value={turnstileToken ?? ""}
+        />
+        <DeviceFingerprintField />
 
-      <DrawingCanvas
-        ref={canvasRef}
-        ops={ops}
-        color={color}
-        size={size}
-        tool={tool}
-        // The guide is for drawing; the details step is a last look at the
-        // tile as the board will show it.
-        showGrid={showGrid && step === "drawing"}
-        assist={assist}
-        pressure={pressure}
-        disabled={pending}
-        previewSize={previewingSize}
-        onDraw={addOp}
-      />
+        <DrawingCanvas
+          ref={canvasRef}
+          ops={ops}
+          color={color}
+          size={size}
+          tool={tool}
+          // The guide is for drawing; the details step is a last look at the
+          // tile as the board will show it.
+          showGrid={showGrid && step === "drawing"}
+          assist={assist}
+          pressure={pressure}
+          disabled={pending}
+          previewSize={previewingSize}
+          onDraw={addOp}
+        />
 
-      {step === "drawing" ? (
-        <>
-          {/* Every tool in one grid of big targets: what you draw with,
+        {step === "drawing" ? (
+          <>
+            {/* Every tool in one grid of big targets: what you draw with,
               then what else a finger can do, then how big. */}
-          <fieldset className="grid grid-cols-4 gap-2" disabled={pending}>
-            <legend className="sr-only">Tool</legend>
-            {BRUSHES.map((option) => {
-              const BrushIcon = BRUSH_ICONS[option.value];
-              return (
-                <ToolButton
-                  key={option.value}
-                  icon={<BrushIcon />}
-                  label={option.name}
-                  pressed={tool === option.value}
-                  onClick={() =>
-                    switchTool(() => {
-                      setBrush(option.value);
-                      setMode(null);
-                      remember(BRUSH_STORAGE_KEY, option.value);
-                    })
-                  }
-                />
-              );
-            })}
-            {/* Each of these toggles: pressing it again goes back to the
+            <fieldset className="grid grid-cols-4 gap-2" disabled={pending}>
+              <legend className="sr-only">Tool</legend>
+              {BRUSHES.map((option) => {
+                const BrushIcon = BRUSH_ICONS[option.value];
+                return (
+                  <ToolButton
+                    key={option.value}
+                    icon={<BrushIcon />}
+                    label={option.name}
+                    pressed={tool === option.value}
+                    onClick={() =>
+                      switchTool(() => {
+                        setBrush(option.value);
+                        setMode(null);
+                        remember(BRUSH_STORAGE_KEY, option.value);
+                      })
+                    }
+                  />
+                );
+              })}
+              {/* Each of these toggles: pressing it again goes back to the
                 brush, the way the bucket always has. */}
-            <ToolButton
-              icon={<PaintBucketIcon />}
-              label="Fill"
-              pressed={tool === "fill"}
-              onClick={() =>
-                switchTool(() =>
-                  setMode((current) => (current === "fill" ? null : "fill")),
-                )
-              }
-            />
-            <ToolButton
-              icon={<ShapesIcon />}
-              label="Shapes"
-              pressed={isShapeTool(tool)}
-              onClick={() =>
-                switchTool(() =>
-                  setMode((current) =>
-                    current !== null && isShapeTool(current) ? null : lastShape,
-                  ),
-                )
-              }
-            />
-            <ToolButton
-              icon={<LassoIcon />}
-              label="Lasso"
-              pressed={tool === "lasso"}
-              title="Circle part of your drawing to move or resize it"
-              onClick={() =>
-                switchTool(() =>
-                  setMode((current) => (current === "lasso" ? null : "lasso")),
-                )
-              }
-            />
-            {/* A dot of the current brush: pressing it opens the slider, so
-                the size only takes room when it's being changed. */}
-            <ToolButton
-              icon={<SizeDot size={size} color={isErasing ? null : color} />}
-              label="Size"
-              ariaLabel={`Brush size, ${size}`}
-              expanded={sizeOpen}
-              onClick={() => setSizeOpen((open) => !open)}
-            />
-          </fieldset>
-
-          {sizeOpen && (
-            <div className="motion-safe:animate-fade-up flex items-center gap-3">
-              <Label
-                htmlFor="brush-size"
-                className="text-muted-foreground text-sm"
-              >
-                {isErasing ? "Eraser" : "Size"}
-              </Label>
-              <input
-                id="brush-size"
-                type="range"
-                min={MIN_SIZE}
-                max={MAX_SIZE}
-                value={size}
-                disabled={pending}
-                onChange={(event) => {
-                  const next = Number(event.target.value);
-                  previewSize();
-                  if (isErasing) {
-                    setEraserSize(next);
-                    remember(ERASER_SIZE_STORAGE_KEY, String(next));
-                  } else {
-                    setSize(next);
-                    remember(SIZE_STORAGE_KEY, String(next));
-                  }
-                }}
-                className="accent-primary h-11 flex-1"
-                autoFocus
+              <ToolButton
+                icon={<PaintBucketIcon />}
+                label="Fill"
+                pressed={tool === "fill"}
+                onClick={() =>
+                  switchTool(() =>
+                    setMode((current) => (current === "fill" ? null : "fill")),
+                  )
+                }
               />
-              {tool === "pen" && (
-                // With the pen's size, since it's how the pen's width behaves.
+              <ToolButton
+                icon={<ShapesIcon />}
+                label="Shapes"
+                pressed={isShapeTool(tool)}
+                onClick={() =>
+                  switchTool(() =>
+                    setMode((current) =>
+                      current !== null && isShapeTool(current)
+                        ? null
+                        : lastShape,
+                    ),
+                  )
+                }
+              />
+              <ToolButton
+                icon={<LassoIcon />}
+                label="Lasso"
+                pressed={tool === "lasso"}
+                title="Circle part of your drawing to move or resize it"
+                onClick={() =>
+                  switchTool(() =>
+                    setMode((current) =>
+                      current === "lasso" ? null : "lasso",
+                    ),
+                  )
+                }
+              />
+              {/* A dot of the current brush: pressing it opens the slider, so
+                the size only takes room when it's being changed. */}
+              <ToolButton
+                icon={<SizeDot size={size} color={isErasing ? null : color} />}
+                label="Size"
+                ariaLabel={`Brush size, ${size}`}
+                expanded={sizeOpen}
+                onClick={() => setSizeOpen((open) => !open)}
+              />
+            </fieldset>
+
+            {sizeOpen && (
+              <div className="motion-safe:animate-fade-up flex items-center gap-3">
+                <Label
+                  htmlFor="brush-size"
+                  className="text-muted-foreground text-sm"
+                >
+                  {isErasing ? "Eraser" : "Size"}
+                </Label>
+                <input
+                  id="brush-size"
+                  type="range"
+                  min={MIN_SIZE}
+                  max={MAX_SIZE}
+                  value={size}
+                  disabled={pending}
+                  onChange={(event) => {
+                    const next = Number(event.target.value);
+                    previewSize();
+                    if (isErasing) {
+                      setEraserSize(next);
+                      remember(ERASER_SIZE_STORAGE_KEY, String(next));
+                    } else {
+                      setSize(next);
+                      remember(SIZE_STORAGE_KEY, String(next));
+                    }
+                  }}
+                  className="accent-primary h-11 flex-1"
+                  autoFocus
+                />
+                {tool === "pen" && (
+                  // With the pen's size, since it's how the pen's width behaves.
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    aria-pressed={pressure}
+                    disabled={pending}
+                    title="Let the pen's width follow how hard you press, or how fast you draw"
+                    className={PRESSED}
+                    onClick={() => {
+                      const next = !pressure;
+                      setPressure(next);
+                      remember(PRESSURE_STORAGE_KEY, String(next));
+                    }}
+                  >
+                    Pressure
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {tool === "lasso" && (
+              <p className="text-muted-foreground motion-safe:animate-fade-up text-sm">
+                Draw a loop round part of your drawing, then drag it or its
+                corners.
+              </p>
+            )}
+
+            {isShapeTool(tool) && (
+              <fieldset
+                className="motion-safe:animate-fade-up flex flex-wrap items-center gap-2"
+                disabled={pending}
+              >
+                <legend className="sr-only">Shape</legend>
+                {SHAPES.map((option) => {
+                  const ShapeIcon = SHAPE_ICONS[option.value];
+                  return (
+                    <Button
+                      key={option.value}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      aria-pressed={tool === option.value}
+                      className={PRESSED}
+                      onClick={() => {
+                        setMode(option.value);
+                        setLastShape(option.value);
+                      }}
+                    >
+                      <ShapeIcon />
+                      {option.name}
+                    </Button>
+                  );
+                })}
+                <span className="text-muted-foreground text-sm">
+                  Drag to draw it
+                </span>
+              </fieldset>
+            )}
+
+            {/* Seven columns: the six colours and the wheel fill a 375px phone
+              at 44px each, and grow on anything wider. */}
+            <fieldset className="grid grid-cols-7 gap-1.5" disabled={pending}>
+              <legend className="sr-only">Colour</legend>
+              {BASE_COLORS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  aria-label={option.name}
+                  aria-pressed={color === option.value}
+                  onClick={() => chooseColor(option.value)}
+                  className={SWATCH}
+                  style={{ backgroundColor: option.value }}
+                />
+              ))}
+
+              {/* Drawn as a wheel so it reads as "any colour"; it opens the
+                colour panel below. */}
+              <button
+                type="button"
+                aria-label="Colour wheel"
+                aria-expanded={panelOpen}
+                onClick={() => (panelOpen ? closePanel() : openPanel())}
+                className={`${SWATCH} aria-expanded:ring-primary aria-expanded:ring-2 aria-expanded:ring-offset-2`}
+                style={{
+                  background:
+                    "conic-gradient(#ef4444, #eab308, #22c55e, #06b6d4, #3b82f6, #a855f7, #ef4444)",
+                }}
+              />
+            </fieldset>
+
+            {panelOpen && (
+              <div className="motion-safe:animate-fade-up">
+                <ColorPanel color={color} onChange={previewColor} />
+              </div>
+            )}
+
+            {recents.length > 0 && (
+              <fieldset disabled={pending}>
+                <legend className="text-muted-foreground mb-1.5 text-sm">
+                  Recent
+                </legend>
+                <div className="grid grid-cols-7 gap-1.5">
+                  {recents.map((recent) => (
+                    <button
+                      key={recent}
+                      type="button"
+                      aria-label={`Recent ${recent}`}
+                      aria-pressed={color === recent}
+                      onClick={() => chooseColor(recent)}
+                      className={SWATCH}
+                      style={{ backgroundColor: recent }}
+                    />
+                  ))}
+                </div>
+              </fieldset>
+            )}
+
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex gap-2">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  aria-pressed={pressure}
+                  aria-pressed={showGrid}
                   disabled={pending}
-                  title="Let the pen's width follow how hard you press, or how fast you draw"
                   className={PRESSED}
                   onClick={() => {
-                    const next = !pressure;
-                    setPressure(next);
-                    remember(PRESSURE_STORAGE_KEY, String(next));
+                    const next = !showGrid;
+                    setShowGrid(next);
+                    remember(GRID_STORAGE_KEY, String(next));
                   }}
                 >
-                  Pressure
+                  <GridFourIcon />
+                  Grid
                 </Button>
-              )}
-            </div>
-          )}
-
-          {tool === "lasso" && (
-            <p className="text-muted-foreground motion-safe:animate-fade-up text-sm">
-              Draw a loop round part of your drawing, then drag it or its
-              corners.
-            </p>
-          )}
-
-          {isShapeTool(tool) && (
-            <fieldset
-              className="motion-safe:animate-fade-up flex flex-wrap items-center gap-2"
-              disabled={pending}
-            >
-              <legend className="sr-only">Shape</legend>
-              {SHAPES.map((option) => {
-                const ShapeIcon = SHAPE_ICONS[option.value];
-                return (
-                  <Button
-                    key={option.value}
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    aria-pressed={tool === option.value}
-                    className={PRESSED}
-                    onClick={() => {
-                      setMode(option.value);
-                      setLastShape(option.value);
-                    }}
-                  >
-                    <ShapeIcon />
-                    {option.name}
-                  </Button>
-                );
-              })}
-              <span className="text-muted-foreground text-sm">
-                Drag to draw it
-              </span>
-            </fieldset>
-          )}
-
-          {/* Seven columns: the six colours and the wheel fill a 375px phone
-              at 44px each, and grow on anything wider. */}
-          <fieldset className="grid grid-cols-7 gap-1.5" disabled={pending}>
-            <legend className="sr-only">Colour</legend>
-            {BASE_COLORS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                aria-label={option.name}
-                aria-pressed={color === option.value}
-                onClick={() => chooseColor(option.value)}
-                className={SWATCH}
-                style={{ backgroundColor: option.value }}
-              />
-            ))}
-
-            {/* Drawn as a wheel so it reads as "any colour"; it opens the
-                colour panel below. */}
-            <button
-              type="button"
-              aria-label="Colour wheel"
-              aria-expanded={panelOpen}
-              onClick={() => (panelOpen ? closePanel() : openPanel())}
-              className={`${SWATCH} aria-expanded:ring-primary aria-expanded:ring-2 aria-expanded:ring-offset-2`}
-              style={{
-                background:
-                  "conic-gradient(#ef4444, #eab308, #22c55e, #06b6d4, #3b82f6, #a855f7, #ef4444)",
-              }}
-            />
-          </fieldset>
-
-          {panelOpen && (
-            <div className="motion-safe:animate-fade-up">
-              <ColorPanel color={color} onChange={previewColor} />
-            </div>
-          )}
-
-          {recents.length > 0 && (
-            <fieldset disabled={pending}>
-              <legend className="text-muted-foreground mb-1.5 text-sm">
-                Recent
-              </legend>
-              <div className="grid grid-cols-7 gap-1.5">
-                {recents.map((recent) => (
-                  <button
-                    key={recent}
-                    type="button"
-                    aria-label={`Recent ${recent}`}
-                    aria-pressed={color === recent}
-                    onClick={() => chooseColor(recent)}
-                    className={SWATCH}
-                    style={{ backgroundColor: recent }}
-                  />
-                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  aria-pressed={assist}
+                  disabled={pending}
+                  title="Hold still at the end of a line or shape to snap it perfect"
+                  className={PRESSED}
+                  onClick={() => {
+                    const next = !assist;
+                    setAssist(next);
+                    remember(ASSIST_STORAGE_KEY, String(next));
+                  }}
+                >
+                  <MagnetIcon />
+                  Snap
+                </Button>
               </div>
-            </fieldset>
-          )}
-
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                aria-pressed={showGrid}
-                disabled={pending}
-                className={PRESSED}
-                onClick={() => {
-                  const next = !showGrid;
-                  setShowGrid(next);
-                  remember(GRID_STORAGE_KEY, String(next));
-                }}
-              >
-                <GridFourIcon />
-                Grid
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                aria-pressed={assist}
-                disabled={pending}
-                title="Hold still at the end of a line or shape to snap it perfect"
-                className={PRESSED}
-                onClick={() => {
-                  const next = !assist;
-                  setAssist(next);
-                  remember(ASSIST_STORAGE_KEY, String(next));
-                }}
-              >
-                <MagnetIcon />
-                Snap
-              </Button>
-            </div>
-            <div className="flex gap-0.5">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                disabled={pending || ops.length === 0}
-                onClick={undo}
-                title="Undo (Ctrl+Z)"
-                aria-keyshortcuts="Control+Z Meta+Z"
-                aria-label="Undo"
-              >
-                <ArrowCounterClockwiseIcon weight="bold" />
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                disabled={pending || undone.length === 0}
-                onClick={redo}
-                title="Redo (Ctrl+Shift+Z)"
-                aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y"
-                aria-label="Redo"
-              >
-                <ArrowClockwiseIcon weight="bold" />
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                disabled={pending || ops.length === 0}
-                aria-label="Clear"
-                title="Clear the whole drawing"
-                aria-expanded={confirmingClear}
-                onClick={() => setConfirmingClear((open) => !open)}
-              >
-                <TrashIcon />
-              </Button>
-            </div>
-          </div>
-
-          {confirmingClear && ops.length > 0 && (
-            <div
-              role="alertdialog"
-              aria-label="Clear the drawing"
-              className="motion-safe:animate-fade-up flex items-center justify-between gap-2 rounded-2xl border px-4 py-2"
-            >
-              <span className="text-sm font-medium">
-                Clear your whole drawing?
-              </span>
-              <div className="flex gap-2">
+              <div className="flex gap-0.5">
                 <Button
                   type="button"
                   variant="ghost"
-                  size="sm"
-                  onClick={() => setConfirmingClear(false)}
+                  size="icon"
+                  disabled={pending || ops.length === 0}
+                  onClick={undo}
+                  title="Undo (Ctrl+Z)"
+                  aria-keyshortcuts="Control+Z Meta+Z"
+                  aria-label="Undo"
                 >
-                  Keep it
+                  <ArrowCounterClockwiseIcon weight="bold" />
                 </Button>
                 <Button
                   type="button"
-                  variant="destructive"
-                  size="sm"
-                  disabled={pending}
-                  onClick={() => {
-                    canvasRef.current?.cancelSelection();
-                    setOps([]);
-                    setUndone([]);
-                    setConfirmingClear(false);
-                  }}
+                  variant="ghost"
+                  size="icon"
+                  disabled={pending || undone.length === 0}
+                  onClick={redo}
+                  title="Redo (Ctrl+Shift+Z)"
+                  aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y"
+                  aria-label="Redo"
                 >
-                  Clear
+                  <ArrowClockwiseIcon weight="bold" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  disabled={pending || ops.length === 0}
+                  aria-label="Clear"
+                  title="Clear the whole drawing"
+                  aria-expanded={confirmingClear}
+                  onClick={() => setConfirmingClear((open) => !open)}
+                >
+                  <TrashIcon />
                 </Button>
               </div>
             </div>
-          )}
 
-          {error && (
-            <p role="alert" className="text-destructive text-sm">
-              {error}
+            {confirmingClear && ops.length > 0 && (
+              <div
+                role="alertdialog"
+                aria-label="Clear the drawing"
+                className="motion-safe:animate-fade-up flex items-center justify-between gap-2 rounded-2xl border px-4 py-2"
+              >
+                <span className="text-sm font-medium">
+                  Clear your whole drawing?
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setConfirmingClear(false)}
+                  >
+                    Keep it
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    disabled={pending}
+                    onClick={() => {
+                      canvasRef.current?.cancelSelection();
+                      setOps([]);
+                      setUndone([]);
+                      setConfirmingClear(false);
+                    }}
+                  >
+                    Clear
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {error && (
+              <p role="alert" className="text-destructive text-sm">
+                {error}
+              </p>
+            )}
+
+            {restored && username && (
+              <p
+                role="status"
+                className="bg-secondary motion-safe:animate-fade-up rounded-2xl px-4 py-3 text-sm"
+              >
+                Your drawing&apos;s back. Post it when you&apos;re ready.
+              </p>
+            )}
+
+            {username ? (
+              // Nothing is asked about the drawing until there is one.
+              <Button
+                type="button"
+                size="lg"
+                className="w-full"
+                disabled={!hydrated || pending}
+                onClick={goToDetails}
+              >
+                Post my tile
+              </Button>
+            ) : (
+              // A guest can't post: the button turns into sign-in, and the
+              // drawing is kept for the trip (draft.ts).
+              <GuestPostButton
+                formId={SIGN_IN_FORM_ID}
+                disabled={!hydrated || pending}
+                onAsk={() => {
+                  if (ops.length === 0) {
+                    setLocalError("Draw something first.");
+                    return false;
+                  }
+                  setLocalError(null);
+                  // A selection still being moved goes down where it is, so it's
+                  // part of what's kept.
+                  canvasRef.current?.commitSelection();
+                  return true;
+                }}
+                onSignIn={() => saveDraft(slug, ops)}
+              />
+            )}
+          </>
+        ) : (
+          <>
+            {/* The tile goes up under the name on their account, so there's
+              nothing to ask and nothing to type. */}
+            <p className="text-muted-foreground text-sm">
+              Posting as <span className="font-medium">{username}</span>
             </p>
-          )}
 
-          {username ? (
-            // Nothing is asked about the drawing until there is one.
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="caption">Caption (optional)</Label>
+              <Input id="caption" name="caption" maxLength={80} />
+            </div>
+
+            {error && (
+              <p role="alert" className="text-destructive text-sm">
+                {error}
+              </p>
+            )}
+
+            <Turnstile siteKey={turnstileSiteKey} onToken={setTurnstileToken} />
+
             <Button
-              type="button"
+              type="submit"
               size="lg"
               className="w-full"
-              disabled={!hydrated || pending}
-              onClick={goToDetails}
+              disabled={!hydrated || pending || !turnstileToken}
             >
-              Post my tile
-            </Button>
-          ) : (
-            // The sign-in button is its own form, so it can't sit inside this
-            // one; the page shows it above the canvas (SignInFirst).
-            <p className="text-muted-foreground text-center text-sm">
-              You&apos;re drawing for fun. Guest drawings don&apos;t go on the
-              board.
-            </p>
-          )}
-        </>
-      ) : (
-        <>
-          {/* The tile goes up under the name on their account, so there's
-              nothing to ask and nothing to type. */}
-          <p className="text-muted-foreground text-sm">
-            Posting as <span className="font-medium">{username}</span>
-          </p>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="caption">Caption (optional)</Label>
-            <Input id="caption" name="caption" maxLength={80} />
-          </div>
-
-          {error && (
-            <p role="alert" className="text-destructive text-sm">
-              {error}
-            </p>
-          )}
-
-          <Turnstile siteKey={turnstileSiteKey} onToken={setTurnstileToken} />
-
-          <Button
-            type="submit"
-            size="lg"
-            className="w-full"
-            disabled={!hydrated || pending || !turnstileToken}
-          >
-            {/* Checking the drawing is most of the wait, and a second or two
+              {/* Checking the drawing is most of the wait, and a second or two
                 of "Posting…" looks frozen; saying what's happening doesn't. */}
-            {pending
-              ? "Checking your drawing…"
-              : turnstileToken
-                ? "Post my tile"
-                : "Checking your browser…"}
-          </Button>
+              {pending
+                ? "Checking your drawing…"
+                : turnstileToken
+                  ? "Post my tile"
+                  : "Checking your browser…"}
+            </Button>
 
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={pending}
-            onClick={() => setStep("drawing")}
-          >
-            Back to drawing
-          </Button>
-        </>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={pending}
+              onClick={() => setStep("drawing")}
+            >
+              Back to drawing
+            </Button>
+          </>
+        )}
+      </form>
+      {/* Outside the drawing's form, which can't contain another one; the
+        guest's Post button submits it through its form attribute. */}
+      {!username && (
+        <form id={SIGN_IN_FORM_ID} action={signInWithGoogle} hidden>
+          <input type="hidden" name="next" value={`/b/${slug}/draw`} />
+        </form>
       )}
-    </form>
+    </>
   );
 }

@@ -126,6 +126,11 @@ export type Fill = {
   kind: "fill";
   color: string;
   mask: { canvas: HTMLCanvasElement; x: number; y: number };
+  /**
+   * Where the bucket was tapped, so the fill can be worked out again when a
+   * drawing is rebuilt from its steps (draft.ts).
+   */
+  at: Point;
 };
 
 /**
@@ -479,6 +484,7 @@ export function fillAt(
     kind: "fill",
     color,
     mask: { canvas: mask, x: region.x, y: region.y },
+    at: [x, y],
   };
 }
 
