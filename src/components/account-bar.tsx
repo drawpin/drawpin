@@ -33,7 +33,7 @@ export function AccountBar({
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded-lg border px-3 py-3">
+    <div className="bg-secondary flex flex-col gap-2 rounded-2xl px-4 py-4">
       <p className="text-sm font-medium">Want your drawing on the board?</p>
       <p className="text-muted-foreground text-xs">
         Anyone can draw for fun. Signing in lets you post a tile each day, be
