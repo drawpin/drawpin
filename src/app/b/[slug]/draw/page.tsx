@@ -1,15 +1,13 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { XIcon } from "@phosphor-icons/react/ssr";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
-import { buttonVariants } from "@/components/ui/button";
 import { getCustomer } from "@/lib/customer";
 import { readDeviceId } from "@/lib/device";
 import { serverEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { localDayFor } from "@/lib/venue-time";
 import { getBoard } from "../data";
+import { BackToBoard } from "./back-to-board";
 import { DrawTileForm } from "./draw-tile-form";
 import { BLOCKED_ATTEMPT_LIMIT } from "./post-tile";
 
@@ -76,21 +74,16 @@ export default async function DrawPage({
 
   return (
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 px-4 py-6">
-      <div className="flex items-start justify-between gap-4">
+      {/* Back first, where a phone's back button is expected; it asks
+          before leaving a drawing behind. */}
+      <div className="flex items-center gap-3">
+        <BackToBoard href={`/b/${slug}`} />
         <div className="min-w-0">
           <h1 className="text-2xl font-extrabold tracking-tight">
             Draw a tile
           </h1>
           <p className="text-muted-foreground truncate text-sm">{board.name}</p>
         </div>
-        <Link
-          href={`/b/${slug}`}
-          aria-label="Back to the board"
-          title="Back to the board"
-          className={buttonVariants({ variant: "outline", size: "icon" })}
-        >
-          <XIcon weight="bold" />
-        </Link>
       </div>
 
       {blocked ? (

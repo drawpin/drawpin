@@ -23,7 +23,6 @@ import {
   ShapesIcon,
   SprayBottleIcon,
   SquareIcon,
-  TrashIcon,
 } from "@phosphor-icons/react";
 import { signInWithGoogle } from "@/app/auth/sign-in";
 import { Button } from "@/components/ui/button";
@@ -47,7 +46,9 @@ import { historyShortcut, isTypingTarget } from "./shortcuts";
 import { saveDraft, takeDraft } from "./draft";
 import { GuestPostButton } from "./guest-post-button";
 import { DrawSettings } from "./draw-settings";
+import { ClearButton } from "./clear-button";
 import { SizePopout } from "./size-popout";
+import { hasUnsavedDrawing, setUnsavedDrawing } from "./unsaved-drawing";
 import { type RailTool, ToolRail } from "./tool-rail";
 import { BRUSHES, isShapeTool, type Tool } from "./tools";
 
@@ -226,8 +227,6 @@ export function DrawTileForm({
   const [pickedRecents, setRecents] = useState<string[] | null>(null);
   // The colour panel, opened from Make a colour in Your colours.
   const [panelOpen, setPanelOpen] = useState(false);
-  // Clear throws away the whole drawing, so it asks first.
-  const [confirmingClear, setConfirmingClear] = useState(false);
   const [pickedSize, setSize] = useState<number | null>(null);
   const [pickedEraserSize, setEraserSize] = useState<number | null>(null);
   const [pickedGrid, setShowGrid] = useState<boolean | null>(null);
@@ -418,6 +417,25 @@ export function DrawTileForm({
     setRestored(true);
   }, [slug]);
 
+  // Whether there's a drawing to lose: the back button asks before leaving
+  // (back-to-board.tsx), and the browser warns before a reload or closing the
+  // tab. Leaving the page drops it, so nothing is left behind.
+  useEffect(() => {
+    setUnsavedDrawing(ops.length > 0);
+  }, [ops.length]);
+
+  useEffect(() => {
+    function warn(event: BeforeUnloadEvent) {
+      if (!hasUnsavedDrawing()) return;
+      event.preventDefault();
+    }
+    window.addEventListener("beforeunload", warn);
+    return () => {
+      window.removeEventListener("beforeunload", warn);
+      setUnsavedDrawing(false);
+    };
+  }, []);
+
   // Ctrl/Cmd+Z and friends, while drawing. The details step has the name and
   // caption fields, where those keys belong to the text being typed.
   useEffect(() => {
@@ -489,18 +507,14 @@ export function DrawTileForm({
             >
               <ArrowClockwiseIcon weight="bold" />
             </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
+            <ClearButton
               disabled={pending || ops.length === 0}
-              aria-label="Clear"
-              title="Clear the whole drawing"
-              aria-expanded={confirmingClear}
-              onClick={() => setConfirmingClear((open) => !open)}
-            >
-              <TrashIcon />
-            </Button>
+              onClear={() => {
+                canvasRef.current?.cancelSelection();
+                setOps([]);
+                setUndone([]);
+              }}
+            />
             {/* How drawing behaves, in one place: Snap and Pressure together,
                 with the grid. */}
             <DrawSettings
@@ -538,42 +552,6 @@ export function DrawTileForm({
                 },
               ]}
             />
-          </div>
-        )}
-
-        {step === "drawing" && confirmingClear && ops.length > 0 && (
-          <div
-            role="alertdialog"
-            aria-label="Clear the drawing"
-            className="motion-safe:animate-fade-up flex items-center justify-between gap-2 rounded-2xl border px-4 py-2"
-          >
-            <span className="text-sm font-medium">
-              Clear your whole drawing?
-            </span>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setConfirmingClear(false)}
-              >
-                Keep it
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                size="sm"
-                disabled={pending}
-                onClick={() => {
-                  canvasRef.current?.cancelSelection();
-                  setOps([]);
-                  setUndone([]);
-                  setConfirmingClear(false);
-                }}
-              >
-                Clear
-              </Button>
-            </div>
           </div>
         )}
 
@@ -771,7 +749,10 @@ export function DrawTileForm({
                   canvasRef.current?.commitSelection();
                   return true;
                 }}
-                onSignIn={() => saveDraft(slug, ops)}
+                onSignIn={() => {
+                  saveDraft(slug, ops);
+                  setUnsavedDrawing(false);
+                }}
               />
             )}
           </>
