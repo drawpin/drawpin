@@ -35,6 +35,7 @@ export function ToolRail({
   isActive,
   onPick,
   extra,
+  footer,
   disabled,
 }: {
   tools: RailTool[];
@@ -42,6 +43,8 @@ export function ToolRail({
   onPick: (id: string) => void;
   /** Controls to show in a tool's tips under its text, e.g. which shape. */
   extra?: (id: string) => ReactNode;
+  /** Below the tools, after a divider: the size, which applies to all of them. */
+  footer?: ReactNode;
   disabled?: boolean;
 }) {
   // The tool whose tips are open, and its button, which they point at.
@@ -84,6 +87,12 @@ export function ToolRail({
             </button>
           );
         })}
+        {footer && (
+          <>
+            <span aria-hidden className="bg-border my-1 h-px w-7" />
+            {footer}
+          </>
+        )}
       </fieldset>
 
       <Popover.Root

@@ -47,6 +47,7 @@ import { historyShortcut, isTypingTarget } from "./shortcuts";
 import { saveDraft, takeDraft } from "./draft";
 import { GuestPostButton } from "./guest-post-button";
 import { DrawSettings } from "./draw-settings";
+import { SizePopout } from "./size-popout";
 import { type RailTool, ToolRail } from "./tool-rail";
 import { BRUSHES, isShapeTool, type Tool } from "./tools";
 
@@ -116,22 +117,6 @@ const PRESSED =
  */
 const SWATCH =
   "border-border focus-visible:ring-highlight aria-pressed:ring-primary aspect-square w-full max-w-12 cursor-pointer justify-self-center rounded-full border outline-none transition-transform duration-150 ease-out hover:scale-110 focus-visible:ring-3 active:scale-90 aria-pressed:ring-2 aria-pressed:ring-offset-2 motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100";
-
-/** The brush size as a dot in the brush's colour, or an outline for the eraser. */
-function SizeDot({ size, color }: { size: number; color: string | null }) {
-  const diameter = Math.min(Math.max(size / 2.5, 4), 22);
-  return (
-    <span
-      aria-hidden
-      className="border-foreground/40 rounded-full border"
-      style={{
-        width: diameter,
-        height: diameter,
-        backgroundColor: color ?? "transparent",
-      }}
-    />
-  );
-}
 
 /** Brush sizes in tile units, so they mean the same on any screen. */
 const MIN_SIZE = 4;
@@ -602,6 +587,28 @@ export function DrawTileForm({
                 id === "shapes" ? isShapeTool(tool) : tool === id
               }
               onPick={pickTool}
+              footer={
+                // One size for whichever tool is in hand; the eraser keeps its
+                // own, so rubbing something out doesn't cost the brush size.
+                <SizePopout
+                  size={size}
+                  min={MIN_SIZE}
+                  max={MAX_SIZE}
+                  color={isErasing ? null : color}
+                  label={isErasing ? "Eraser size" : "Brush size"}
+                  disabled={pending}
+                  onChange={(next) => {
+                    previewSize();
+                    if (isErasing) {
+                      setEraserSize(next);
+                      remember(ERASER_SIZE_STORAGE_KEY, String(next));
+                    } else {
+                      setSize(next);
+                      remember(SIZE_STORAGE_KEY, String(next));
+                    }
+                  }}
+                />
+              }
               extra={(id) =>
                 id === "shapes" ? (
                   <fieldset className="flex gap-1.5" disabled={pending}>
@@ -651,35 +658,6 @@ export function DrawTileForm({
 
         {step === "drawing" ? (
           <>
-            {/* One size, outside the tools, for whichever is in hand; the
-                eraser keeps its own, so rubbing something out doesn't cost
-                the brush size. */}
-            <div className="flex items-center gap-3">
-              <span className="grid size-7 shrink-0 place-items-center">
-                <SizeDot size={size} color={isErasing ? null : color} />
-              </span>
-              <input
-                type="range"
-                min={MIN_SIZE}
-                max={MAX_SIZE}
-                value={size}
-                disabled={pending}
-                aria-label={isErasing ? "Eraser size" : "Brush size"}
-                onChange={(event) => {
-                  const next = Number(event.target.value);
-                  previewSize();
-                  if (isErasing) {
-                    setEraserSize(next);
-                    remember(ERASER_SIZE_STORAGE_KEY, String(next));
-                  } else {
-                    setSize(next);
-                    remember(SIZE_STORAGE_KEY, String(next));
-                  }
-                }}
-                className="accent-primary h-11 min-w-0 flex-1"
-              />
-            </div>
-
             {/* Recent first once there is one: after the first few picks,
                 your own colours are the ones you reach for. */}
             {recents.length > 0 && (
