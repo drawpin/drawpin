@@ -68,8 +68,8 @@ const BRUSH_ICONS: Record<Brush, Icon> = {
 
 /**
  * The rail, top to bottom: what you draw with, then what else a finger can
- * do. A second tap on any of them shows how to use it; for Shapes that's
- * also where Line, Circle and Square are.
+ * do. A second tap on any of them shows how to use it. Picking Shapes also
+ * pops out Line, Circle and Square, which go away once one is chosen.
  */
 const RAIL_TOOLS: RailTool[] = [
   ...BRUSHES.map((option) => ({
@@ -89,6 +89,7 @@ const RAIL_TOOLS: RailTool[] = [
     label: "Shapes",
     icon: ShapesIcon,
     tip: "Pick a shape, then drag to draw it. Hold Shift with a mouse for a perfect circle or square.",
+    optionsOnPick: true,
   },
   {
     id: "lasso",
@@ -607,7 +608,7 @@ export function DrawTileForm({
                   }}
                 />
               }
-              extra={(id) =>
+              options={(id, close) =>
                 id === "shapes" ? (
                   <fieldset className="flex gap-1.5" disabled={pending}>
                     <legend className="sr-only">Shape</legend>
@@ -626,6 +627,7 @@ export function DrawTileForm({
                           onClick={() => {
                             setMode(option.value);
                             setLastShape(option.value);
+                            close();
                           }}
                         >
                           <ShapeIcon />
