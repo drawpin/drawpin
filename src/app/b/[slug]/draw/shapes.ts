@@ -94,6 +94,17 @@ export function shapeEnd(
   ];
 }
 
+/**
+ * Whether a line lies at a whole eighth of a turn: level, upright or at 45°.
+ * The snap assist uses it to tell a line it straightened, which keeps its
+ * angle as the finger moves on, from one left at the angle it was drawn.
+ */
+export function isOnEighth(from: Point, to: Point): boolean {
+  const angle = Math.atan2(to[1] - from[1], to[0] - from[0]);
+  const offBy = Math.abs(angle - Math.round(angle / EIGHTH_TURN) * EIGHTH_TURN);
+  return offBy < 1e-6;
+}
+
 /** Whether a drag was too short to mean a shape (see {@link MIN_SHAPE_SPAN}). */
 export function isTooSmall(from: Point, to: Point): boolean {
   return (

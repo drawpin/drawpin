@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import {
   boxBetween,
+  isOnEighth,
   isTooSmall,
   keepsPerfect,
   SHAPES,
@@ -52,6 +53,27 @@ describe("shapeEnd", () => {
     const end = shapeEnd("line", [0, 0], [50, 45], true);
     const length = Math.hypot(50, 45);
     expectPoint(end, [length / Math.SQRT2, length / Math.SQRT2]);
+  });
+});
+
+describe("isOnEighth", () => {
+  it.each([
+    ["level", [10, 10], [90, 10]],
+    ["upright", [10, 10], [10, 90]],
+    ["diagonal", [10, 10], [90, 90]],
+    ["diagonal the other way", [90, 10], [10, 90]],
+  ] as const)("accepts a %s line", (_, from, to) => {
+    expect(isOnEighth([...from], [...to])).toBe(true);
+  });
+
+  it("accepts a line straightened by shapeEnd", () => {
+    expect(isOnEighth([0, 0], shapeEnd("line", [0, 0], [100, 93], true))).toBe(
+      true,
+    );
+  });
+
+  it("rejects a line at any other angle", () => {
+    expect(isOnEighth([0, 0], [100, 93])).toBe(false);
   });
 });
 
