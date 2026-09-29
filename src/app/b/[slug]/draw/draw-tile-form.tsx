@@ -117,6 +117,13 @@ const PRESSED =
 const SWATCH =
   "border-border focus-visible:ring-highlight aria-pressed:ring-primary aspect-square w-full max-w-12 cursor-pointer justify-self-center rounded-full border outline-none transition-transform duration-150 ease-out hover:scale-110 focus-visible:ring-3 active:scale-90 aria-pressed:ring-2 aria-pressed:ring-offset-2 motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100";
 
+/** The colour a step puts on the tile, if it adds one: the eraser doesn't. */
+function inkOf(op: DrawOp): string | null {
+  if (op.kind === "stroke") return op.brush === "eraser" ? null : op.color;
+  if (op.kind === "shape" || op.kind === "fill") return op.color;
+  return null;
+}
+
 /** Brush sizes in tile units, so they mean the same on any screen. */
 const MIN_SIZE = 4;
 const MAX_SIZE = 64;
@@ -217,12 +224,10 @@ export function DrawTileForm({
   const [pickedBrush, setBrush] = useState<Brush | null>(null);
   const [pickedColor, setColor] = useState<string | null>(null);
   const [pickedRecents, setRecents] = useState<string[] | null>(null);
-  // The colour panel, and the colour it opened on — what it's left on is only
-  // added to Recent if it differs.
+  // The colour panel, opened from Make a colour in Your colours.
   const [panelOpen, setPanelOpen] = useState(false);
   // Clear throws away the whole drawing, so it asks first.
   const [confirmingClear, setConfirmingClear] = useState(false);
-  const [panelStart, setPanelStart] = useState<string | null>(null);
   const [pickedSize, setSize] = useState<number | null>(null);
   const [pickedEraserSize, setEraserSize] = useState<number | null>(null);
   const [pickedGrid, setShowGrid] = useState<boolean | null>(null);
@@ -331,29 +336,28 @@ export function DrawTileForm({
     remember(RECENTS_STORAGE_KEY, JSON.stringify(updated));
   }
 
-  /**
-   * A default or one of your colours: used straight away, and settled. Only
-   * a mixed colour moves in Your colours; a default leaves it as it is
-   * (palette.ts).
-   */
+  /** A default or one of your colours: used straight away. */
   function chooseColor(next: string) {
     previewColor(next);
-    addRecent(next);
     setPanelOpen(false);
   }
 
   function openPanel() {
-    setPanelStart(color);
     setPanelOpen(true);
   }
 
   /** Closing the panel settles whatever it was left on into Recent. */
   function closePanel() {
-    if (panelOpen && color !== panelStart) addRecent(color);
     setPanelOpen(false);
   }
 
   function addOp(op: DrawOp) {
+    // A colour joins Your colours the moment it's drawn with, not when it's
+    // tried in the panel: only what ends up on a tile is worth keeping. A
+    // default never joins (palette.ts), and drawing with one of your colours
+    // again moves it to the front.
+    const ink = inkOf(op);
+    if (ink) addRecent(ink);
     setOps((current) => [...current, op]);
     // Doing something new is a new branch: what was undone can't come back.
     setUndone([]);
