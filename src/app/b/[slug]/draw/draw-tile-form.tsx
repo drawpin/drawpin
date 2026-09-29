@@ -68,8 +68,8 @@ const BRUSH_ICONS: Record<Brush, Icon> = {
 
 /**
  * The rail, top to bottom: what you draw with, then what else a finger can
- * do. Shapes and Lasso open their tips as soon as they're picked, since one
- * holds the choice of shape and the other the how-to.
+ * do. A second tap on any of them shows how to use it; for Shapes that's
+ * also where Line, Circle and Square are.
  */
 const RAIL_TOOLS: RailTool[] = [
   ...BRUSHES.map((option) => ({
@@ -88,15 +88,13 @@ const RAIL_TOOLS: RailTool[] = [
     id: "shapes",
     label: "Shapes",
     icon: ShapesIcon,
-    tip: "Pick one, then drag to draw it. Hold Shift with a mouse for a perfect circle or square.",
-    tipsOnPick: true,
+    tip: "Pick a shape, then drag to draw it. Hold Shift with a mouse for a perfect circle or square.",
   },
   {
     id: "lasso",
     label: "Lasso",
     icon: LassoIcon,
     tip: "Draw a loop round part of your drawing, then drag it or its corners.",
-    tipsOnPick: true,
   },
 ];
 

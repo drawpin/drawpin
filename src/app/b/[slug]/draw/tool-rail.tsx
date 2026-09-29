@@ -10,11 +10,6 @@ export type RailTool = {
   icon: Icon;
   /** A line on how to use it, shown beside it on a second tap. */
   tip: string;
-  /**
-   * Opens its tips as soon as it's picked, for a tool whose tips hold a
-   * choice or a how-to you need before the first stroke (Shapes, Lasso).
-   */
-  tipsOnPick?: boolean;
 };
 
 /**
@@ -23,7 +18,8 @@ export type RailTool = {
  *
  * The first tap picks a tool. Tapping the tool you're already on opens its
  * tips beside it, level with it and pointing at it; drawing, or tapping
- * anywhere else, closes them. Each button is a 44px target, the icon alone
+ * anywhere else, closes them. The same for every tool, Shapes included,
+ * whose tips hold the choice of shape. Each button is a 44px target, the icon alone
  * with its name for screen readers and as a tooltip.
  *
  * Picking a tool is instant, since it happens constantly. The tips grow out
@@ -79,7 +75,7 @@ export function ToolRail({
                   return;
                 }
                 onPick(tool.id);
-                setTip(tool.tipsOnPick ? { id: tool.id, anchor } : null);
+                setTip(null);
               }}
               className="focus-visible:ring-highlight hover:bg-accent aria-pressed:border-primary aria-pressed:bg-secondary aria-pressed:text-primary grid size-11 cursor-pointer place-items-center rounded-[14px] border border-transparent transition-[background-color,transform] duration-100 ease-out outline-none focus-visible:ring-3 active:scale-[0.94] disabled:cursor-default disabled:opacity-50 aria-pressed:shadow-[inset_0_0_0_1px_var(--primary)] motion-reduce:transition-none motion-reduce:active:scale-100 [&_svg]:size-6"
             >
