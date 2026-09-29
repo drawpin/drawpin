@@ -17,7 +17,10 @@ const HIDDEN_BELOW = "translate-y-2 opacity-0 blur-sm";
  * rather than a new thing appearing. The second tap signs in.
  *
  * The button can't hold the sign-in form (it's inside the drawing's form), so
- * it submits the one named by `formId` through the `form` attribute.
+ * the second tap submits the one named by `formId`. It stays a plain button
+ * throughout: turning it into a submit button on the first tap would make
+ * that same tap submit, because React applies the change before the browser
+ * finishes handling the click.
  */
 export function GuestPostButton({
   formId,
@@ -25,7 +28,7 @@ export function GuestPostButton({
   onAsk,
   onSignIn,
 }: {
-  /** The sign-in form this button submits once it has changed. */
+  /** The sign-in form the second tap submits. */
   formId: string;
   disabled: boolean;
   /** The first tap. Returns false when there's nothing to post yet. */
@@ -38,14 +41,18 @@ export function GuestPostButton({
   return (
     <div className="flex flex-col gap-2">
       <Button
-        type={asking ? "submit" : "button"}
-        form={asking ? formId : undefined}
+        type="button"
         size="lg"
         className="w-full"
         disabled={disabled}
         onClick={() => {
-          if (asking) onSignIn();
-          else if (onAsk()) setAsking(true);
+          if (!asking) {
+            if (onAsk()) setAsking(true);
+            return;
+          }
+          onSignIn();
+          const form = document.getElementById(formId);
+          if (form instanceof HTMLFormElement) form.requestSubmit();
         }}
       >
         <span className="grid">
