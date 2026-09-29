@@ -48,13 +48,13 @@ describe("parseHexInput", () => {
 
 describe("withRecent", () => {
   it("puts the newest first", () => {
-    expect(withRecent(["#ef4444"], "#3b82f6")).toEqual(["#3b82f6", "#ef4444"]);
+    expect(withRecent(["#123456"], "#654321")).toEqual(["#654321", "#123456"]);
   });
 
   it("moves a colour already used rather than repeating it", () => {
-    const recents = withRecent(["#3b82f6", "#ef4444"], "#ef4444");
+    const recents = withRecent(["#654321", "#123456"], "#123456");
 
-    expect(recents).toEqual(["#ef4444", "#3b82f6"]);
+    expect(recents).toEqual(["#123456", "#654321"]);
   });
 
   it("keeps the row short", () => {
@@ -67,7 +67,14 @@ describe("withRecent", () => {
   });
 
   it("drops the colour used longest ago, not the one added first", () => {
-    const full = ["#000005", "#000004", "#000003", "#000002", "#000001"];
+    const full = [
+      "#000006",
+      "#000005",
+      "#000004",
+      "#000003",
+      "#000002",
+      "#000001",
+    ];
     expect(full).toHaveLength(RECENT_LIMIT);
 
     // Re-pick the oldest, then overflow the row by one.
@@ -77,6 +84,7 @@ describe("withRecent", () => {
     expect(after).toEqual([
       "#0000ff",
       "#000001",
+      "#000006",
       "#000005",
       "#000004",
       "#000003",
@@ -86,11 +94,32 @@ describe("withRecent", () => {
   });
 });
 
+describe("withRecent: only mixed colours", () => {
+  it("leaves the list alone when a default is picked", () => {
+    const recents = ["#123456"];
+    expect(withRecent(recents, "#ef4444")).toBe(recents);
+  });
+
+  it("keeps up to six, to sit beside the colour creator", () => {
+    let recents: string[] = [];
+    for (let i = 1; i <= 9; i++) {
+      recents = withRecent(recents, `#0000${i.toString(16).padStart(2, "0")}`);
+    }
+    expect(recents).toHaveLength(6);
+  });
+});
+
 describe("parseRecents", () => {
+  it("drops defaults saved before the list held only mixed colours", () => {
+    expect(parseRecents('["#ef4444","#123456","#3b82f6"]')).toEqual([
+      "#123456",
+    ]);
+  });
+
   it("reads a stored row", () => {
-    expect(parseRecents('["#ef4444","#3b82f6"]')).toEqual([
-      "#ef4444",
-      "#3b82f6",
+    expect(parseRecents('["#123456","#654321"]')).toEqual([
+      "#123456",
+      "#654321",
     ]);
   });
 

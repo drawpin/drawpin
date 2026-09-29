@@ -331,7 +331,11 @@ export function DrawTileForm({
     remember(RECENTS_STORAGE_KEY, JSON.stringify(updated));
   }
 
-  /** A swatch or a recent colour: used straight away, and settled. */
+  /**
+   * A default or one of your colours: used straight away, and settled. Only
+   * a mixed colour moves in Your colours; a default leaves it as it is
+   * (palette.ts).
+   */
   function chooseColor(next: string) {
     previewColor(next);
     addRecent(next);
@@ -658,39 +662,51 @@ export function DrawTileForm({
 
         {step === "drawing" ? (
           <>
-            {/* Recent first once there is one: after the first few picks,
-                your own colours are the ones you reach for. */}
-            {recents.length > 0 && (
-              <fieldset disabled={pending}>
-                <legend className="text-muted-foreground mb-1.5 text-sm">
-                  Recent
-                </legend>
-                <div className="grid grid-cols-7 gap-1.5">
-                  {recents.map((recent) => (
-                    <button
-                      key={recent}
-                      type="button"
-                      aria-label={`Recent ${recent}`}
-                      aria-pressed={color === recent}
-                      onClick={() => chooseColor(recent)}
-                      className={SWATCH}
-                      style={{ backgroundColor: recent }}
-                    />
-                  ))}
-                </div>
-              </fieldset>
+            {/* Your colours: the creator, then the colours you've mixed with
+                it. Always here, so the creator is always in the same place;
+                its panel opens right under this row. Seven columns fill a
+                375px phone at 44px each and grow on anything wider. */}
+            <fieldset disabled={pending}>
+              <legend className="text-muted-foreground mb-1.5 text-sm">
+                Your colours
+              </legend>
+              <div className="grid grid-cols-7 gap-1.5">
+                {/* Drawn as a wheel so it reads as "any colour". */}
+                <button
+                  type="button"
+                  aria-label="Make a colour"
+                  title="Make a colour"
+                  aria-expanded={panelOpen}
+                  onClick={() => (panelOpen ? closePanel() : openPanel())}
+                  className={`${SWATCH} aria-expanded:ring-primary aria-expanded:ring-2 aria-expanded:ring-offset-2`}
+                  style={{
+                    background:
+                      "conic-gradient(#ef4444, #eab308, #22c55e, #06b6d4, #3b82f6, #a855f7, #ef4444)",
+                  }}
+                />
+                {recents.map((recent) => (
+                  <button
+                    key={recent}
+                    type="button"
+                    aria-label={`Your colour ${recent}`}
+                    aria-pressed={color === recent}
+                    onClick={() => chooseColor(recent)}
+                    className={SWATCH}
+                    style={{ backgroundColor: recent }}
+                  />
+                ))}
+              </div>
+            </fieldset>
+
+            {panelOpen && (
+              <div className="motion-safe:animate-fade-up">
+                <ColorPanel color={color} onChange={previewColor} />
+              </div>
             )}
 
-            {/* Seven columns: the six colours and the wheel fill a 375px phone
-                at 44px each, and grow on anything wider. */}
+            {/* The defaults, the same six every time. */}
             <fieldset disabled={pending}>
-              <legend
-                className={
-                  recents.length > 0
-                    ? "text-muted-foreground mb-1.5 text-sm"
-                    : "sr-only"
-                }
-              >
+              <legend className="text-muted-foreground mb-1.5 text-sm">
                 Colours
               </legend>
               <div className="grid grid-cols-7 gap-1.5">
@@ -705,28 +721,8 @@ export function DrawTileForm({
                     style={{ backgroundColor: option.value }}
                   />
                 ))}
-
-                {/* Drawn as a wheel so it reads as "any colour"; it opens the
-                    colour panel right under these rows. */}
-                <button
-                  type="button"
-                  aria-label="Colour wheel"
-                  aria-expanded={panelOpen}
-                  onClick={() => (panelOpen ? closePanel() : openPanel())}
-                  className={`${SWATCH} aria-expanded:ring-primary aria-expanded:ring-2 aria-expanded:ring-offset-2`}
-                  style={{
-                    background:
-                      "conic-gradient(#ef4444, #eab308, #22c55e, #06b6d4, #3b82f6, #a855f7, #ef4444)",
-                  }}
-                />
               </div>
             </fieldset>
-
-            {panelOpen && (
-              <div className="motion-safe:animate-fade-up">
-                <ColorPanel color={color} onChange={previewColor} />
-              </div>
-            )}
 
             {error && (
               <p role="alert" className="text-destructive text-sm">
