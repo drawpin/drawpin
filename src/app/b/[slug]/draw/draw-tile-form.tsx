@@ -67,10 +67,11 @@ const PRESSED =
 
 /**
  * A colour swatch: a circle as wide as its grid column, at least 44px on a
- * 375px phone. The ring shows which colour is in hand.
+ * 375px phone. The ring shows which colour is in hand. Picked constantly, so
+ * it only answers the tap: a small squeeze, and a grow under a mouse.
  */
 const SWATCH =
-  "border-border focus-visible:ring-highlight aria-pressed:ring-primary aspect-square w-full max-w-12 cursor-pointer justify-self-center rounded-full border outline-none focus-visible:ring-3 aria-pressed:ring-2 aria-pressed:ring-offset-2";
+  "border-border focus-visible:ring-highlight aria-pressed:ring-primary aspect-square w-full max-w-12 cursor-pointer justify-self-center rounded-full border outline-none transition-transform duration-150 ease-out hover:scale-110 focus-visible:ring-3 active:scale-90 aria-pressed:ring-2 aria-pressed:ring-offset-2 motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100";
 
 /** The brush size as a dot in the brush's colour, or an outline for the eraser. */
 function SizeDot({ size, color }: { size: number; color: string | null }) {
@@ -482,7 +483,7 @@ export function DrawTileForm({
           </fieldset>
 
           {sizeOpen && (
-            <div className="flex items-center gap-3">
+            <div className="motion-safe:animate-fade-up flex items-center gap-3">
               <Label
                 htmlFor="brush-size"
                 className="text-muted-foreground text-sm"
@@ -533,7 +534,7 @@ export function DrawTileForm({
           )}
 
           {tool === "lasso" && (
-            <p className="text-muted-foreground text-sm">
+            <p className="text-muted-foreground motion-safe:animate-fade-up text-sm">
               Draw a loop round part of your drawing, then drag it or its
               corners.
             </p>
@@ -541,7 +542,7 @@ export function DrawTileForm({
 
           {isShapeTool(tool) && (
             <fieldset
-              className="flex flex-wrap items-center gap-2"
+              className="motion-safe:animate-fade-up flex flex-wrap items-center gap-2"
               disabled={pending}
             >
               <legend className="sr-only">Shape</legend>
@@ -602,7 +603,11 @@ export function DrawTileForm({
             />
           </fieldset>
 
-          {panelOpen && <ColorPanel color={color} onChange={previewColor} />}
+          {panelOpen && (
+            <div className="motion-safe:animate-fade-up">
+              <ColorPanel color={color} onChange={previewColor} />
+            </div>
+          )}
 
           {recents.length > 0 && (
             <fieldset disabled={pending}>
@@ -705,7 +710,7 @@ export function DrawTileForm({
             <div
               role="alertdialog"
               aria-label="Clear the drawing"
-              className="flex items-center justify-between gap-2 rounded-2xl border px-4 py-2"
+              className="motion-safe:animate-fade-up flex items-center justify-between gap-2 rounded-2xl border px-4 py-2"
             >
               <span className="text-sm font-medium">
                 Clear your whole drawing?

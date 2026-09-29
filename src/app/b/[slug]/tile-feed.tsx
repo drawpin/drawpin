@@ -10,6 +10,10 @@ import { useLiveBoard } from "./use-live-board";
 
 const ABOVE_THE_FOLD_TILES = 4;
 
+/** Drawings that fade up one after another when the board loads; the rest just appear. */
+const STAGGERED_TILES = 8;
+const STAGGER_MS = 40;
+
 type TileFeedProps = {
   venueId: string;
   /** Only signed-in customers can report a drawing (docs/PLAN.md). */
@@ -113,9 +117,20 @@ export function TileFeed({
         {visibleTiles.map((tile, index) => (
           <li
             key={tile.id}
+            // A drawing that arrived live drops in; the first screenful
+            // fades up in turn when the board loads.
             className={`flex min-w-0 flex-col gap-2 ${
-              liveIds.has(tile.id) ? "motion-safe:animate-drop-in" : ""
+              liveIds.has(tile.id)
+                ? "motion-safe:animate-drop-in"
+                : index < STAGGERED_TILES
+                  ? "motion-safe:animate-fade-up"
+                  : ""
             }`}
+            style={
+              liveIds.has(tile.id) || index >= STAGGERED_TILES
+                ? undefined
+                : { animationDelay: `${index * STAGGER_MS}ms` }
+            }
           >
             <Image
               src={tile.imageUrl}

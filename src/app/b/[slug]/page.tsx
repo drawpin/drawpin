@@ -102,15 +102,22 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
           )}
           <Link
             href={`/b/${slug}/hall-of-fame`}
-            className="text-primary -ml-1 inline-flex min-h-11 items-center gap-1.5 px-1 text-sm font-semibold underline-offset-4 hover:underline"
+            className="group text-primary -ml-1 inline-flex min-h-11 items-center gap-1.5 px-1 text-sm font-semibold underline-offset-4 hover:underline"
           >
-            <TrophyIcon className="size-4" weight="bold" />
+            <TrophyIcon
+              className="size-4 transition-transform duration-200 ease-out group-hover:-translate-y-0.5 motion-reduce:transition-none"
+              weight="bold"
+            />
             Hall of Fame
           </Link>
         </div>
         {!board.isPaused && (
           <Link href={`/b/${slug}/draw`} className={buttonVariants()}>
-            <PencilSimpleIcon weight="bold" />
+            {/* The pencil tips as if to start drawing. */}
+            <PencilSimpleIcon
+              className="transition-transform duration-200 ease-out group-hover/button:-rotate-12 motion-reduce:transition-none"
+              weight="bold"
+            />
             Draw
           </Link>
         )}
@@ -154,9 +161,7 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
         </Link>
       )}
 
-      {/* Signed in, this is one quiet line; signed out it's an invitation,
-          which belongs after the drawings rather than in front of them. */}
-      {customer && <AccountBar customer={customer} next={`/b/${slug}`} />}
+      <AccountBar customer={customer} next={`/b/${slug}`} />
 
       <TileFeed
         // Tiles and the pagination cursor belong to one week; start fresh when
@@ -169,8 +174,6 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
         initialTiles={page?.tiles ?? []}
         initialCursor={page?.nextCursor ?? null}
       />
-
-      {!customer && <AccountBar customer={null} next={`/b/${slug}`} />}
     </main>
   );
 }
