@@ -6,34 +6,33 @@ import {
 import Image from "next/image";
 import {
   BACKDROP_CSS,
-  CalmBackdrop,
+  ConfettiBackdrop,
   DoodleBackdrop,
   GlowBackdrop,
 } from "./backdrops";
 import { BOARD, leanFor, PEEK, TILES } from "./data";
 import { hand } from "./fonts";
-import { Pin } from "./pin";
+import { Pin, TACK_COLORS } from "./pin";
 
 const INKED = "border-2 border-[#0f1b2d]";
 const YELLOW = "#ffca39";
 
 /**
- * What makes the page lively, the one thing round five compares:
- * - `glow`: soft blue and yellow light drifting slowly behind the board.
+ * What's behind the board, the one thing round six compares:
+ * - `glow`: soft blue and yellow light drifting slowly.
  * - `doodles`: a sparse, faint wallpaper of the kind of thing people draw.
- * - `alive`: a calm page, with the drawings swinging in on their pins as
- *   they scroll into view and the pins popping in on load.
+ * - `confetti`: a few scraps of coloured paper peeking out at the edges.
  */
-export type Backdrop = "glow" | "doodles" | "alive";
+export type Backdrop = "glow" | "doodles" | "confetti";
 
 /**
- * Pinned: Zine with the colour cut back to blue and one accent. Zine's blue
- * header stays, and every drawing hangs in a white frame from a single
- * yellow pin. Yellow appears only where something is stuck up, pressed or
- * won: the pins, the Draw button, the "new" tag and the Hall of Fame trophy.
+ * Pinned, alive: Zine's blue header, and every drawing hung in a white frame
+ * from a thumb tack. As the board scrolls, each drawing swings into place on
+ * its tack, and the tacks pop in when the page loads (round five's winner).
+ * The tacks cycle through the palette; elsewhere yellow still means pressed
+ * or won: the Draw button, the "new" tag and the Hall of Fame trophy.
  */
 export function Pinned({ backdrop }: { backdrop: Backdrop }) {
-  const alive = backdrop === "alive";
   return (
     <div className="min-h-dvh bg-white">
       <style>{BACKDROP_CSS}</style>
@@ -82,7 +81,7 @@ export function Pinned({ backdrop }: { backdrop: Backdrop }) {
       <div className="relative">
         {backdrop === "glow" && <GlowBackdrop />}
         {backdrop === "doodles" && <DoodleBackdrop />}
-        {backdrop === "alive" && <CalmBackdrop />}
+        {backdrop === "confetti" && <ConfettiBackdrop />}
         <main className="relative mx-auto flex w-full max-w-lg flex-col gap-9 px-4 pt-8 pb-32">
           {/* The vote, pinned up as a card. White and ink: the colour is in
             the drawings on it. */}
@@ -91,8 +90,9 @@ export function Pinned({ backdrop }: { backdrop: Backdrop }) {
             className={`${INKED} motion-safe:animate-fade-up relative flex flex-col gap-3 rounded-xl bg-white p-4 pt-5 shadow-[5px_5px_0_#004aad] transition-[transform,box-shadow] duration-100 ease-out active:translate-x-1 active:translate-y-1 active:shadow-[1px_1px_0_#004aad] motion-reduce:transition-none`}
           >
             <Pin
-              color={YELLOW}
-              className="-top-2.5 left-1/2 -translate-x-1/2"
+              color={TACK_COLORS[1]}
+              className="pin-pop -top-3 left-1/2 -translate-x-1/2"
+              delayMs={100}
             />
             <span className="flex gap-1.5">
               {PEEK.map((src, index) => (
@@ -133,17 +133,13 @@ export function Pinned({ backdrop }: { backdrop: Backdrop }) {
               {TILES.map((tile, index) => (
                 <li
                   key={tile.id}
-                  // Alive: each drawing swings into place on its pin as it
-                  // scrolls in, alternating sides like papers in a draught.
-                  className={`flex min-w-0 flex-col gap-2 ${
-                    alive ? "board-sway" : "motion-safe:animate-fade-up"
-                  }`}
+                  // Each drawing swings into place on its tack as it scrolls
+                  // in, alternating sides like papers in a draught.
+                  className="board-sway flex min-w-0 flex-col gap-2"
                   style={
-                    alive
-                      ? ({
-                          "--swing": `${index % 2 ? 7 : -7}deg`,
-                        } as React.CSSProperties)
-                      : { animationDelay: `${index * 40}ms` }
+                    {
+                      "--swing": `${index % 2 ? 7 : -7}deg`,
+                    } as React.CSSProperties
                   }
                 >
                   <div
@@ -151,9 +147,9 @@ export function Pinned({ backdrop }: { backdrop: Backdrop }) {
                     style={{ transform: `rotate(${leanFor(index, 2)}deg)` }}
                   >
                     <Pin
-                      color={YELLOW}
-                      className={`-top-2.5 left-1/2 -translate-x-1/2 ${alive ? "pin-pop" : ""}`}
-                      delayMs={alive ? 150 + index * 60 : undefined}
+                      color={TACK_COLORS[index % TACK_COLORS.length]}
+                      className="pin-pop -top-3 left-1/2 -translate-x-1/2"
+                      delayMs={150 + index * 60}
                     />
                     <Image
                       src={tile.src}

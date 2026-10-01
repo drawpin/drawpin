@@ -122,15 +122,50 @@ export function DoodleBackdrop() {
 }
 
 /** Alive's backdrop: a calm gradient, since the drawings do the moving. */
-export function CalmBackdrop() {
+const SCRAP_COLORS = ["#ffca39", "#6badfa", "#ff821b", "#004aad"];
+
+/**
+ * Confetti: a few larger scraps of coloured paper tucked in along the edges,
+ * so they peek out around the drawings rather than sit behind them. Static, so
+ * the swinging drawings stay the only thing that moves.
+ */
+export function ConfettiBackdrop() {
+  const count = 28;
   return (
     <div
       aria-hidden
-      className="pointer-events-none absolute inset-0"
-      style={{
-        background:
-          "linear-gradient(180deg, #edf5ff 0%, #ffffff 35%, #ffffff 65%, #edf5ff 100%)",
-      }}
-    />
+      className="pointer-events-none absolute inset-0 overflow-hidden"
+    >
+      {Array.from({ length: count }, (_, index) => {
+        const color = SCRAP_COLORS[index % SCRAP_COLORS.length];
+        const kind = index % 3; // 0 a strip of paper, 1 a dot, 2 a square
+        // Alternate edges, each scrap half tucked off-screen, so none sits
+        // behind a drawing or its name.
+        const onLeft = index % 2 === 0;
+        const inset = (index * 7) % 5;
+        const width =
+          kind === 0
+            ? 34 + ((index * 11) % 26)
+            : kind === 1
+              ? 14 + ((index * 5) % 12)
+              : 18 + ((index * 3) % 10);
+        const height = kind === 0 ? 10 + ((index * 3) % 6) : width;
+        return (
+          <span
+            key={index}
+            className="absolute opacity-55"
+            style={{
+              [onLeft ? "left" : "right"]: `${inset - 5}%`,
+              top: `${40 + index * 68 + ((index * 23) % 30)}px`,
+              width,
+              height,
+              backgroundColor: color,
+              borderRadius: kind === 1 ? "9999px" : "3px",
+              rotate: `${((index * 47) % 80) - 40}deg`,
+            }}
+          />
+        );
+      })}
+    </div>
   );
 }
