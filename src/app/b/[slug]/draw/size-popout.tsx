@@ -3,6 +3,10 @@
 import { Popover } from "@base-ui/react/popover";
 import { useEffect, useRef, useState } from "react";
 
+/** The ring that stands for the largest size, and the smallest dot, in px. */
+const RING = 26;
+const MIN_DOT = 5;
+
 /** How long the slider stays after it's let go of, so the final size is seen. */
 const CLOSE_AFTER_RELEASE_MS = 350;
 
@@ -38,7 +42,11 @@ export function SizePopout({
   disabled?: boolean;
   onChange: (next: number) => void;
 }) {
-  const diameter = Math.min(Math.max(size / 2.5, 4), 22);
+  // The dot grows inside a ring the size of the largest brush, so it reads
+  // as how much of the range is in use, not as another colour swatch.
+  const diameter = Math.round(
+    MIN_DOT + ((size - min) / (max - min || 1)) * (RING - MIN_DOT),
+  );
   const [open, setOpen] = useState(false);
   const closeTimer = useRef<number | null>(null);
 
@@ -66,14 +74,27 @@ export function SizePopout({
       >
         <span
           aria-hidden
-          className="border-foreground/40 rounded-full border"
-          style={{
-            width: diameter,
-            height: diameter,
-            backgroundColor: color ?? "transparent",
-          }}
-        />
+          className="border-foreground/30 grid place-items-center rounded-full border border-dashed"
+          style={{ width: RING, height: RING }}
+        >
+          <span
+            className="border-foreground/40 rounded-full border"
+            style={{
+              width: diameter,
+              height: diameter,
+              backgroundColor: color ?? "transparent",
+            }}
+          />
+        </span>
       </Popover.Trigger>
+      {/* The button is a dot, which on its own reads as a colour; the word
+          says what it changes. */}
+      <span
+        aria-hidden
+        className="text-muted-foreground -mt-0.5 text-[10px] leading-none font-semibold"
+      >
+        Size
+      </span>
       <Popover.Portal>
         <Popover.Positioner side="right" align="end" sideOffset={10}>
           <Popover.Popup className="bg-background shadow-lift flex w-16 origin-(--transform-origin) flex-col items-center gap-1.5 rounded-2xl border py-3 transition-[transform,opacity] duration-150 ease-out outline-none data-ending-style:scale-95 data-ending-style:opacity-0 data-ending-style:duration-100 data-starting-style:scale-95 data-starting-style:opacity-0 motion-reduce:transition-none">

@@ -27,7 +27,7 @@ const FAILURE_MESSAGES: Record<Exclude<PostTileFailure, "blocked">, string> = {
   "not-found": "This board doesn't exist anymore.",
   paused: "This board is paused, so posting is off right now.",
   "invalid-image": "We couldn't read your drawing. Try again.",
-  blank: "Draw something first.",
+  blank: "Nothing drawn yet. Add a doodle, then post it.",
   locked:
     "Too many posts couldn't be posted today. You can try again after 4:00 AM.",
   burst:

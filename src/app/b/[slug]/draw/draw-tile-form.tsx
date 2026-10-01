@@ -20,6 +20,7 @@ import {
   LineSegmentIcon,
   PaintBucketIcon,
   PenIcon,
+  PencilSimpleIcon,
   ShapesIcon,
   SprayBottleIcon,
   SquareIcon,
@@ -115,6 +116,9 @@ const PRESSED =
  * 375px phone. The ring shows which colour is in hand. Picked constantly, so
  * it only answers the tap: a small squeeze, and a grow under a mouse.
  */
+/** What a tap on Post with nothing drawn says: an invitation, not a scolding. */
+const BLANK_NUDGE = "Nothing drawn yet. Add a doodle, then post it.";
+
 const SWATCH =
   "border-border focus-visible:ring-highlight aria-pressed:ring-primary aspect-square w-full max-w-12 cursor-pointer justify-self-center rounded-full border outline-none transition-transform duration-150 ease-out hover:scale-110 focus-visible:ring-3 active:scale-90 aria-pressed:ring-2 aria-pressed:ring-offset-2 motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100";
 
@@ -289,6 +293,9 @@ export function DrawTileForm({
     };
   }, []);
   const [localError, setLocalError] = useState<string | null>(null);
+  // Tapping Post with nothing drawn: a nudge, not an error. It goes as soon
+  // as there is something on the tile.
+  const [nudgeBlank, setNudgeBlank] = useState(false);
   // Set when a drawing kept across sign-in has just been put back.
   const [restored, setRestored] = useState(false);
   const canvasRef = useRef<DrawingCanvasHandle>(null);
@@ -298,7 +305,7 @@ export function DrawTileForm({
     setLocalError(null);
 
     if (ops.length === 0) {
-      setLocalError("Draw something first.");
+      setNudgeBlank(true);
       return;
     }
 
@@ -460,7 +467,7 @@ export function DrawTileForm({
     canvasRef.current?.commitSelection();
     closePanel();
     if (ops.length === 0) {
-      setLocalError("Draw something first.");
+      setNudgeBlank(true);
       return;
     }
     setLocalError(null);
@@ -712,6 +719,16 @@ export function DrawTileForm({
               </p>
             )}
 
+            {nudgeBlank && ops.length === 0 && (
+              <p
+                role="status"
+                className="bg-secondary text-secondary-foreground flex items-center gap-2 rounded-2xl px-4 py-3 text-sm"
+              >
+                <PencilSimpleIcon aria-hidden className="text-primary size-5" />
+                {BLANK_NUDGE}
+              </p>
+            )}
+
             {restored && username && (
               <p
                 role="status"
@@ -740,7 +757,7 @@ export function DrawTileForm({
                 disabled={!hydrated || pending}
                 onAsk={() => {
                   if (ops.length === 0) {
-                    setLocalError("Draw something first.");
+                    setNudgeBlank(true);
                     return false;
                   }
                   setLocalError(null);
