@@ -7,20 +7,18 @@ import {
   useRef,
   useState,
 } from "react";
-import { DoodlePop } from "./doodle-pop";
-import { Poster } from "./poster";
-import { Scrapbook } from "./scrapbook";
-import { Sketchbook } from "./sketchbook";
+import { Bulletin } from "./bulletin";
+import { Pegboard } from "./pegboard";
+import { Pinned } from "./pinned";
 import { Zine } from "./zine";
 
-// Round two (2026-10-01): the two the user liked, then three mixes of them.
-// Short names, so five fit the picker on a phone.
+// Round three (2026-10-01): Zine, which the user liked but found too
+// colourful, then three pinboards with blue and at most one accent.
 const VARIANTS = [
-  { name: "Sketch", Component: Sketchbook },
-  { name: "Poster", Component: Poster },
   { name: "Zine", Component: Zine },
-  { name: "Doodle", Component: DoodlePop },
-  { name: "Scrap", Component: Scrapbook },
+  { name: "Pinned", Component: Pinned },
+  { name: "Pegboard", Component: Pegboard },
+  { name: "Bulletin", Component: Bulletin },
 ];
 
 /** The picker's own look, verbatim from the prototype skill: harness chrome. */

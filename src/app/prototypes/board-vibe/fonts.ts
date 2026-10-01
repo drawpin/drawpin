@@ -17,6 +17,3 @@ export const DOT_GRID = {
     "radial-gradient(circle, rgb(107 173 250 / 0.35) 1.2px, transparent 1.3px)",
   backgroundSize: "22px 22px",
 } as const;
-
-/** The poster's hard shadows, cycling through the palette. */
-export const BLOCKS = ["#004aad", "#ffca39", "#ff821b", "#6badfa"];
