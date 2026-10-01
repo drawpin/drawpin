@@ -7,28 +7,16 @@ import {
 } from "@phosphor-icons/react";
 import Image from "next/image";
 import { useState } from "react";
-import {
-  BACKDROP_CSS,
-  ConfettiBackdrop,
-  DoodleBackdrop,
-  GlowBackdrop,
-} from "./backdrops";
+import { Board, type Surface, tacksFor } from "./boards";
 import { BOARD, leanFor, PEEK, type ProtoTile, TILES } from "./data";
 import { hand } from "./fonts";
 import { Lightbox, LIGHTBOX_CSS } from "./lightbox";
 import { MOTION_CSS } from "./motion";
-import { Pin, TACK_COLORS } from "./pin";
+import { TileCaption } from "./caption";
+import { Pin } from "./pin";
 
 const INKED = "border-2 border-[#0f1b2d]";
 const YELLOW = "#ffca39";
-
-/**
- * What's behind the board, the one thing round six compares:
- * - `glow`: soft blue and yellow light drifting slowly.
- * - `doodles`: a sparse, faint wallpaper of the kind of thing people draw.
- * - `confetti`: a few scraps of coloured paper peeking out at the edges.
- */
-export type Backdrop = "glow" | "doodles" | "confetti";
 
 /**
  * Pinned, alive: Zine's blue header, and every drawing hung in a white frame
@@ -40,8 +28,13 @@ export type Backdrop = "glow" | "doodles" | "confetti";
  * Awake (2026-10-01): the Draw button and the vote card move every few
  * seconds, a drawing lifts on its tack when hovered, and a tap takes it down
  * to see it big. See `motion.ts` and `lightbox.tsx`.
+ *
+ * On a board (round eight): the vote card, a paper heading and the drawings
+ * are all pinned to a framed board (`boards.tsx`), and each drawing's name
+ * and caption are written on its paper.
  */
-export function Pinned({ backdrop }: { backdrop: Backdrop }) {
+export function Pinned({ surface }: { surface: Surface }) {
+  const tacks = tacksFor(surface);
   const [open, setOpen] = useState<{
     tile: ProtoTile;
     index: number;
@@ -49,7 +42,7 @@ export function Pinned({ backdrop }: { backdrop: Backdrop }) {
   } | null>(null);
   return (
     <div className="min-h-dvh bg-white">
-      <style>{BACKDROP_CSS + MOTION_CSS + LIGHTBOX_CSS}</style>
+      <style>{MOTION_CSS + LIGHTBOX_CSS}</style>
       <header className="bg-primary text-primary-foreground border-b-2 border-[#0f1b2d]">
         <div className="mx-auto flex w-full max-w-lg flex-col gap-4 px-4 pt-8 pb-8">
           <span
@@ -92,135 +85,138 @@ export function Pinned({ backdrop }: { backdrop: Backdrop }) {
         </div>
       </header>
 
-      <div className="relative">
-        {backdrop === "glow" && <GlowBackdrop />}
-        {backdrop === "doodles" && <DoodleBackdrop />}
-        {backdrop === "confetti" && <ConfettiBackdrop />}
-        <main className="relative mx-auto flex w-full max-w-lg flex-col gap-9 px-4 pt-8 pb-32">
-          {/* The vote, pinned up as a card. White and ink: the colour is in
+      <main className="mx-auto flex w-full max-w-lg flex-col gap-6 px-3 pt-6 pb-32">
+        <Board surface={surface}>
+          <div className="flex flex-col gap-10 px-4 pt-12 pb-10">
+            {/* The vote, pinned up as a card. White and ink: the colour is in
             the drawings on it. */}
-          <a
-            href="#"
-            className={`${INKED} vote-awake motion-safe:animate-fade-up relative flex flex-col gap-3 rounded-xl bg-white p-4 pt-5 shadow-[5px_5px_0_#004aad] transition-[translate,box-shadow] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[7px_7px_0_#004aad] active:translate-x-1 active:translate-y-1 active:shadow-[1px_1px_0_#004aad] active:duration-75 motion-reduce:transition-none`}
-          >
-            <Pin
-              color={TACK_COLORS[0]}
-              className="pin-pop -top-[35px] left-[calc(50%-11px)]"
-              delayMs={100}
-            />
-            <span className="flex gap-1.5">
-              {PEEK.map((src, index) => (
-                <Image
-                  key={src}
-                  src={src}
-                  alt=""
-                  width={48}
-                  height={48}
-                  unoptimized
-                  className="peek size-11 rounded-md border border-[#0f1b2d]/20 bg-white object-cover"
-                  style={{
-                    transform: `rotate(${leanFor(index, 4)}deg)`,
-                    // They hop one after another, like being shuffled.
-                    animationDelay: `${1.6 + index * 0.12}s`,
-                  }}
-                />
-              ))}
-            </span>
-            <span className="flex items-end justify-between gap-3">
-              <span>
-                <span className="block text-xl leading-tight font-black">
-                  Vote for last week&apos;s best
-                </span>
-                <span className="text-muted-foreground block text-sm font-semibold">
-                  {BOARD.votesLeft} votes left, closes {BOARD.closesOn}
-                </span>
-              </span>
-              <span className="arrow bg-primary text-primary-foreground grid size-11 shrink-0 place-items-center rounded-full">
-                <ArrowRightIcon weight="bold" className="size-5" />
-              </span>
-            </span>
-          </a>
-
-          <section className="flex flex-col gap-4">
-            <h2
-              className={`${hand.className} text-primary -rotate-1 text-3xl font-bold`}
+            <a
+              href="#"
+              className={`${INKED} vote-awake motion-safe:animate-fade-up relative flex flex-col gap-3 rounded-xl bg-white p-4 pt-5 shadow-[5px_5px_0_var(--card-shadow)] transition-[translate,box-shadow] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[7px_7px_0_var(--card-shadow)] active:translate-x-1 active:translate-y-1 active:shadow-[1px_1px_0_var(--card-shadow)] active:duration-75 motion-reduce:transition-none`}
+              style={
+                {
+                  // The blue shadow would vanish into the navy board.
+                  "--card-shadow": surface === "navy" ? "#0f1b2d" : "#004aad",
+                } as React.CSSProperties
+              }
             >
-              Pinned up this week
-            </h2>
-            <ul className="grid grid-cols-2 gap-x-4 gap-y-11 pt-6">
-              {TILES.map((tile, index) => (
-                <li
-                  key={tile.id}
-                  // Each drawing swings into place on its tack as it scrolls
-                  // in, alternating sides like papers in a draught.
-                  className="board-sway flex min-w-0 flex-col gap-2"
-                  style={
-                    {
-                      "--swing": `${index % 2 ? 7 : -7}deg`,
-                    } as React.CSSProperties
-                  }
-                >
-                  <button
-                    type="button"
-                    aria-label={`Open ${tile.caption ? `"${tile.caption}"` : "the drawing"} by ${tile.author}`}
-                    onClick={(event) =>
-                      setOpen({ tile, index, source: event.currentTarget })
-                    }
-                    className="tile-frame relative origin-top cursor-zoom-in bg-white p-1.5 shadow-[0_2px_3px_rgb(0_74_173/0.1),0_10px_20px_rgb(0_74_173/0.12)] outline-none focus-visible:ring-3 focus-visible:ring-[#6badfa]"
+              <Pin
+                color={tacks[0]}
+                className="pin-pop -top-[35px] left-[calc(50%-11px)]"
+                delayMs={100}
+              />
+              <span className="flex gap-1.5">
+                {PEEK.map((src, index) => (
+                  <Image
+                    key={src}
+                    src={src}
+                    alt=""
+                    width={48}
+                    height={48}
+                    unoptimized
+                    className="peek size-11 rounded-md border border-[#0f1b2d]/20 bg-white object-cover"
+                    style={{
+                      transform: `rotate(${leanFor(index, 4)}deg)`,
+                      // They hop one after another, like being shuffled.
+                      animationDelay: `${1.6 + index * 0.12}s`,
+                    }}
+                  />
+                ))}
+              </span>
+              <span className="flex items-end justify-between gap-3">
+                <span>
+                  <span className="block text-xl leading-tight font-black">
+                    Vote for last week&apos;s best
+                  </span>
+                  <span className="text-muted-foreground block text-sm font-semibold">
+                    {BOARD.votesLeft} votes left, closes {BOARD.closesOn}
+                  </span>
+                </span>
+                <span className="arrow bg-primary text-primary-foreground grid size-11 shrink-0 place-items-center rounded-full">
+                  <ArrowRightIcon weight="bold" className="size-5" />
+                </span>
+              </span>
+            </a>
+
+            <section className="flex flex-col gap-4">
+              {/* The heading is a strip of paper pinned up too. */}
+              <h2
+                className={`${hand.className} relative mt-6 w-fit -rotate-2 bg-[#ffca39] px-4 pt-1 pb-0.5 text-3xl font-bold text-[#0f1b2d] shadow-[0_2px_3px_rgb(15_27_45/0.18),0_6px_12px_rgb(15_27_45/0.14)]`}
+              >
+                <Pin
+                  color={tacks[0]}
+                  size={28}
+                  className="pin-pop -top-[29px] left-[calc(50%-9px)]"
+                  delayMs={120}
+                />
+                Pinned up this week
+              </h2>
+              <ul className="grid grid-cols-2 gap-x-4 gap-y-12 pt-8">
+                {TILES.map((tile, index) => (
+                  <li
+                    key={tile.id}
+                    // Each drawing swings into place on its tack as it scrolls
+                    // in, alternating sides like papers in a draught.
+                    className="board-sway min-w-0"
                     style={
                       {
-                        transform: `rotate(${leanFor(index, 2)}deg)`,
-                        // Hovered, it swings away from its lean.
-                        "--hover-swing": `${leanFor(index, 2) > 0 ? -3.5 : 3.5}deg`,
-                        // Taken down while it's open big.
-                        visibility:
-                          open?.index === index ? "hidden" : undefined,
+                        "--swing": `${index % 2 ? 7 : -7}deg`,
                       } as React.CSSProperties
                     }
                   >
-                    <Pin
-                      color={TACK_COLORS[index % TACK_COLORS.length]}
-                      className="pin-pop -top-[35px] left-[calc(50%-11px)]"
-                      delayMs={150 + index * 60}
-                    />
-                    <Image
-                      src={tile.src}
-                      alt={tile.caption ?? `Drawing by ${tile.author}`}
-                      width={512}
-                      height={512}
-                      unoptimized
-                      className="aspect-square w-full object-cover"
-                    />
-                  </button>
-                  <div className="min-w-0 px-1">
-                    <p className="truncate text-sm font-bold">{tile.author}</p>
-                    {tile.caption && (
-                      <p
-                        className={`${hand.className} text-muted-foreground truncate text-lg leading-tight`}
-                      >
-                        &ldquo;{tile.caption}&rdquo;
-                      </p>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
+                    <button
+                      type="button"
+                      aria-label={`Open ${tile.caption ? `"${tile.caption}"` : "the drawing"} by ${tile.author}`}
+                      onClick={(event) =>
+                        setOpen({ tile, index, source: event.currentTarget })
+                      }
+                      className="tile-frame relative flex w-full origin-top cursor-zoom-in flex-col bg-white p-1.5 pb-2 text-left shadow-[0_2px_3px_rgb(15_27_45/0.18),0_10px_20px_rgb(15_27_45/0.16)] outline-none focus-visible:ring-3 focus-visible:ring-[#ffca39]"
+                      style={
+                        {
+                          transform: `rotate(${leanFor(index, 2)}deg)`,
+                          // Hovered, it swings away from its lean.
+                          "--hover-swing": `${leanFor(index, 2) > 0 ? -3.5 : 3.5}deg`,
+                          // Taken down while it's open big.
+                          visibility:
+                            open?.index === index ? "hidden" : undefined,
+                        } as React.CSSProperties
+                      }
+                    >
+                      <Pin
+                        color={tacks[index % tacks.length]}
+                        className="pin-pop -top-[35px] left-[calc(50%-11px)]"
+                        delayMs={150 + index * 60}
+                      />
+                      <Image
+                        src={tile.src}
+                        alt={tile.caption ?? `Drawing by ${tile.author}`}
+                        width={512}
+                        height={512}
+                        unoptimized
+                        className="aspect-square w-full object-cover"
+                      />
+                      <TileCaption tile={tile} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          </div>
+        </Board>
 
-          <p className="text-muted-foreground text-center text-xs">
-            Signed in as {BOARD.viewer} ·{" "}
-            <a href="#" className="underline underline-offset-4">
-              Sign out
-            </a>
-          </p>
-        </main>
-      </div>
+        <p className="text-muted-foreground text-center text-xs">
+          Signed in as {BOARD.viewer} ·{" "}
+          <a href="#" className="underline underline-offset-4">
+            Sign out
+          </a>
+        </p>
+      </main>
       {open && (
         <Lightbox
           tile={open.tile}
           source={open.source}
           lean={leanFor(open.index, 2)}
-          tackColor={TACK_COLORS[open.index % TACK_COLORS.length]}
+          tackColor={tacks[open.index % tacks.length]}
           onClosed={() => setOpen(null)}
         />
       )}

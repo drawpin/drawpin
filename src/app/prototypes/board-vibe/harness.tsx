@@ -9,13 +9,12 @@ import {
 } from "react";
 import { Pinned } from "./pinned";
 
-// Round seven (2026-10-01): push pins after the user's reference photo, an
-// awake Draw button and vote card, and drawings that lift on hover and open
-// big on a tap. What's compared is still the background behind it.
+// Round eight (2026-10-01): an actual board to pin things to, in the
+// palette. What's compared is the board's surface.
 const VARIANTS = [
-  { name: "Glow", Component: () => <Pinned backdrop="glow" /> },
-  { name: "Doodles", Component: () => <Pinned backdrop="doodles" /> },
-  { name: "Confetti", Component: () => <Pinned backdrop="confetti" /> },
+  { name: "Cork", Component: () => <Pinned surface="cork" /> },
+  { name: "Felt", Component: () => <Pinned surface="felt" /> },
+  { name: "Navy", Component: () => <Pinned surface="navy" /> },
 ];
 
 /** The picker's own look, verbatim from the prototype skill: harness chrome. */

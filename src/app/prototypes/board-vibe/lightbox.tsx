@@ -4,7 +4,7 @@ import { XIcon } from "@phosphor-icons/react";
 import Image from "next/image";
 import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import type { ProtoTile } from "./data";
-import { hand } from "./fonts";
+import { TileCaption } from "./caption";
 import { Pin } from "./pin";
 
 /** Opening is a spring-like ease-out; closing is quicker, since attention has moved on. */
@@ -123,7 +123,7 @@ export function Lightbox({
       <div className="flex h-full flex-col items-center justify-center gap-5 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div
           ref={frameRef}
-          className="relative w-full max-w-[min(30rem,62dvh)] bg-white p-2.5 shadow-[0_8px_16px_rgb(15_27_45/0.25),0_30px_60px_rgb(15_27_45/0.35)]"
+          className="relative w-full max-w-[min(30rem,56dvh)] bg-white p-2.5 shadow-[0_8px_16px_rgb(15_27_45/0.25),0_30px_60px_rgb(15_27_45/0.35)]"
         >
           <Pin
             color={tackColor}
@@ -138,22 +138,15 @@ export function Lightbox({
             unoptimized
             className="aspect-square w-full object-cover"
           />
+          <TileCaption tile={tile} large />
         </div>
-        <div className="lightbox-caption flex w-full max-w-[min(30rem,62dvh)] items-start justify-between gap-3 text-white">
-          <div className="min-w-0">
-            <p className="truncate font-bold">{tile.author}</p>
-            {tile.caption && (
-              <p className={`${hand.className} text-xl leading-tight`}>
-                &ldquo;{tile.caption}&rdquo;
-              </p>
-            )}
-          </div>
+        <div className="lightbox-caption flex w-full max-w-[min(30rem,56dvh)] justify-end">
           <button
             type="button"
             onClick={close}
             aria-label="Close"
             autoFocus
-            className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-full bg-white/15 ring-1 ring-white/35 transition-colors duration-150 ease-out outline-none hover:bg-white/25 focus-visible:ring-3 focus-visible:ring-[#6badfa]"
+            className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-full bg-white/15 text-white ring-1 ring-white/35 transition-colors duration-150 ease-out outline-none hover:bg-white/25 focus-visible:ring-3 focus-visible:ring-[#6badfa]"
           >
             <XIcon weight="bold" className="size-5" />
           </button>
