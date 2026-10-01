@@ -5,7 +5,9 @@ import { boardUrl, createBoardQrCode } from "@/lib/board";
 import { ensureDailyCode } from "@/lib/daily-code/ensure";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { serverEnv } from "@/lib/env";
+import { slugifyVenueName, slugMatchesName } from "@/lib/slug";
 import { setBoardPaused, signOut } from "./actions";
+import { BoardLink } from "./board-link";
 import { BoardTiles } from "./board-tiles";
 import { RenameBoard } from "./rename-board";
 import { ReportedTiles } from "./reported-tiles";
@@ -77,16 +79,11 @@ export default async function AdminPage() {
         </p>
       </section>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="text-sm font-medium">Board link</h2>
-        <p className="bg-muted rounded-lg px-3 py-2 font-mono text-sm break-all">
-          {url}
-        </p>
-        <p className="text-muted-foreground text-xs">
-          People open this link by scanning the QR code. It doesn&apos;t change
-          when you rename your board.
-        </p>
-      </section>
+      <BoardLink
+        url={url}
+        matchesName={slugMatchesName(venue.slug, venue.name)}
+        nextUrl={`${new URL("/b/", serverEnv().SITE_URL)}${slugifyVenueName(venue.name)}-····`}
+      />
 
       <RenameBoard name={venue.name} />
 

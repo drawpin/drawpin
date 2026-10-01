@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { findMovedSlug } from "@/lib/former-slugs";
 import type { WeekBounds } from "@/lib/venue-time";
 import { isTakingPosts } from "@/lib/week-phase";
 import { TILES_BUCKET } from "../tiles";
@@ -24,9 +25,13 @@ export class SupabaseTileStore implements TileStore {
       .maybeSingle();
 
     if (error) throw new Error(`findVenue: ${error.message}`);
-    return data
-      ? { id: data.id, timezone: data.timezone, isPaused: data.is_paused }
-      : null;
+    if (data) {
+      return { id: data.id, timezone: data.timezone, isPaused: data.is_paused };
+    }
+
+    // A drawing started before the owner changed the board's link still posts.
+    const moved = await findMovedSlug(this.admin, slug);
+    return moved ? this.findVenue(moved) : null;
   }
 
   async getDailyAttempt(

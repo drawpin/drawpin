@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { AccountBar } from "@/components/account-bar";
 import { buttonVariants } from "@/components/ui/button";
 import { connection } from "next/server";
@@ -9,6 +8,7 @@ import { openFinal } from "@/lib/monthly-final";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   getBoard,
+  requireBoard,
   getBoardStats,
   getPostingWeek,
   getVotingWeek,
@@ -40,7 +40,7 @@ export async function generateMetadata({
       title: board.name,
       description:
         "Tap to join the drawing board! One tile each per day, vote for your favorite!",
-      url: `/b/${slug}`,
+      url: `/b/${board.slug}`,
       images: [{ url: "/og-v2.png", width: 1200, height: 630, alt: "DrawPin" }],
     },
   };
@@ -51,8 +51,7 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
   await connection();
 
   const { slug } = await params;
-  const board = await getBoard(slug);
-  if (!board) notFound();
+  const board = await requireBoard(slug);
 
   const admin = createAdminClient();
   const customer = await getCustomer(admin);

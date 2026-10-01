@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { findMovedSlug } from "@/lib/former-slugs";
 import {
   type VoteRejection,
   VoteRefusedError,
@@ -43,7 +44,11 @@ export class SupabaseVoteStore implements VoteStore {
       .maybeSingle();
 
     if (error) throw new Error(`findVotingWeek: ${error.message}`);
-    return data ? { id: data.id, venueId: data.venue_id } : null;
+    if (data) return { id: data.id, venueId: data.venue_id };
+
+    // Votes picked before the owner changed the board's link still count.
+    const moved = await findMovedSlug(this.admin, slug);
+    return moved ? this.findVotingWeek(moved) : null;
   }
 
   async countVotes(weekId: string, userId: string): Promise<number> {

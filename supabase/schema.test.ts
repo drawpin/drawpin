@@ -1382,7 +1382,13 @@ describe("data API grants", () => {
   }
 
   // Read to the public API as a whole table.
-  const publicTables = ["weeks", "hall_of_fame", "profiles", "monthly_finals"];
+  const publicTables = [
+    "weeks",
+    "hall_of_fame",
+    "profiles",
+    "monthly_finals",
+    "former_slugs",
+  ];
 
   // Read to the public API, but only some columns: the rest hold internal
   // identifiers the board never shows (20260924190000_restrict_public_columns).
@@ -1642,6 +1648,152 @@ describe("board_stats", () => {
       await expect(
         db.query(`select count(distinct device_id) from tiles`),
       ).rejects.toThrow(/permission denied/i);
+    } finally {
+      await db.exec("reset role");
+    }
+  });
+});
+
+describe("former slugs", () => {
+  async function currentSlug(venueId: string) {
+    const result = await db.query<{ slug: string }>(
+      `select slug from venues where id = $1`,
+      [venueId],
+    );
+    return result.rows[0].slug;
+  }
+
+  async function changeSlug(venueId: string, newSlug: string) {
+    await db.query(`select change_venue_slug($1, $2)`, [venueId, newSlug]);
+  }
+
+  /** A second owner, ready for a venue of their own. */
+  async function newOwner() {
+    const ownerId = crypto.randomUUID();
+    await db.exec(`
+      insert into auth.users (id, email) values ('${ownerId}', '${ownerId}@example.com');
+      insert into owners (id, email) values ('${ownerId}', '${ownerId}@example.com');
+    `);
+    return ownerId;
+  }
+
+  it("moves a board to its new slug and keeps the old one pointing at it", async () => {
+    const { venueId, slug } = await seedBoard();
+    const next = `${slug}-moved`;
+
+    await changeSlug(venueId, next);
+
+    expect(await currentSlug(venueId)).toBe(next);
+    const former = await db.query<{ venue_id: string }>(
+      `select venue_id from former_slugs where slug = $1`,
+      [slug],
+    );
+    expect(former.rows).toEqual([{ venue_id: venueId }]);
+  });
+
+  it("keeps every slug a board has had", async () => {
+    const { venueId, slug } = await seedBoard();
+
+    await changeSlug(venueId, `${slug}-second`);
+    await changeSlug(venueId, `${slug}-third`);
+
+    const former = await db.query<{ slug: string }>(
+      `select slug from former_slugs where venue_id = $1 order by slug`,
+      [venueId],
+    );
+    expect(former.rows.map((row) => row.slug)).toEqual([
+      slug,
+      `${slug}-second`,
+    ]);
+  });
+
+  it("won't give a former slug to a new board, so old QR codes stay with their board", async () => {
+    const { venueId, slug } = await seedBoard();
+    await changeSlug(venueId, `${slug}-moved`);
+
+    const ownerId = await newOwner();
+    await expect(
+      db.query(
+        `insert into venues (owner_id, name, slug, timezone)
+         values ($1, 'Copycat', $2, 'UTC')`,
+        [ownerId, slug],
+      ),
+    ).rejects.toThrow(/venues_slug_key/);
+  });
+
+  it("won't move a board onto a slug another board has given up", async () => {
+    const first = await seedBoard();
+    await changeSlug(first.venueId, `${first.slug}-moved`);
+    const second = await seedBoard();
+
+    await expect(changeSlug(second.venueId, first.slug)).rejects.toThrow(
+      /venues_slug_key/,
+    );
+    expect(await currentSlug(second.venueId)).toBe(second.slug);
+  });
+
+  it("won't move a board onto another board's current slug", async () => {
+    const first = await seedBoard();
+    const second = await seedBoard();
+
+    await expect(changeSlug(second.venueId, first.slug)).rejects.toThrow(
+      /venues_slug_key/,
+    );
+    // Nothing was retired by the failed change.
+    const former = await db.query(
+      `select 1 from former_slugs where venue_id = $1`,
+      [second.venueId],
+    );
+    expect(former.rows).toEqual([]);
+  });
+
+  it("won't retire a slug a board is still using", async () => {
+    const first = await seedBoard();
+    const second = await seedBoard();
+
+    await expect(
+      db.query(`insert into former_slugs (slug, venue_id) values ($1, $2)`, [
+        first.slug,
+        second.venueId,
+      ]),
+    ).rejects.toThrow(/venues_slug_key/);
+  });
+
+  it("goes when its board does", async () => {
+    const { venueId, slug } = await seedBoard();
+    await changeSlug(venueId, `${slug}-moved`);
+
+    // Weeks, tiles and devices hold the venue too; clear them first.
+    await db.query(
+      `delete from tiles where week_id in (select id from weeks where venue_id = $1)`,
+      [venueId],
+    );
+    await db.query(`delete from weeks where venue_id = $1`, [venueId]);
+    await db.query(`delete from venues where id = $1`, [venueId]);
+
+    const former = await db.query(
+      `select 1 from former_slugs where slug = $1`,
+      [slug],
+    );
+    expect(former.rows).toEqual([]);
+  });
+
+  it("lets a visitor follow an old slug but not change one", async () => {
+    const { venueId, slug } = await seedBoard();
+    await changeSlug(venueId, `${slug}-moved`);
+
+    await db.exec("set role anon");
+    try {
+      const result = await db.query<{ slug: string }>(
+        `select v.slug from former_slugs f join venues v on v.id = f.venue_id
+          where f.slug = $1`,
+        [slug],
+      );
+      expect(result.rows).toEqual([{ slug: `${slug}-moved` }]);
+
+      await expect(changeSlug(venueId, `${slug}-hijacked`)).rejects.toThrow(
+        /permission denied/i,
+      );
     } finally {
       await db.exec("reset role");
     }

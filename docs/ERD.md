@@ -38,10 +38,30 @@ One drawing board per owner, addressed publicly by `slug`.
 | `id` | `uuid` | PK |
 | `owner_id` | `uuid` | FK → `owners`, **unique** — one board per owner |
 | `name` | `text` | 1–120 chars; the owner can change it, and nothing denormalizes a copy |
-| `slug` | `text` | unique, `^[a-z0-9]+(-[a-z0-9]+)*$` |
+| `slug` | `text` | unique, `^[a-z0-9]+(-[a-z0-9]+)*$`; never one in `former_slugs` |
 | `timezone` | `text` | IANA name, validated in the app |
 | `is_paused` | `boolean` | owner's pause toggle |
 | `created_at` | `timestamptz` | |
+
+### `former_slugs`
+Slugs a board used to have (ADR-008). Every printed QR code encodes a slug, so
+when an owner changes the link the old one is kept here and board pages
+redirect it to the current one.
+
+| Column | Type | Notes |
+|---|---|---|
+| `slug` | `text` | PK, same pattern as `venues.slug` |
+| `venue_id` | `uuid` | FK → `venues`, `on delete cascade` |
+| `retired_at` | `timestamptz` | |
+
+A slug is one namespace across this table and `venues.slug`: a trigger on each
+side refuses a slug the other holds, under a per-slug advisory lock, and raises
+the same `venues_slug_key` unique violation a clash between two current slugs
+does. Without it a new board could take a retired slug and inherit another
+board's printed codes.
+
+`change_venue_slug(venue_id, new_slug)` moves a board and retires its old slug
+in one transaction; `service_role` only.
 
 ### `daily_codes`
 The 8-digit code people type instead of scanning the QR, rotated daily.
@@ -295,7 +315,7 @@ public board and the owner screen need:
 
 | Table | Readable by |
 |---|---|
-| `venues`, `weeks`, `hall_of_fame`, `profiles`, `monthly_finals` | anyone |
+| `venues`, `weeks`, `hall_of_fame`, `profiles`, `monthly_finals`, `former_slugs` | anyone |
 | `tiles` | anyone, `status = 'live'` only |
 | `owners` | the owner, their own row |
 | `daily_codes` | the owner, for their own venue |
@@ -314,7 +334,7 @@ are granted explicitly, and RLS then narrows the rows:
 | Role | Tables | Privileges |
 |---|---|---|
 | `service_role` (server) | all | select, insert, update, delete |
-| `anon`, `authenticated` | `venues`, `weeks`, `tiles`, `hall_of_fame`, `profiles`, `monthly_finals` | select |
+| `anon`, `authenticated` | `venues`, `weeks`, `tiles`, `hall_of_fame`, `profiles`, `monthly_finals`, `former_slugs` | select |
 | `authenticated` (owners) | `owners`, `daily_codes` | select |
 | `anon`, `authenticated` | `devices`, `votes`, `final_votes`, `post_attempts`, `code_attempts`, `account_posts`, `tile_reports` | none |
 
