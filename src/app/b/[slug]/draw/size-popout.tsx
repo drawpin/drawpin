@@ -87,14 +87,6 @@ export function SizePopout({
           />
         </span>
       </Popover.Trigger>
-      {/* The button is a dot, which on its own reads as a colour; the word
-          says what it changes. */}
-      <span
-        aria-hidden
-        className="text-muted-foreground -mt-0.5 text-[10px] leading-none font-semibold"
-      >
-        Size
-      </span>
       <Popover.Portal>
         <Popover.Positioner side="right" align="end" sideOffset={10}>
           <Popover.Popup className="bg-background shadow-lift flex w-16 origin-(--transform-origin) flex-col items-center gap-1.5 rounded-2xl border py-3 transition-[transform,opacity] duration-150 ease-out outline-none data-ending-style:scale-95 data-ending-style:opacity-0 data-ending-style:duration-100 data-starting-style:scale-95 data-starting-style:opacity-0 motion-reduce:transition-none">
