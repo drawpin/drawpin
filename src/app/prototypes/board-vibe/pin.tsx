@@ -8,16 +8,23 @@ export function Pin({
   color,
   size = 18,
   className = "",
+  delayMs,
 }: {
   color: string;
   size?: number;
   className?: string;
+  /** When a `pin-pop` entrance should start, to stagger a row of pins. */
+  delayMs?: number;
 }) {
   return (
     <span
       aria-hidden
       className={`absolute z-10 ${className}`}
-      style={{ width: size, height: size }}
+      style={{
+        width: size,
+        height: size,
+        animationDelay: delayMs === undefined ? undefined : `${delayMs}ms`,
+      }}
     >
       <span className="absolute inset-0 translate-x-[2px] translate-y-[3px] rounded-full bg-[#0f1b2d]/30 blur-[2px]" />
       <span

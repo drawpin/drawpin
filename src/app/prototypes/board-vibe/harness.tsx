@@ -9,12 +9,12 @@ import {
 } from "react";
 import { Pinned } from "./pinned";
 
-// Round four (2026-10-01): Pinned won round three. Neater pins and a more
-// visible Hall of Fame throughout; what's compared is the background.
+// Round five (2026-10-01): Pinned, with three ways to make the page lively
+// while the drawings stay the focus.
 const VARIANTS = [
-  { name: "White", Component: () => <Pinned surface="white" /> },
-  { name: "Blue", Component: () => <Pinned surface="soft" /> },
-  { name: "Board", Component: () => <Pinned surface="board" /> },
+  { name: "Glow", Component: () => <Pinned backdrop="glow" /> },
+  { name: "Doodles", Component: () => <Pinned backdrop="doodles" /> },
+  { name: "Alive", Component: () => <Pinned backdrop="alive" /> },
 ];
 
 /** The picker's own look, verbatim from the prototype skill: harness chrome. */
