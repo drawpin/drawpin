@@ -7,16 +7,20 @@ import {
   useRef,
   useState,
 } from "react";
-import { Gallery } from "./gallery";
+import { DoodlePop } from "./doodle-pop";
 import { Poster } from "./poster";
+import { Scrapbook } from "./scrapbook";
 import { Sketchbook } from "./sketchbook";
-import { Splash } from "./splash";
+import { Zine } from "./zine";
 
+// Round two (2026-10-01): the two the user liked, then three mixes of them.
+// Short names, so five fit the picker on a phone.
 const VARIANTS = [
-  { name: "Sketchbook", Component: Sketchbook },
+  { name: "Sketch", Component: Sketchbook },
   { name: "Poster", Component: Poster },
-  { name: "Gallery", Component: Gallery },
-  { name: "Splash", Component: Splash },
+  { name: "Zine", Component: Zine },
+  { name: "Doodle", Component: DoodlePop },
+  { name: "Scrap", Component: Scrapbook },
 ];
 
 /** The picker's own look, verbatim from the prototype skill: harness chrome. */
@@ -96,7 +100,7 @@ const PICKER_CSS = `
 
 /**
  * Flips between the board-vibe directions: one at a time, full size, with
- * the picker floating over it. Keys 1-4 and the arrows switch, R replays the
+ * the picker floating over it. Number keys and the arrows switch, R replays the
  * entrance; the choice survives a reload through `?v=`.
  */
 export function Harness({
