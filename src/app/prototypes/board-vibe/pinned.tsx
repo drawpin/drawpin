@@ -11,23 +11,28 @@ import { Pin } from "./pin";
 const INKED = "border-2 border-[#0f1b2d]";
 const YELLOW = "#ffca39";
 
-/** A soft blue fabric board: the tint, with a fine weave of darker dots. */
-const FABRIC = {
-  backgroundColor: "#edf5ff",
-  backgroundImage:
-    "radial-gradient(circle, rgb(0 74 173 / 0.07) 1px, transparent 1.2px)",
-  backgroundSize: "6px 6px",
-} as const;
+const TINT = "#edf5ff";
+
+/**
+ * What the drawings are pinned to, the one thing round four compares:
+ * - `white`: a plain white page; the pins and frames make it a board.
+ * - `soft`: the whole page in the plain light tint.
+ * - `board`: a white page with the drawings on a soft blue board panel.
+ */
+export type Surface = "white" | "soft" | "board";
 
 /**
  * Pinned: Zine with the colour cut back to blue and one accent. Zine's blue
- * header stays; below it is a soft blue board, and every drawing hangs in a
- * white frame from a single yellow pin. Yellow appears only where something
- * is stuck up or pressed: the pins, the Draw button and the "new" tag.
+ * header stays, and every drawing hangs in a white frame from a single
+ * yellow pin. Yellow appears only where something is stuck up, pressed or
+ * won: the pins, the Draw button, the "new" tag and the Hall of Fame trophy.
  */
-export function Pinned() {
+export function Pinned({ surface }: { surface: Surface }) {
   return (
-    <div className="min-h-dvh" style={FABRIC}>
+    <div
+      className="min-h-dvh"
+      style={{ backgroundColor: surface === "soft" ? TINT : "#ffffff" }}
+    >
       <header className="bg-primary text-primary-foreground border-b-2 border-[#0f1b2d]">
         <div className="mx-auto flex w-full max-w-lg flex-col gap-4 px-4 pt-8 pb-8">
           <span
@@ -36,22 +41,28 @@ export function Pinned() {
           >
             {BOARD.thisWeek} new this week!
           </span>
-          <h1 className="text-4xl leading-[1.02] font-black tracking-tight">
-            {BOARD.name}
-          </h1>
+          <div className="flex flex-col gap-1">
+            <h1 className="text-4xl leading-[1.02] font-black tracking-tight">
+              {BOARD.name}
+            </h1>
+            <p className="text-sm text-white/80">
+              {BOARD.artists} artists · {BOARD.drawings} drawings
+            </p>
+          </div>
           <div className="flex items-center justify-between gap-3">
-            <div className="flex flex-col gap-1">
-              <p className="text-sm text-white/80">
-                {BOARD.artists} artists · {BOARD.drawings} drawings
-              </p>
-              <a
-                href="#"
-                className="inline-flex min-h-11 items-center gap-1.5 text-sm font-bold underline underline-offset-4"
-              >
-                <TrophyIcon weight="fill" className="size-4" />
-                Hall of Fame
-              </a>
-            </div>
+            {/* A button, not a link in the small print: winners are what
+                the board is for. The trophy takes the yellow of winning. */}
+            <a
+              href="#"
+              className="inline-flex h-12 items-center gap-2 rounded-xl bg-white/15 px-4 text-sm font-bold ring-1 ring-white/35 transition-colors duration-150 ease-out hover:bg-white/25 motion-reduce:transition-none"
+            >
+              <TrophyIcon
+                weight="fill"
+                className="size-5"
+                style={{ color: YELLOW }}
+              />
+              Hall of Fame
+            </a>
             <a
               href="#"
               className={`${INKED} inline-flex h-12 items-center gap-2 rounded-xl px-5 font-extrabold text-[#0f1b2d] shadow-[4px_4px_0_#0f1b2d] transition-[transform,box-shadow] duration-100 ease-out active:translate-x-1 active:translate-y-1 active:shadow-none motion-reduce:transition-none`}
@@ -71,7 +82,7 @@ export function Pinned() {
           href="#"
           className={`${INKED} motion-safe:animate-fade-up relative flex flex-col gap-3 rounded-xl bg-white p-4 pt-5 shadow-[5px_5px_0_#004aad] transition-[transform,box-shadow] duration-100 ease-out active:translate-x-1 active:translate-y-1 active:shadow-[1px_1px_0_#004aad] motion-reduce:transition-none`}
         >
-          <Pin color={YELLOW} className="-top-2 left-1/2 -translate-x-1/2" />
+          <Pin color={YELLOW} className="-top-2.5 left-1/2 -translate-x-1/2" />
           <span className="flex gap-1.5">
             {PEEK.map((src, index) => (
               <Image
@@ -101,7 +112,14 @@ export function Pinned() {
           </span>
         </a>
 
-        <section className="flex flex-col gap-4">
+        <section
+          className={`flex flex-col gap-4 ${
+            surface === "board"
+              ? "-mx-2 rounded-3xl px-3 pt-5 pb-8 shadow-[inset_0_1px_3px_rgb(0_74_173/0.1)]"
+              : ""
+          }`}
+          style={surface === "board" ? { backgroundColor: TINT } : undefined}
+        >
           <h2
             className={`${hand.className} text-primary -rotate-1 text-3xl font-bold`}
           >
@@ -120,7 +138,7 @@ export function Pinned() {
                 >
                   <Pin
                     color={YELLOW}
-                    className="-top-2 left-1/2 -translate-x-1/2"
+                    className="-top-2.5 left-1/2 -translate-x-1/2"
                   />
                   <Image
                     src={tile.src}

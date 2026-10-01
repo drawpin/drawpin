@@ -7,18 +7,14 @@ import {
   useRef,
   useState,
 } from "react";
-import { Bulletin } from "./bulletin";
-import { Pegboard } from "./pegboard";
 import { Pinned } from "./pinned";
-import { Zine } from "./zine";
 
-// Round three (2026-10-01): Zine, which the user liked but found too
-// colourful, then three pinboards with blue and at most one accent.
+// Round four (2026-10-01): Pinned won round three. Neater pins and a more
+// visible Hall of Fame throughout; what's compared is the background.
 const VARIANTS = [
-  { name: "Zine", Component: Zine },
-  { name: "Pinned", Component: Pinned },
-  { name: "Pegboard", Component: Pegboard },
-  { name: "Bulletin", Component: Bulletin },
+  { name: "White", Component: () => <Pinned surface="white" /> },
+  { name: "Blue", Component: () => <Pinned surface="soft" /> },
+  { name: "Board", Component: () => <Pinned surface="board" /> },
 ];
 
 /** The picker's own look, verbatim from the prototype skill: harness chrome. */
