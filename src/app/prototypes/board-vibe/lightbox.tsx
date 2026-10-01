@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import type { ProtoTile } from "./data";
 import { TileCaption } from "./caption";
-import { Pin } from "./pin";
+import { pinStyle } from "./pin";
 
 /** Opening is a spring-like ease-out; closing is quicker, since attention has moved on. */
 const OPEN = { duration: 460, easing: "cubic-bezier(0.32, 0.72, 0, 1)" };
@@ -123,9 +123,9 @@ export function Lightbox({
       <div className="flex h-full flex-col items-center justify-center gap-5 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div
           ref={frameRef}
-          className="relative w-full max-w-[min(30rem,56dvh)] bg-white p-2.5 shadow-[0_8px_16px_rgb(15_27_45/0.25),0_30px_60px_rgb(15_27_45/0.35)]"
+          style={pinStyle(tackColor)}
+          className="pinned pinned-lg relative w-full max-w-[min(30rem,56dvh)] bg-white p-2.5 shadow-[0_8px_16px_rgb(15_27_45/0.25),0_30px_60px_rgb(15_27_45/0.35)]"
         >
-          <Pin color={tackColor} size={42} depth={9} />
           <Image
             src={tile.src}
             alt={tile.caption ?? `Drawing by ${tile.author}`}

@@ -78,23 +78,25 @@ export function tacksFor(surface: Surface): string[] {
  */
 export function Board({
   surface,
+  className = "",
   children,
 }: {
   surface: Surface;
+  /** The layout of what's pinned inside. */
+  className?: string;
   children: ReactNode;
 }) {
   const { base, layers, frame } = SURFACES[surface];
   return (
     <div
-      className="rounded-2xl border-[10px] shadow-[0_10px_24px_rgb(15_27_45/0.18)]"
-      style={{ borderColor: frame }}
+      className={`rounded-2xl border-[10px] shadow-[inset_0_2px_10px_rgb(15_27_45/0.35),0_10px_24px_rgb(15_27_45/0.18)] ${className}`}
+      style={{
+        borderColor: frame,
+        backgroundColor: base,
+        backgroundImage: layers.join(","),
+      }}
     >
-      <div
-        className="rounded-md shadow-[inset_0_2px_10px_rgb(15_27_45/0.35)]"
-        style={{ backgroundColor: base, backgroundImage: layers.join(",") }}
-      >
-        {children}
-      </div>
+      {children}
     </div>
   );
 }

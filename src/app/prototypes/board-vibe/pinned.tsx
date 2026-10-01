@@ -13,7 +13,7 @@ import { hand } from "./fonts";
 import { Lightbox, LIGHTBOX_CSS } from "./lightbox";
 import { MOTION_CSS } from "./motion";
 import { TileCaption } from "./caption";
-import { Pin } from "./pin";
+import { PIN_CSS, pinStyle } from "./pin";
 
 const INKED = "border-2 border-[#0f1b2d]";
 const YELLOW = "#ffca39";
@@ -42,7 +42,7 @@ export function Pinned({ surface }: { surface: Surface }) {
   } | null>(null);
   return (
     <div className="min-h-dvh bg-white">
-      <style>{MOTION_CSS + LIGHTBOX_CSS}</style>
+      <style>{PIN_CSS + MOTION_CSS + LIGHTBOX_CSS}</style>
       <header className="bg-primary text-primary-foreground border-b-2 border-[#0f1b2d]">
         <div className="mx-auto flex w-full max-w-lg flex-col gap-4 px-4 pt-8 pb-8">
           <span
@@ -86,118 +86,113 @@ export function Pinned({ surface }: { surface: Surface }) {
       </header>
 
       <main className="mx-auto flex w-full max-w-lg flex-col gap-6 px-3 pt-6 pb-32">
-        <Board surface={surface}>
-          <div className="flex flex-col gap-10 px-4 pt-12 pb-10">
-            {/* The vote, pinned up as a card. White and ink: the colour is in
+        <Board
+          surface={surface}
+          className="flex flex-col gap-10 px-4 pt-12 pb-10"
+        >
+          {/* The vote, pinned up as a card. White and ink: the colour is in
             the drawings on it. */}
-            <a
-              href="#"
-              className={`${INKED} vote-awake motion-safe:animate-fade-up relative flex flex-col gap-3 rounded-xl bg-white p-4 pt-5 shadow-[5px_5px_0_var(--card-shadow)] transition-[translate,box-shadow] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[7px_7px_0_var(--card-shadow)] active:translate-x-1 active:translate-y-1 active:shadow-[1px_1px_0_var(--card-shadow)] active:duration-75 motion-reduce:transition-none`}
-              style={
-                {
-                  // The blue shadow would vanish into the navy board.
-                  "--card-shadow": surface === "navy" ? "#0f1b2d" : "#004aad",
-                } as React.CSSProperties
-              }
-            >
-              <Pin color={tacks[0]} className="pin-pop" delayMs={100} />
-              <span className="flex gap-1.5">
-                {PEEK.map((src, index) => (
-                  <Image
-                    key={src}
-                    src={src}
-                    alt=""
-                    width={48}
-                    height={48}
-                    unoptimized
-                    className="peek size-11 rounded-md border border-[#0f1b2d]/20 bg-white object-cover"
-                    style={{
-                      transform: `rotate(${leanFor(index, 4)}deg)`,
-                      // They hop one after another, like being shuffled.
-                      animationDelay: `${1.6 + index * 0.12}s`,
-                    }}
-                  />
-                ))}
-              </span>
-              <span className="flex items-end justify-between gap-3">
-                <span>
-                  <span className="block text-xl leading-tight font-black">
-                    Vote for last week&apos;s best
-                  </span>
-                  <span className="text-muted-foreground block text-sm font-semibold">
-                    {BOARD.votesLeft} votes left, closes {BOARD.closesOn}
-                  </span>
-                </span>
-                <span className="arrow bg-primary text-primary-foreground grid size-11 shrink-0 place-items-center rounded-full">
-                  <ArrowRightIcon weight="bold" className="size-5" />
-                </span>
-              </span>
-            </a>
-
-            <section className="flex flex-col gap-4">
-              {/* The heading is a strip of paper pinned up too. */}
-              <h2
-                className={`${hand.className} relative mt-6 w-fit -rotate-2 bg-[#ffca39] px-4 pt-1 pb-0.5 text-3xl font-bold text-[#0f1b2d] shadow-[0_2px_3px_rgb(15_27_45/0.18),0_6px_12px_rgb(15_27_45/0.14)]`}
-              >
-                <Pin
-                  color={tacks[0]}
-                  size={26}
-                  className="pin-pop"
-                  delayMs={120}
+          <a
+            href="#"
+            className={`${INKED} pinned pin-pop vote-awake motion-safe:animate-fade-up relative flex flex-col gap-3 rounded-xl bg-white p-4 pt-5 shadow-[5px_5px_0_var(--card-shadow)] transition-[translate,box-shadow] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[7px_7px_0_var(--card-shadow)] active:translate-x-1 active:translate-y-1 active:shadow-[1px_1px_0_var(--card-shadow)] active:duration-75 motion-reduce:transition-none`}
+            style={
+              {
+                ...pinStyle(tacks[0], 100),
+                // The blue shadow would vanish into the navy board.
+                "--card-shadow": surface === "navy" ? "#0f1b2d" : "#004aad",
+              } as React.CSSProperties
+            }
+          >
+            <span className="flex gap-1.5">
+              {PEEK.map((src, index) => (
+                <Image
+                  key={src}
+                  src={src}
+                  alt=""
+                  width={48}
+                  height={48}
+                  unoptimized
+                  className="peek size-11 rounded-md border border-[#0f1b2d]/20 bg-white object-cover"
+                  style={{
+                    transform: `rotate(${leanFor(index, 4)}deg)`,
+                    // They hop one after another, like being shuffled.
+                    animationDelay: `${1.6 + index * 0.12}s`,
+                  }}
                 />
-                Pinned up this week
-              </h2>
-              <ul className="grid grid-cols-2 gap-x-4 gap-y-12 pt-8">
-                {TILES.map((tile, index) => (
-                  <li
-                    key={tile.id}
-                    // Each drawing swings into place on its tack as it scrolls
-                    // in, alternating sides like papers in a draught.
-                    className="board-sway min-w-0"
+              ))}
+            </span>
+            <span className="flex items-end justify-between gap-3">
+              <span>
+                <span className="block text-xl leading-tight font-black">
+                  Vote for last week&apos;s best
+                </span>
+                <span className="text-muted-foreground block text-sm font-semibold">
+                  {BOARD.votesLeft} votes left, closes {BOARD.closesOn}
+                </span>
+              </span>
+              <span className="arrow bg-primary text-primary-foreground grid size-11 shrink-0 place-items-center rounded-full">
+                <ArrowRightIcon weight="bold" className="size-5" />
+              </span>
+            </span>
+          </a>
+
+          <section className="flex flex-col gap-4">
+            {/* The heading is a strip of paper pinned up too. */}
+            <h2
+              style={pinStyle(tacks[0], 120)}
+              className={`${hand.className} pinned pin-pop relative mt-6 w-fit -rotate-2 bg-[#ffca39] px-4 pt-1 pb-0.5 text-3xl font-bold text-[#0f1b2d] shadow-[0_2px_3px_rgb(15_27_45/0.18),0_6px_12px_rgb(15_27_45/0.14)]`}
+            >
+              Pinned up this week
+            </h2>
+            <ul className="grid grid-cols-2 gap-x-4 gap-y-12 pt-8">
+              {TILES.map((tile, index) => (
+                <li
+                  key={tile.id}
+                  // Each drawing swings into place on its tack as it scrolls
+                  // in, alternating sides like papers in a draught.
+                  className="board-sway min-w-0"
+                  style={
+                    {
+                      "--swing": `${index % 2 ? 7 : -7}deg`,
+                    } as React.CSSProperties
+                  }
+                >
+                  <button
+                    type="button"
+                    aria-label={`Open ${tile.caption ? `"${tile.caption}"` : "the drawing"} by ${tile.author}`}
+                    onClick={(event) =>
+                      setOpen({ tile, index, source: event.currentTarget })
+                    }
+                    className="tile-frame pinned pin-pop relative flex w-full origin-top cursor-zoom-in flex-col bg-white p-1.5 pb-2 text-left shadow-[0_2px_3px_rgb(15_27_45/0.18),0_10px_20px_rgb(15_27_45/0.16)] outline-none focus-visible:ring-3 focus-visible:ring-[#ffca39]"
                     style={
                       {
-                        "--swing": `${index % 2 ? 7 : -7}deg`,
+                        ...pinStyle(
+                          tacks[index % tacks.length],
+                          150 + index * 60,
+                        ),
+                        transform: `rotate(${leanFor(index, 2)}deg)`,
+                        // Hovered, it swings away from its lean.
+                        "--hover-swing": `${leanFor(index, 2) > 0 ? -3.5 : 3.5}deg`,
+                        // Taken down while it's open big.
+                        visibility:
+                          open?.index === index ? "hidden" : undefined,
                       } as React.CSSProperties
                     }
                   >
-                    <button
-                      type="button"
-                      aria-label={`Open ${tile.caption ? `"${tile.caption}"` : "the drawing"} by ${tile.author}`}
-                      onClick={(event) =>
-                        setOpen({ tile, index, source: event.currentTarget })
-                      }
-                      className="tile-frame relative flex w-full origin-top cursor-zoom-in flex-col bg-white p-1.5 pb-2 text-left shadow-[0_2px_3px_rgb(15_27_45/0.18),0_10px_20px_rgb(15_27_45/0.16)] outline-none focus-visible:ring-3 focus-visible:ring-[#ffca39]"
-                      style={
-                        {
-                          transform: `rotate(${leanFor(index, 2)}deg)`,
-                          // Hovered, it swings away from its lean.
-                          "--hover-swing": `${leanFor(index, 2) > 0 ? -3.5 : 3.5}deg`,
-                          // Taken down while it's open big.
-                          visibility:
-                            open?.index === index ? "hidden" : undefined,
-                        } as React.CSSProperties
-                      }
-                    >
-                      <Pin
-                        color={tacks[index % tacks.length]}
-                        className="pin-pop"
-                        delayMs={150 + index * 60}
-                      />
-                      <Image
-                        src={tile.src}
-                        alt={tile.caption ?? `Drawing by ${tile.author}`}
-                        width={512}
-                        height={512}
-                        unoptimized
-                        className="aspect-square w-full object-cover"
-                      />
-                      <TileCaption tile={tile} />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          </div>
+                    <Image
+                      src={tile.src}
+                      alt={tile.caption ?? `Drawing by ${tile.author}`}
+                      width={512}
+                      height={512}
+                      unoptimized
+                      className="aspect-square w-full object-cover"
+                    />
+                    <TileCaption tile={tile} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
         </Board>
 
         <p className="text-muted-foreground text-center text-xs">

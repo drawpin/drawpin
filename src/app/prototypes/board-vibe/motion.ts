@@ -4,7 +4,8 @@
  * playful consumer page, but people open it every day, so nothing loops fast
  * and every loop spends most of its time at rest.
  *
- * - `pin-pop`: a tack is pushed into the paper on load, about its needle tip.
+ * - `pin-pop`: a pin (`pin.tsx`) is pushed into the paper on load, about its
+ *   needle's tip.
  * - `board-sway`: a drawing swings into place on its tack as it scrolls in.
  * - `draw-awake`: the Draw button's pencil scribbles every few seconds.
  * - `vote-awake`: the vote card's drawings hop in turn and its arrow nudges.
@@ -41,9 +42,8 @@ export const MOTION_CSS = `
   8% { translate: -1px 0; }
 }
 @media (prefers-reduced-motion: no-preference) {
-  .pin-pop {
-    transform-origin: 19% 100%;
-    animation: pin-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  .pin-pop::before {
+    animation: pin-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) var(--pin-delay, 0ms) both;
   }
   @supports (animation-timeline: view()) {
     .board-sway {

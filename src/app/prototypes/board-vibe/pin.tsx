@@ -1,75 +1,50 @@
-import Image from "next/image";
-
 /** The tacks' colours, from the palette, cycled across the board. */
 export const TACK_COLORS = ["#004aad", "#ffca39", "#ff821b", "#6badfa"];
 
 /**
- * Each colour's image in `public/pins/`: push pins generated in Canva
- * (2026-10-01) after the reference photo the user picked, the deep blue first
- * and the others recoloured from it so all four match. Backgrounds removed in
- * Canva; cropped to one shared box with the needle cut short, so only the
- * stub above the paper shows.
+ * A push pin drawn flat in the page's own style: ink outline, palette fill,
+ * one highlight. Shaped after the user's reference photo (2026-10-01): wide
+ * base, narrow neck, a cap on top, leaning up and to the right with the
+ * needle's tip at (3, 29) of a 24 × 30 box.
+ *
+ * Returned as a CSS `url()` so the pin can be a `::before` on whatever it
+ * holds up (see `PIN_CSS`), which adds nothing to the DOM.
  */
-const IMAGES: Record<string, string> = {
-  "#004aad": "/pins/blue.webp",
-  "#ffca39": "/pins/yellow.webp",
-  "#ff821b": "/pins/orange.webp",
-  "#6badfa": "/pins/sky.webp",
-};
-
-/** The images' shape, and how far across them the needle's cut end is. */
-const ASPECT = 144 / 117;
-const TIP_X = 0.192;
+function pinImage(color: string): string {
+  const ink = "#0f1b2d";
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 30'><g transform='translate(-10 -2) rotate(30 13 31)' stroke='${ink}' stroke-width='1.5' stroke-linejoin='round' fill='${color}'><path d='M13 23v8' stroke-linecap='round'/><rect x='4' y='19' width='18' height='5' rx='2.5'/><path d='M10 19.5v-10h6v10'/><rect x='6' y='4' width='14' height='6' rx='3'/><path d='M11.8 11.5v5.5' stroke='white' stroke-width='1.3' stroke-linecap='round' stroke-opacity='0.8'/></g></svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+}
 
 /**
- * A push pin stuck into the top of whatever it's placed in (the parent must
- * be positioned). The pin is centred and its needle goes in `depth` px below
- * the top edge; since the pin leans up and right, that's left of centre.
+ * The style that pins an element up: put it with the `pinned` class (and
+ * `pin-pop` to push it in on load). `delayMs` staggers a row of them.
  */
-export function Pin({
-  color,
-  size = 30,
-  depth = 6,
-  className = "",
-  delayMs,
-}: {
-  /** One of `TACK_COLORS`. */
-  color: string;
-  /** The pin's width in px. */
-  size?: number;
-  /** How far below the top edge the needle goes in, in px. */
-  depth?: number;
-  className?: string;
-  /** When a `pin-pop` entrance should start, to stagger a row of pins. */
-  delayMs?: number;
-}) {
-  const height = Math.round(size * ASPECT);
-  return (
-    <span
-      aria-hidden
-      className={`pointer-events-none absolute z-10 ${className}`}
-      style={{
-        width: size,
-        height,
-        top: depth - height,
-        left: `calc(50% - ${size / 2}px)`,
-        animationDelay: delayMs === undefined ? undefined : `${delayMs}ms`,
-      }}
-    >
-      {/* Where the needle goes into the paper. */}
-      <span
-        className="absolute size-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#0f1b2d]/45 blur-[0.5px]"
-        style={{ left: size * TIP_X, top: height - 0.5 }}
-      />
-      <Image
-        src={IMAGES[color] ?? IMAGES["#004aad"]}
-        alt=""
-        width={117}
-        height={144}
-        unoptimized
-        draggable={false}
-        className="relative size-full drop-shadow-[4px_6px_3px_rgb(15_27_45/0.35)]"
-      />
-    </span>
-  );
+export function pinStyle(color: string, delayMs = 0): React.CSSProperties {
+  return {
+    "--pin": pinImage(color),
+    "--pin-delay": `${delayMs}ms`,
+  } as React.CSSProperties;
 }
+
+/**
+ * The pin itself, as the pinned element's `::before`: centred, with its
+ * needle 5px into the top edge, and a hard ink shadow like the buttons'.
+ * `pinned-lg` is the bigger pin on a drawing opened up close.
+ */
+export const PIN_CSS = `
+.pinned::before {
+  content: "";
+  position: absolute;
+  z-index: 10;
+  width: calc(24px * var(--pin-scale, 1));
+  height: calc(30px * var(--pin-scale, 1));
+  top: calc((5px - 29px) * var(--pin-scale, 1));
+  left: calc(50% - 12px * var(--pin-scale, 1));
+  background: var(--pin) center / contain no-repeat;
+  filter: drop-shadow(2px 2px 0 rgb(15 27 45 / 0.28));
+  transform-origin: 12.5% 97%;
+  pointer-events: none;
+}
+.pinned-lg { --pin-scale: 1.5; }
+`;
