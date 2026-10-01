@@ -100,11 +100,7 @@ export function Pinned({ surface }: { surface: Surface }) {
                 } as React.CSSProperties
               }
             >
-              <Pin
-                color={tacks[0]}
-                className="pin-pop -top-[35px] left-[calc(50%-11px)]"
-                delayMs={100}
-              />
+              <Pin color={tacks[0]} className="pin-pop" delayMs={100} />
               <span className="flex gap-1.5">
                 {PEEK.map((src, index) => (
                   <Image
@@ -145,8 +141,8 @@ export function Pinned({ surface }: { surface: Surface }) {
               >
                 <Pin
                   color={tacks[0]}
-                  size={28}
-                  className="pin-pop -top-[29px] left-[calc(50%-9px)]"
+                  size={26}
+                  className="pin-pop"
                   delayMs={120}
                 />
                 Pinned up this week
@@ -184,7 +180,7 @@ export function Pinned({ surface }: { surface: Surface }) {
                     >
                       <Pin
                         color={tacks[index % tacks.length]}
-                        className="pin-pop -top-[35px] left-[calc(50%-11px)]"
+                        className="pin-pop"
                         delayMs={150 + index * 60}
                       />
                       <Image

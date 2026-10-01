@@ -125,11 +125,7 @@ export function Lightbox({
           ref={frameRef}
           className="relative w-full max-w-[min(30rem,56dvh)] bg-white p-2.5 shadow-[0_8px_16px_rgb(15_27_45/0.25),0_30px_60px_rgb(15_27_45/0.35)]"
         >
-          <Pin
-            color={tackColor}
-            size={46}
-            className="-top-[47px] left-[calc(50%-16px)]"
-          />
+          <Pin color={tackColor} size={42} depth={9} />
           <Image
             src={tile.src}
             alt={tile.caption ?? `Drawing by ${tile.author}`}

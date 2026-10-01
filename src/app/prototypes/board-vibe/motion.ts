@@ -42,7 +42,7 @@ export const MOTION_CSS = `
 }
 @media (prefers-reduced-motion: no-preference) {
   .pin-pop {
-    transform-origin: 7.5% 96%;
+    transform-origin: 19% 100%;
     animation: pin-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
   }
   @supports (animation-timeline: view()) {
