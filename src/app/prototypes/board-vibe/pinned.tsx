@@ -1,17 +1,22 @@
+"use client";
+
 import {
   ArrowRightIcon,
   PencilSimpleIcon,
   TrophyIcon,
 } from "@phosphor-icons/react";
 import Image from "next/image";
+import { useState } from "react";
 import {
   BACKDROP_CSS,
   ConfettiBackdrop,
   DoodleBackdrop,
   GlowBackdrop,
 } from "./backdrops";
-import { BOARD, leanFor, PEEK, TILES } from "./data";
+import { BOARD, leanFor, PEEK, type ProtoTile, TILES } from "./data";
 import { hand } from "./fonts";
+import { Lightbox, LIGHTBOX_CSS } from "./lightbox";
+import { MOTION_CSS } from "./motion";
 import { Pin, TACK_COLORS } from "./pin";
 
 const INKED = "border-2 border-[#0f1b2d]";
@@ -31,11 +36,20 @@ export type Backdrop = "glow" | "doodles" | "confetti";
  * its tack, and the tacks pop in when the page loads (round five's winner).
  * The tacks cycle through the palette; elsewhere yellow still means pressed
  * or won: the Draw button, the "new" tag and the Hall of Fame trophy.
+ *
+ * Awake (2026-10-01): the Draw button and the vote card move every few
+ * seconds, a drawing lifts on its tack when hovered, and a tap takes it down
+ * to see it big. See `motion.ts` and `lightbox.tsx`.
  */
 export function Pinned({ backdrop }: { backdrop: Backdrop }) {
+  const [open, setOpen] = useState<{
+    tile: ProtoTile;
+    index: number;
+    source: HTMLElement;
+  } | null>(null);
   return (
     <div className="min-h-dvh bg-white">
-      <style>{BACKDROP_CSS}</style>
+      <style>{BACKDROP_CSS + MOTION_CSS + LIGHTBOX_CSS}</style>
       <header className="bg-primary text-primary-foreground border-b-2 border-[#0f1b2d]">
         <div className="mx-auto flex w-full max-w-lg flex-col gap-4 px-4 pt-8 pb-8">
           <span
@@ -68,7 +82,7 @@ export function Pinned({ backdrop }: { backdrop: Backdrop }) {
             </a>
             <a
               href="#"
-              className={`${INKED} inline-flex h-12 items-center gap-2 rounded-xl px-5 font-extrabold text-[#0f1b2d] shadow-[4px_4px_0_#0f1b2d] transition-[transform,box-shadow] duration-100 ease-out active:translate-x-1 active:translate-y-1 active:shadow-none motion-reduce:transition-none`}
+              className={`${INKED} draw-awake inline-flex h-12 items-center gap-2 rounded-xl px-5 font-extrabold text-[#0f1b2d] shadow-[4px_4px_0_#0f1b2d] transition-[translate,box-shadow] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_#0f1b2d] active:translate-x-1 active:translate-y-1 active:shadow-none active:duration-75 motion-reduce:transition-none`}
               style={{ backgroundColor: YELLOW }}
             >
               <PencilSimpleIcon weight="bold" className="size-5" />
@@ -87,11 +101,11 @@ export function Pinned({ backdrop }: { backdrop: Backdrop }) {
             the drawings on it. */}
           <a
             href="#"
-            className={`${INKED} motion-safe:animate-fade-up relative flex flex-col gap-3 rounded-xl bg-white p-4 pt-5 shadow-[5px_5px_0_#004aad] transition-[transform,box-shadow] duration-100 ease-out active:translate-x-1 active:translate-y-1 active:shadow-[1px_1px_0_#004aad] motion-reduce:transition-none`}
+            className={`${INKED} vote-awake motion-safe:animate-fade-up relative flex flex-col gap-3 rounded-xl bg-white p-4 pt-5 shadow-[5px_5px_0_#004aad] transition-[translate,box-shadow] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[7px_7px_0_#004aad] active:translate-x-1 active:translate-y-1 active:shadow-[1px_1px_0_#004aad] active:duration-75 motion-reduce:transition-none`}
           >
             <Pin
-              color={TACK_COLORS[1]}
-              className="pin-pop -top-3 left-1/2 -translate-x-1/2"
+              color={TACK_COLORS[0]}
+              className="pin-pop -top-[35px] left-[calc(50%-11px)]"
               delayMs={100}
             />
             <span className="flex gap-1.5">
@@ -103,8 +117,12 @@ export function Pinned({ backdrop }: { backdrop: Backdrop }) {
                   width={48}
                   height={48}
                   unoptimized
-                  className="size-11 rounded-md border border-[#0f1b2d]/20 bg-white object-cover"
-                  style={{ transform: `rotate(${leanFor(index, 4)}deg)` }}
+                  className="peek size-11 rounded-md border border-[#0f1b2d]/20 bg-white object-cover"
+                  style={{
+                    transform: `rotate(${leanFor(index, 4)}deg)`,
+                    // They hop one after another, like being shuffled.
+                    animationDelay: `${1.6 + index * 0.12}s`,
+                  }}
                 />
               ))}
             </span>
@@ -117,7 +135,7 @@ export function Pinned({ backdrop }: { backdrop: Backdrop }) {
                   {BOARD.votesLeft} votes left, closes {BOARD.closesOn}
                 </span>
               </span>
-              <span className="bg-primary text-primary-foreground grid size-11 shrink-0 place-items-center rounded-full">
+              <span className="arrow bg-primary text-primary-foreground grid size-11 shrink-0 place-items-center rounded-full">
                 <ArrowRightIcon weight="bold" className="size-5" />
               </span>
             </span>
@@ -129,7 +147,7 @@ export function Pinned({ backdrop }: { backdrop: Backdrop }) {
             >
               Pinned up this week
             </h2>
-            <ul className="grid grid-cols-2 gap-x-4 gap-y-9">
+            <ul className="grid grid-cols-2 gap-x-4 gap-y-11 pt-6">
               {TILES.map((tile, index) => (
                 <li
                   key={tile.id}
@@ -142,13 +160,27 @@ export function Pinned({ backdrop }: { backdrop: Backdrop }) {
                     } as React.CSSProperties
                   }
                 >
-                  <div
-                    className="relative origin-top bg-white p-1.5 shadow-[0_2px_3px_rgb(0_74_173/0.1),0_10px_20px_rgb(0_74_173/0.12)]"
-                    style={{ transform: `rotate(${leanFor(index, 2)}deg)` }}
+                  <button
+                    type="button"
+                    aria-label={`Open ${tile.caption ? `"${tile.caption}"` : "the drawing"} by ${tile.author}`}
+                    onClick={(event) =>
+                      setOpen({ tile, index, source: event.currentTarget })
+                    }
+                    className="tile-frame relative origin-top cursor-zoom-in bg-white p-1.5 shadow-[0_2px_3px_rgb(0_74_173/0.1),0_10px_20px_rgb(0_74_173/0.12)] outline-none focus-visible:ring-3 focus-visible:ring-[#6badfa]"
+                    style={
+                      {
+                        transform: `rotate(${leanFor(index, 2)}deg)`,
+                        // Hovered, it swings away from its lean.
+                        "--hover-swing": `${leanFor(index, 2) > 0 ? -3.5 : 3.5}deg`,
+                        // Taken down while it's open big.
+                        visibility:
+                          open?.index === index ? "hidden" : undefined,
+                      } as React.CSSProperties
+                    }
                   >
                     <Pin
                       color={TACK_COLORS[index % TACK_COLORS.length]}
-                      className="pin-pop -top-3 left-1/2 -translate-x-1/2"
+                      className="pin-pop -top-[35px] left-[calc(50%-11px)]"
                       delayMs={150 + index * 60}
                     />
                     <Image
@@ -159,7 +191,7 @@ export function Pinned({ backdrop }: { backdrop: Backdrop }) {
                       unoptimized
                       className="aspect-square w-full object-cover"
                     />
-                  </div>
+                  </button>
                   <div className="min-w-0 px-1">
                     <p className="truncate text-sm font-bold">{tile.author}</p>
                     {tile.caption && (
@@ -183,6 +215,15 @@ export function Pinned({ backdrop }: { backdrop: Backdrop }) {
           </p>
         </main>
       </div>
+      {open && (
+        <Lightbox
+          tile={open.tile}
+          source={open.source}
+          lean={leanFor(open.index, 2)}
+          tackColor={TACK_COLORS[open.index % TACK_COLORS.length]}
+          onClosed={() => setOpen(null)}
+        />
+      )}
     </div>
   );
 }

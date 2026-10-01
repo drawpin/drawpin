@@ -16,35 +16,18 @@ import {
 } from "@phosphor-icons/react";
 
 /**
- * The motion the backdrops and the living board use. Seen every visit, so
- * it's slow and quiet (design-motion-principles' frequency gate), it only
- * moves transform properties, and it's all off for reduced motion.
+ * The Glow backdrop's drift. Seen every visit, so it's slow and quiet
+ * (design-motion-principles' frequency gate), moves only `translate`, and is
+ * off for reduced motion. The board's own motion is in `motion.ts`.
  */
 export const BACKDROP_CSS = `
 @keyframes glow-drift-a { from { translate: 0 0; } to { translate: 60px 90px; } }
 @keyframes glow-drift-b { from { translate: 0 0; } to { translate: -70px -50px; } }
 @keyframes glow-drift-c { from { translate: 0 0; } to { translate: 40px -80px; } }
-@keyframes pin-pop {
-  from { scale: 1.9; opacity: 0; }
-  to { scale: 1; opacity: 1; }
-}
-@keyframes board-sway {
-  from { rotate: var(--swing); translate: 0 16px; opacity: 0.35; }
-  to { rotate: 0deg; translate: 0 0; opacity: 1; }
-}
 @media (prefers-reduced-motion: no-preference) {
   .glow-a { animation: glow-drift-a 38s ease-in-out infinite alternate; }
   .glow-b { animation: glow-drift-b 46s ease-in-out infinite alternate; }
   .glow-c { animation: glow-drift-c 42s ease-in-out infinite alternate; }
-  .pin-pop { animation: pin-pop 340ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
-  @supports (animation-timeline: view()) {
-    .board-sway {
-      transform-origin: 50% 0;
-      animation: board-sway linear both;
-      animation-timeline: view();
-      animation-range: entry 0% cover 30%;
-    }
-  }
 }
 `;
 
@@ -121,7 +104,6 @@ export function DoodleBackdrop() {
   );
 }
 
-/** Alive's backdrop: a calm gradient, since the drawings do the moving. */
 const SCRAP_COLORS = ["#ffca39", "#6badfa", "#ff821b", "#004aad"];
 
 /**

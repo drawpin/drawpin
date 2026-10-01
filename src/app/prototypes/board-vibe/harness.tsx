@@ -9,8 +9,9 @@ import {
 } from "react";
 import { Pinned } from "./pinned";
 
-// Round six (2026-10-01): Alive won round five, now with coloured thumb
-// tacks; what's compared is the background behind it.
+// Round seven (2026-10-01): push pins after the user's reference photo, an
+// awake Draw button and vote card, and drawings that lift on hover and open
+// big on a tap. What's compared is still the background behind it.
 const VARIANTS = [
   { name: "Glow", Component: () => <Pinned backdrop="glow" /> },
   { name: "Doodles", Component: () => <Pinned backdrop="doodles" /> },
