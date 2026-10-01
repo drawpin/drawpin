@@ -68,7 +68,6 @@ describe("withRecent", () => {
 
   it("drops the colour used longest ago, not the one added first", () => {
     const full = [
-      "#000007",
       "#000006",
       "#000005",
       "#000004",
@@ -85,7 +84,6 @@ describe("withRecent", () => {
     expect(after).toEqual([
       "#0000ff",
       "#000001",
-      "#000007",
       "#000006",
       "#000005",
       "#000004",
@@ -102,12 +100,12 @@ describe("withRecent: only mixed colours", () => {
     expect(withRecent(recents, "#ef4444")).toBe(recents);
   });
 
-  it("keeps up to seven, to sit beside the colour creator", () => {
+  it("keeps up to six, to sit beside the colour creator and picker", () => {
     let recents: string[] = [];
     for (let i = 1; i <= 9; i++) {
       recents = withRecent(recents, `#0000${i.toString(16).padStart(2, "0")}`);
     }
-    expect(recents).toHaveLength(7);
+    expect(recents).toHaveLength(6);
   });
 });
 

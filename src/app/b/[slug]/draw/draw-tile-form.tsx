@@ -14,6 +14,7 @@ import {
   ArrowCounterClockwiseIcon,
   CircleIcon,
   EraserIcon,
+  EyedropperIcon,
   HighlighterIcon,
   type Icon,
   LassoIcon,
@@ -231,6 +232,8 @@ export function DrawTileForm({
   const [pickedRecents, setRecents] = useState<string[] | null>(null);
   // The colour panel, opened from Make a colour in Your colours.
   const [panelOpen, setPanelOpen] = useState(false);
+  // The colour picker: armed, the next tap on the drawing takes its colour.
+  const [pickingColor, setPickingColor] = useState(false);
   const [pickedSize, setSize] = useState<number | null>(null);
   const [pickedEraserSize, setEraserSize] = useState<number | null>(null);
   const [pickedGrid, setShowGrid] = useState<boolean | null>(null);
@@ -645,6 +648,11 @@ export function DrawTileForm({
             pressure={pressure}
             disabled={pending}
             previewSize={previewingSize}
+            pickingColor={pickingColor}
+            onPickColor={(picked) => {
+              chooseColor(picked);
+              setPickingColor(false);
+            }}
             onDraw={addOp}
           />
         </div>
@@ -653,8 +661,8 @@ export function DrawTileForm({
           <>
             {/* Your colours: the creator, then the colours you've mixed with
                 it. Always here, so the creator is always in the same place;
-                its panel opens right under this row. Seven columns fill a
-                375px phone at 44px each and grow on anything wider. */}
+                its panel opens right under this row. Then the colour picker,
+                the other way to get a colour that isn't a default. */}
             <fieldset disabled={pending}>
               <legend className="text-muted-foreground mb-1.5 text-sm">
                 Your colours
@@ -673,6 +681,20 @@ export function DrawTileForm({
                       "conic-gradient(#ef4444, #eab308, #22c55e, #06b6d4, #3b82f6, #a855f7, #ef4444)",
                   }}
                 />
+                <button
+                  type="button"
+                  aria-label="Pick a colour from your drawing"
+                  title="Pick a colour from your drawing"
+                  aria-pressed={pickingColor}
+                  disabled={ops.length === 0}
+                  onClick={() => {
+                    setPanelOpen(false);
+                    setPickingColor((armed) => !armed);
+                  }}
+                  className={`${SWATCH} bg-background text-foreground aria-pressed:bg-secondary aria-pressed:text-primary grid place-items-center disabled:cursor-default disabled:opacity-40 [&_svg]:size-5`}
+                >
+                  <EyedropperIcon aria-hidden />
+                </button>
                 {recents.map((recent) => (
                   <button
                     key={recent}
@@ -686,6 +708,16 @@ export function DrawTileForm({
                 ))}
               </div>
             </fieldset>
+
+            {pickingColor && (
+              <p
+                role="status"
+                className="bg-secondary text-secondary-foreground flex items-center gap-2 rounded-2xl px-4 py-3 text-sm"
+              >
+                <EyedropperIcon aria-hidden className="text-primary size-5" />
+                Tap your drawing to pick a colour.
+              </p>
+            )}
 
             {panelOpen && (
               <div className="motion-safe:animate-fade-up">

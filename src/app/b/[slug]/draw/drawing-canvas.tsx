@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import {
   backingSizeFor,
   brushWidthOnScreen,
+  colorAt,
   type DrawOp,
   drawSelectionFrame,
   fillAt,
@@ -88,6 +89,12 @@ type DrawingCanvasProps = {
    * the canvas, since on a phone there's no pointer to show it on.
    */
   previewSize?: boolean;
+  /**
+   * The colour picker is armed: the next tap reads the colour under it and
+   * hands it to `onPickColor` instead of drawing.
+   */
+  pickingColor?: boolean;
+  onPickColor?: (color: string) => void;
   onDraw: (op: DrawOp) => void;
 };
 
@@ -125,6 +132,8 @@ export const DrawingCanvas = forwardRef<
     pressure,
     disabled,
     previewSize,
+    pickingColor,
+    onPickColor,
     onDraw,
   },
   ref,
@@ -405,6 +414,12 @@ export const DrawingCanvas = forwardRef<
       return;
     }
 
+    if (pickingColor && onPickColor) {
+      const [x, y] = toTilePoint(event, rect);
+      onPickColor(colorAt(ops, x, y));
+      return;
+    }
+
     fingers.current.set(event.pointerId, finger);
     trackHover(event);
     cancelHold();
@@ -677,7 +692,13 @@ export const DrawingCanvas = forwardRef<
         // Stops the page scrolling or zooming while a finger is on the tile;
         // pinching is handled here instead.
         className="aspect-square w-full touch-none rounded-xl border bg-white"
-        style={{ cursor: grabbing ? "grabbing" : cursorFor(tool) }}
+        style={{
+          cursor: grabbing
+            ? "grabbing"
+            : pickingColor
+              ? "crosshair"
+              : cursorFor(tool),
+        }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}

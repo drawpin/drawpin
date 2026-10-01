@@ -22,11 +22,11 @@ export const BASE_COLORS = [
 /**
  * How many of your own colours to keep within reach.
  *
- * Seven, so with the colour creator beside them they fill the same eight-wide
- * row as the defaults. The row is there to get back to a colour you mixed,
+ * Six, so with the colour creator and the colour picker beside them they fill
+ * the same eight-wide row as the defaults. The row is there to get back to a colour you mixed,
  * and a longer one stops being that: it becomes a second palette to read.
  */
-export const RECENT_LIMIT = 7;
+export const RECENT_LIMIT = 6;
 
 function isBaseColor(color: string): boolean {
   return BASE_COLORS.some((option) => option.value === color);
