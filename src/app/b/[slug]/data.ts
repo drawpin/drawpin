@@ -186,3 +186,40 @@ export async function listLiveTiles(
 
   return { tiles, nextCursor };
 }
+
+/** A glimpse of a week's drawings: the newest few, and how many there are. */
+export type WeekPeek = { imageUrls: string[]; total: number };
+
+/**
+ * The newest few live drawings of a week and the week's total, for the board's
+ * "up for a vote" card: enough to show what you'd be voting on without
+ * loading the whole week.
+ */
+export async function peekAtWeek(
+  weekId: string,
+  count: number,
+  supabase: SupabaseClient = createPublicClient(),
+): Promise<WeekPeek> {
+  const {
+    data,
+    error,
+    count: total,
+  } = await supabase
+    .from("tiles")
+    .select("image_path", { count: "exact" })
+    .eq("week_id", weekId)
+    .eq("status", "live")
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(count)
+    .returns<{ image_path: string }[]>();
+  if (error) throw new Error(`Could not peek at week: ${error.message}`);
+
+  const storage = supabase.storage.from(TILES_BUCKET);
+  return {
+    imageUrls: data.map(
+      (row) => storage.getPublicUrl(row.image_path).data.publicUrl,
+    ),
+    total: total ?? data.length,
+  };
+}

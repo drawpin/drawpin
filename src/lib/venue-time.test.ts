@@ -5,6 +5,7 @@ import {
   localDayFor,
   monthOfWeek,
   weekBoundsFor,
+  weekdayFor,
 } from "./venue-time";
 
 const at = (iso: string) => new Date(iso);
@@ -169,5 +170,18 @@ describe("finalBoundsFor", () => {
 
     // CDT to CST, so the week is 169 hours and still ends at 4:00 AM local.
     expect(iso(bounds.endsAt)).toBe("2026-11-02T10:00:00.000Z");
+  });
+});
+
+describe("weekdayFor", () => {
+  it("names the day in the venue's time zone, not UTC's", () => {
+    // 4:00 AM Monday in Chicago is already Monday there; 3:00 AM UTC Monday
+    // is still Sunday evening.
+    expect(weekdayFor(at("2026-10-05T09:00:00Z"), "America/Chicago")).toBe(
+      "Monday",
+    );
+    expect(weekdayFor(at("2026-10-05T03:00:00Z"), "America/Chicago")).toBe(
+      "Sunday",
+    );
   });
 });

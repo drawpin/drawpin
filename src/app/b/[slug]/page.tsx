@@ -1,24 +1,33 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import {
+  ArrowRightIcon,
+  CrownSimpleIcon,
+  PencilSimpleIcon,
+  TrophyIcon,
+} from "@phosphor-icons/react/ssr";
 import { notFound } from "next/navigation";
-import { AccountBar } from "@/components/account-bar";
+import { AccountLine } from "@/components/account-line";
 import { buttonVariants } from "@/components/ui/button";
 import { connection } from "next/server";
 import { getCustomer } from "@/lib/customer";
 import { openFinal } from "@/lib/monthly-final";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { weekdayFor } from "@/lib/venue-time";
 import {
   getBoard,
   getBoardStats,
   getPostingWeek,
   getVotingWeek,
   listLiveTiles,
+  peekAtWeek,
 } from "./data";
 import { BoardStatsLine } from "./board-stats";
 import { listWeekTimings } from "./final/data";
 import { VOTES_PER_WEEK } from "./vote/cast-votes";
 import { SupabaseVoteStore } from "./vote/supabase-vote-store";
 import { TileFeed } from "./tile-feed";
+import { PEEK_COUNT, VotePeek } from "./vote-peek";
 
 export async function generateMetadata({
   params,
@@ -78,12 +87,16 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
           customer.id,
         ))
       : VOTES_PER_WEEK;
+  const votePeek =
+    votingWeek && votesLeft > 0
+      ? await peekAtWeek(votingWeek.id, PEEK_COUNT)
+      : null;
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-6 px-4 py-6">
+    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-5 px-4 py-6">
       <div className="flex items-start justify-between gap-4">
-        <div className="flex flex-col items-start gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">
+        <div className="flex min-w-0 flex-col items-start gap-1">
+          <h1 className="text-2xl font-extrabold tracking-tight break-words">
             {board.name}
           </h1>
           {stats && (
@@ -95,47 +108,59 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
           )}
           <Link
             href={`/b/${slug}/hall-of-fame`}
-            className="text-muted-foreground text-sm underline underline-offset-4"
+            className="group text-primary -ml-1 inline-flex min-h-11 items-center gap-1.5 px-1 text-sm font-semibold underline-offset-4 hover:underline"
           >
+            <TrophyIcon
+              className="size-4 transition-transform duration-200 ease-out group-hover:-translate-y-0.5 motion-reduce:transition-none"
+              weight="bold"
+            />
             Hall of Fame
           </Link>
         </div>
         {!board.isPaused && (
           <Link href={`/b/${slug}/draw`} className={buttonVariants()}>
-            Draw a tile
+            {/* The pencil tips as if to start drawing. */}
+            <PencilSimpleIcon
+              className="transition-transform duration-200 ease-out group-hover/button:-rotate-12 motion-reduce:transition-none"
+              weight="bold"
+            />
+            Draw
           </Link>
         )}
       </div>
 
       {board.isPaused && (
-        <p role="status" className="bg-muted rounded-lg px-3 py-2 text-sm">
+        <p role="status" className="bg-secondary rounded-2xl px-4 py-3 text-sm">
           This board is paused. You can look around, but new posts are off for
           now.
         </p>
       )}
 
-      {votingWeek && votesLeft > 0 && (
-        <Link
+      {votingWeek && votePeek && votePeek.total > 0 && (
+        <VotePeek
           href={`/b/${slug}/vote`}
-          className="bg-muted rounded-lg px-3 py-2 text-sm underline underline-offset-4"
-        >
-          Vote for last week&apos;s best — {votesLeft}{" "}
-          {votesLeft === 1 ? "vote" : "votes"} left
-        </Link>
+          peek={votePeek}
+          votesLeft={votesLeft}
+          closesOn={weekdayFor(
+            new Date(votingWeek.votingEndsAt),
+            board.timezone,
+          )}
+        />
       )}
 
       {monthlyFinal && (
+        // Yellow: it's about crowning a winner.
         <Link
           href={`/b/${slug}/final`}
-          className="bg-muted rounded-lg px-3 py-2 text-sm underline underline-offset-4"
+          className="bg-winner text-foreground focus-visible:ring-highlight flex items-center justify-between gap-3 rounded-2xl px-4 py-3.5 font-bold outline-none focus-visible:ring-3"
         >
-          Vote for this month&apos;s super winner
+          <span className="flex items-center gap-2">
+            <CrownSimpleIcon className="size-5 shrink-0" weight="fill" />
+            Vote for this month&apos;s super winner
+          </span>
+          <ArrowRightIcon className="size-5 shrink-0" weight="bold" />
         </Link>
       )}
-
-      {/* Signed in, this is one quiet line; signed out it's an invitation,
-          which belongs after the drawings rather than in front of them. */}
-      {customer && <AccountBar customer={customer} next={`/b/${slug}`} />}
 
       <TileFeed
         // Tiles and the pagination cursor belong to one week; start fresh when
@@ -149,7 +174,9 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
         initialCursor={page?.nextCursor ?? null}
       />
 
-      {!customer && <AccountBar customer={null} next={`/b/${slug}`} />}
+      {/* Small print at the foot of the board: sign-in turns up on Draw and
+          Vote, where it's needed, so here it's only for whoever looks. */}
+      <AccountLine customer={customer} next={`/b/${slug}`} />
     </main>
   );
 }

@@ -6,6 +6,7 @@ import {
   olderThanCursorFilter,
   type Tile,
   tileCursorSchema,
+  tiltFor,
   toTile,
 } from "./tiles";
 
@@ -199,5 +200,23 @@ describe("your own tiles", () => {
   it("marks nothing for a signed-out visitor", () => {
     expect(toTile(row, url).isOwn).toBe(false);
     expect(toTile({ ...row, user_id: null }, url, null).isOwn).toBe(false);
+  });
+});
+
+describe("tiltFor", () => {
+  it("gives a tile the same tilt every time", () => {
+    const id = "0f6c1d2e-8a4b-4c3d-9e2f-1a2b3c4d5e6f";
+    expect(tiltFor(id)).toBe(tiltFor(id));
+  });
+
+  it("leans no more than a degree and a bit either way", () => {
+    for (const id of ["a", "b", "c", "d", "tile-1", "tile-2"]) {
+      expect(Math.abs(tiltFor(id))).toBeLessThanOrEqual(1.2);
+    }
+  });
+
+  it("varies between tiles", () => {
+    const tilts = new Set(["a", "b", "c", "d"].map(tiltFor));
+    expect(tilts.size).toBeGreaterThan(1);
   });
 });

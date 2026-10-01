@@ -126,6 +126,11 @@ export type Fill = {
   kind: "fill";
   color: string;
   mask: { canvas: HTMLCanvasElement; x: number; y: number };
+  /**
+   * Where the bucket was tapped, so the fill can be worked out again when a
+   * drawing is rebuilt from its steps (draft.ts).
+   */
+  at: Point;
 };
 
 /**
@@ -417,6 +422,30 @@ export function renderScene(
  * Separate from what's on screen so the two can never drift: the canvas the
  * visitor draws on is sized to their display, which is usually larger.
  */
+/**
+ * A pixel as a #rrggbb colour. A see-through pixel is bare paper, so it reads
+ * as white: the tile is always posted on white.
+ */
+export function pixelToHex(rgba: ArrayLike<number>): string {
+  if (rgba[3] === 0) return PAPER;
+  return `#${[rgba[0], rgba[1], rgba[2]]
+    .map((channel) => channel.toString(16).padStart(2, "0"))
+    .join("")}`;
+}
+
+/**
+ * The colour of the finished tile at a point in tile units, for the colour
+ * picker. Read from a fresh render rather than the screen, so the zoom, the
+ * grid and the lasso frame never get picked up.
+ */
+export function colorAt(ops: DrawOp[], x: number, y: number): string {
+  const context = renderTile(ops).getContext("2d");
+  if (!context) return PAPER;
+  const px = Math.min(Math.max(Math.floor(x), 0), TILE_SIZE - 1);
+  const py = Math.min(Math.max(Math.floor(y), 0), TILE_SIZE - 1);
+  return pixelToHex(context.getImageData(px, py, 1, 1).data);
+}
+
 export function renderTile(ops: DrawOp[]): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
   canvas.width = TILE_SIZE;
@@ -479,6 +508,7 @@ export function fillAt(
     kind: "fill",
     color,
     mask: { canvas: mask, x: region.x, y: region.y },
+    at: [x, y],
   };
 }
 

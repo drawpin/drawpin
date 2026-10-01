@@ -5,10 +5,14 @@ import { useCallback, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { loadMoreTiles } from "./actions";
 import { ReportTile } from "./report-tile";
-import { mergeTiles, type Tile, type TileCursor } from "./tiles";
+import { mergeTiles, type Tile, type TileCursor, tiltFor } from "./tiles";
 import { useLiveBoard } from "./use-live-board";
 
 const ABOVE_THE_FOLD_TILES = 4;
+
+/** Drawings that fade up one after another when the board loads; the rest just appear. */
+const STAGGERED_TILES = 8;
+const STAGGER_MS = 40;
 
 type TileFeedProps = {
   venueId: string;
@@ -45,6 +49,8 @@ export function TileFeed({
   const [removedIds, setRemovedIds] = useState<ReadonlySet<string>>(
     () => new Set(),
   );
+  // Tiles that arrived live rather than with the page: they drop in.
+  const [liveIds, setLiveIds] = useState<ReadonlySet<string>>(() => new Set());
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -58,6 +64,7 @@ export function TileFeed({
 
   const addLiveTile = useCallback((tile: Tile) => {
     setTiles((current) => mergeTiles([tile], current));
+    setLiveIds((current) => new Set(current).add(tile.id));
   }, []);
 
   const dropRemovedTile = useCallback((tileId: string) => {
@@ -95,7 +102,7 @@ export function TileFeed({
 
   if (visibleTiles.length === 0) {
     return (
-      <p className="text-muted-foreground py-12 text-center">
+      <p className="text-muted-foreground rounded-2xl border border-dashed px-4 py-12 text-center">
         Nobody has drawn anything this week. Be the first.
       </p>
     );
@@ -103,12 +110,28 @@ export function TileFeed({
 
   return (
     <div className="flex flex-col gap-4">
-      <ul className="grid grid-cols-2 gap-3">
+      <ul className="grid grid-cols-2 gap-x-3 gap-y-5">
         {/* The list items stretch across their column on purpose: the caption
             and the name need that width to clip against, and the Report button
             sets its own. */}
         {visibleTiles.map((tile, index) => (
-          <li key={tile.id} className="flex flex-col gap-1">
+          <li
+            key={tile.id}
+            // A drawing that arrived live drops in; the first screenful
+            // fades up in turn when the board loads.
+            className={`flex min-w-0 flex-col gap-2 ${
+              liveIds.has(tile.id)
+                ? "motion-safe:animate-drop-in"
+                : index < STAGGERED_TILES
+                  ? "motion-safe:animate-fade-up"
+                  : ""
+            }`}
+            style={
+              liveIds.has(tile.id) || index >= STAGGERED_TILES
+                ? undefined
+                : { animationDelay: `${index * STAGGER_MS}ms` }
+            }
+          >
             <Image
               src={tile.imageUrl}
               // The first rows are on screen at load; lazy-loading them delays
@@ -122,18 +145,26 @@ export function TileFeed({
               height={512}
               // Tiles are already small WebP files served from the storage CDN.
               unoptimized
-              className="aspect-square w-full rounded-lg border bg-white object-cover"
+              // Leaning a touch, like a drawing pinned up by hand.
+              style={{ transform: `rotate(${tiltFor(tile.id)}deg)` }}
+              className="shadow-lift aspect-square w-full rounded-xl border bg-white object-cover"
             />
-            {/* Clamped so one chatty caption doesn't push its neighbour's
-                drawing halfway down the screen. */}
-            {tile.caption && (
-              <p className="line-clamp-2 text-sm break-words">{tile.caption}</p>
-            )}
-            <p className="text-muted-foreground truncate text-xs">
-              {tile.author ?? "Guest"}
-              {tile.isGuest && tile.author && " · guest"}
-            </p>
-            {canReport && !tile.isOwn && <ReportTile tileId={tile.id} />}
+            <div className="flex flex-wrap items-start justify-between gap-x-1">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold">
+                  {tile.author ?? "Guest"}
+                  {tile.isGuest && tile.author && " · guest"}
+                </p>
+                {/* Clamped so one chatty caption doesn't push its neighbour's
+                    drawing halfway down the screen. */}
+                {tile.caption && (
+                  <p className="text-muted-foreground line-clamp-2 text-sm break-words">
+                    {tile.caption}
+                  </p>
+                )}
+              </div>
+              {canReport && !tile.isOwn && <ReportTile tileId={tile.id} />}
+            </div>
           </li>
         ))}
       </ul>

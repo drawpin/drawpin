@@ -13,19 +13,10 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-geist-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
+  --color-highlight: var(--highlight);
+  --color-winner: var(--winner);
+  --color-attention: var(--attention);
+  --color-success: var(--success);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -51,83 +42,136 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-:root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+/*
+ * Depth and motion shared across screens (UI pass).
+ *
+ * Shadows are tinted with the primary blue, never black.
+ *
+ * Motion follows how often it's seen (design-motion-principles): things that
+ * appear now and then materialise with opacity, a small rise and blur to
+ * sharp, on an ease-out; tools tapped hundreds of times get press feedback
+ * only. Every animation here is used through motion-safe:, so it's skipped
+ * for anyone who asks for reduced motion.
+ *
+ * - drop-in: a drawing arriving live on the board.
+ * - fade-up: something appearing: the board's drawings on load (staggered),
+ *   a panel opening.
+ */
+@theme {
+  --shadow-lift:
+    0 1px 2px rgb(0 74 173 / 0.06), 0 6px 16px rgb(0 74 173 / 0.08);
+  --animate-drop-in: drop-in 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-fade-up: fade-up 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+
+  @keyframes drop-in {
+    from {
+      opacity: 0;
+      transform: translateY(-12px) scale(0.96);
+      filter: blur(4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+      filter: none;
+    }
+  }
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+      filter: blur(2px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+      filter: none;
+    }
+  }
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+/*
+ * DrawPin's palette (UI pass, 2026-09-28). Light only: there is no dark mode.
+ *
+ * Five brand colours: deep blue #004AAD, light blue #6BADFA, yellow #FFCA39,
+ * orange #FF821B and white. Only the deep blue carries white text; light
+ * blue, yellow and orange are fills with ink text on top, never text colours
+ * of their own. Text is ink #0F1B2D, and everything supporting is one neutral
+ * grey #525252. Every text colour here is at least 4.5:1 on white and on the
+ * tint.
+ *
+ * The drawing canvas stays white whatever this says: it's the paper.
+ */
+:root {
+  --background: #ffffff;
+  --foreground: #0f1b2d;
+  --card: #ffffff;
+  --card-foreground: #0f1b2d;
+  --popover: #ffffff;
+  --popover-foreground: #0f1b2d;
+  /* Main buttons, links, the selected tool, focus rings. */
+  --primary: #004aad;
+  --primary-foreground: #ffffff;
+  /* Soft light-blue surfaces: secondary buttons, info cards. */
+  --secondary: #edf5ff;
+  --secondary-foreground: #0f1b2d;
+  --muted: #f5f5f5;
+  --muted-foreground: #525252;
+  /* Hover and selected backgrounds on quiet controls. */
+  --accent: #edf5ff;
+  --accent-foreground: #0f1b2d;
+  /* Clear, Remove and errors: clearly apart from the orange. */
+  --destructive: #c81e1e;
+  --border: #e5e5e5;
+  --input: #e5e5e5;
+  --ring: #004aad;
+  --radius: 0.625rem;
+
+  /* Brand colours with a job of their own. Fills only, with ink text. */
+  --highlight: #6badfa;
+  --winner: #ffca39;
+  --attention: #ff821b;
+  /* Confirmations: "your votes are in". 5.0:1 on white. */
+  --success: #15803d;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+  /* Feeling like an app on a phone, not a page in a browser (mobile-native):
+     no grey flash over whatever was tapped (every control has its own press
+     state instead), and no text inflation when the phone turns sideways. */
+  html {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+  /* Controls fire on the tap, not 300ms later waiting for a double tap, and
+     holding a finger on one doesn't select its label. Content text stays
+     selectable. */
+  button,
+  a,
+  [role="button"],
+  summary {
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+  }
   body {
     @apply bg-background text-foreground;
   }
   html {
     @apply font-sans;
+  }
+}
+
+/* iOS Safari zooms into any field whose text is under 16px, and doesn't zoom
+   back out. Outside @layer so it wins over a smaller text-* class; only on
+   touch screens, where the zoom happens. */
+@media (pointer: coarse) {
+  input,
+  select,
+  textarea {
+    font-size: max(16px, 1em);
   }
 }

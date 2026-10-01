@@ -1,0 +1,121 @@
+"use client";
+
+import { Popover } from "@base-ui/react/popover";
+import { useEffect, useRef, useState } from "react";
+
+/** The ring that stands for the largest size, and the smallest dot, in px. */
+const RING = 26;
+const MIN_DOT = 5;
+
+/** How long the slider stays after it's let go of, so the final size is seen. */
+const CLOSE_AFTER_RELEASE_MS = 350;
+
+/**
+ * The brush size, as the last button in the tool rail: a dot at the current
+ * size, which opens an upright slider beside it (chosen from prototypes on
+ * 2026-09-28). Size is changed now and then rather than every stroke, so it
+ * only takes room while it's being changed; the popover closes as soon as
+ * someone draws, like a tool's tips, or once the slider is let go of.
+ * Letting go means a finger or mouse lifting: arrow keys change it one step
+ * at a time, so keyboard users keep it until they move on or press Escape.
+ *
+ * The slider is a native range stood on its end, so it keeps the keyboard,
+ * screen-reader and touch behaviour of a real slider. Browsers without
+ * upright form controls (older iOS) show it level, which still works.
+ */
+export function SizePopout({
+  size,
+  min,
+  max,
+  color,
+  label,
+  disabled,
+  onChange,
+}: {
+  size: number;
+  min: number;
+  max: number;
+  /** The brush's colour for the dot, or `null` for the eraser's outline. */
+  color: string | null;
+  /** "Brush size" or "Eraser size": each keeps its own. */
+  label: string;
+  disabled?: boolean;
+  onChange: (next: number) => void;
+}) {
+  // The dot grows inside a ring the size of the largest brush, so it reads
+  // as how much of the range is in use, not as another colour swatch.
+  const diameter = Math.round(
+    MIN_DOT + ((size - min) / (max - min || 1)) * (RING - MIN_DOT),
+  );
+  const [open, setOpen] = useState(false);
+  const closeTimer = useRef<number | null>(null);
+
+  function cancelClose() {
+    if (closeTimer.current !== null) clearTimeout(closeTimer.current);
+    closeTimer.current = null;
+  }
+
+  // A close due after the button is gone has nothing to close.
+  useEffect(() => cancelClose, []);
+
+  return (
+    <Popover.Root
+      open={open}
+      onOpenChange={(next) => {
+        cancelClose();
+        setOpen(next);
+      }}
+    >
+      <Popover.Trigger
+        disabled={disabled}
+        aria-label={`${label}, ${size}`}
+        title={label}
+        className="focus-visible:ring-highlight hover:bg-accent data-popup-open:border-primary data-popup-open:bg-secondary grid size-11 cursor-pointer place-items-center rounded-[14px] border border-transparent outline-none focus-visible:ring-3 disabled:cursor-default disabled:opacity-50 data-popup-open:shadow-[inset_0_0_0_1px_var(--primary)]"
+      >
+        <span
+          aria-hidden
+          className="border-foreground/30 grid place-items-center rounded-full border border-dashed"
+          style={{ width: RING, height: RING }}
+        >
+          <span
+            className="border-foreground/40 rounded-full border"
+            style={{
+              width: diameter,
+              height: diameter,
+              backgroundColor: color ?? "transparent",
+            }}
+          />
+        </span>
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Positioner side="right" align="end" sideOffset={10}>
+          <Popover.Popup className="bg-background shadow-lift flex w-16 origin-(--transform-origin) flex-col items-center gap-1.5 rounded-2xl border py-3 transition-[transform,opacity] duration-150 ease-out outline-none data-ending-style:scale-95 data-ending-style:opacity-0 data-ending-style:duration-100 data-starting-style:scale-95 data-starting-style:opacity-0 motion-reduce:transition-none">
+            <Popover.Title className="sr-only">{label}</Popover.Title>
+            <input
+              type="range"
+              min={min}
+              max={max}
+              value={size}
+              aria-label={label}
+              aria-orientation="vertical"
+              onChange={(event) => onChange(Number(event.target.value))}
+              // Grabbing it again before it closes keeps it open.
+              onPointerDown={cancelClose}
+              onPointerUp={() => {
+                cancelClose();
+                closeTimer.current = window.setTimeout(
+                  () => setOpen(false),
+                  CLOSE_AFTER_RELEASE_MS,
+                );
+              }}
+              className="accent-primary h-40 w-11 cursor-pointer [direction:rtl] [writing-mode:vertical-lr]"
+            />
+            <span className="text-muted-foreground text-xs font-semibold tabular-nums">
+              {size}
+            </span>
+          </Popover.Popup>
+        </Popover.Positioner>
+      </Popover.Portal>
+    </Popover.Root>
+  );
+}

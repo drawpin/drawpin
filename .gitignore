@@ -163,3 +163,7 @@ vite.config.ts.timestamp-*
 # Private moderation test set (npm run moderation:eval): real and made-up
 # drawings with slurs and hate symbols in them. Never part of the public repo.
 /moderation-eval/
+
+# Drawings for the preview board (npm run preview:seed). Real people drew
+# them, so they stay on the maintainer's machine.
+/preview-seed/
