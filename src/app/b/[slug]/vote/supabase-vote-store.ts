@@ -16,6 +16,7 @@ const UNIQUE_VIOLATION = "23505";
  * one is matched here and nowhere else (`20260918040000_account_voting.sql`).
  */
 function rejectionFor(message: string): VoteRejection {
+  if (message.includes("is blocked from this board")) return "blocked";
   if (message.includes("already used its 3 votes")) return "already-used";
   if (message.includes("voting has closed")) return "closed";
   if (message.includes("still taking posts")) return "closed";

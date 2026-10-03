@@ -47,6 +47,9 @@ export async function reportTileAction(
     p_reason: parsed.data.reason,
   });
 
+  if (error?.message.includes("is blocked from this board")) {
+    return { status: "error", message: "You can't report on this board." };
+  }
   if (error) {
     console.error("reportTileAction failed", error);
     return {

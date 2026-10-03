@@ -9,12 +9,18 @@ import { slugifyVenueName, slugMatchesName } from "@/lib/slug";
 import { listTimeZones } from "@/lib/timezones";
 import { clockStatus, formatBoundary } from "@/lib/venue-time";
 import { setBoardPaused, signOut } from "./actions";
+import { BlockedAccounts } from "./blocked-accounts";
 import { BoardLink } from "./board-link";
 import { BoardTiles } from "./board-tiles";
 import { RenameBoard } from "./rename-board";
 import { ReportedTiles } from "./reported-tiles";
 import { TimeZone } from "./time-zone";
-import { listBoardTiles, listReportedTiles, requireOwnedVenue } from "./venue";
+import {
+  listBlockedAccounts,
+  listBoardTiles,
+  listReportedTiles,
+  requireOwnedVenue,
+} from "./venue";
 
 export const metadata: Metadata = { title: "Your board · DrawPin" };
 
@@ -25,13 +31,14 @@ export default async function AdminPage() {
   const venue = await requireOwnedVenue();
   const clock = clockStatus(new Date(), venue.clock);
   const url = boardUrl(serverEnv().SITE_URL, venue.slug);
-  const [qr, tiles, code, reported] = await Promise.all([
+  const [qr, tiles, code, reported, blocked] = await Promise.all([
     createBoardQrCode(url),
     listBoardTiles(venue.id),
     // Created on the first view of the day, so it exists before anyone is
     // told it (ADR-003).
     ensureDailyCode(createAdminClient(), venue),
     listReportedTiles(venue.id),
+    listBlockedAccounts(venue.id),
   ]);
 
   return (
@@ -142,6 +149,8 @@ export default async function AdminPage() {
         </p>
         <BoardTiles tiles={tiles} />
       </section>
+
+      <BlockedAccounts accounts={blocked} />
     </main>
   );
 }

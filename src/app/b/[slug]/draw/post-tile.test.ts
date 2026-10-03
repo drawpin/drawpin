@@ -26,8 +26,14 @@ class FakeStore implements TileStore {
   failUpload = false;
   failInsert = false;
 
+  blockedAccounts = new Set<string>();
+
   async findVenue(slug: string) {
     return this.venues.get(slug) ?? null;
+  }
+
+  async isAccountBlocked(venueId: string, userId: string) {
+    return this.blockedAccounts.has(`${venueId}:${userId}`);
   }
 
   async ensurePostingWeek(venueId: string, bounds: WeekBounds) {
@@ -226,6 +232,17 @@ describe("postTile", () => {
       ok: false,
       reason: "paused",
     });
+    expect(store.claims.size).toBe(0);
+  });
+
+  it("refuses an account the owner has blocked, before any work", async () => {
+    store.blockedAccounts.add(`${venue.id}:user-1`);
+
+    expect(await postTile(input(), deps)).toEqual({
+      ok: false,
+      reason: "account-blocked",
+    });
+    expect(deps.processImage).not.toHaveBeenCalled();
     expect(store.claims.size).toBe(0);
   });
 

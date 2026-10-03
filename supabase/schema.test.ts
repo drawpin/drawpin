@@ -1435,6 +1435,7 @@ describe("data API grants", () => {
     "account_posts",
     "final_votes",
     "tile_reports",
+    "venue_blocks",
   ];
   const allTables = [...allPublicTables, ...ownerTables, ...privateTables];
 
@@ -1897,5 +1898,113 @@ describe("set_venue_clock", () => {
     } finally {
       await db.exec("reset role");
     }
+  });
+});
+
+describe("venue blocks", () => {
+  /** A board, with an account that is blocked from it. */
+  async function seedBlocked() {
+    const board = await seedBoard();
+    const userId = crypto.randomUUID();
+    await db.exec(`
+      insert into auth.users (id, email) values ('${userId}', '${userId}@example.com');
+      insert into profiles (id, username) values ('${userId}', 'Blocked');
+      insert into venue_blocks (venue_id, user_id) values ('${board.venueId}', '${userId}');
+    `);
+    return { ...board, userId };
+  }
+
+  const BLOCKED = /is blocked from this board/;
+
+  it("refuses a post from a blocked account", async () => {
+    const { weekId, artistDeviceId, userId } = await seedBlocked();
+
+    await expect(
+      db.query(
+        `insert into tiles (week_id, device_id, user_id, image_path)
+         values ($1, $2, $3, 'tiles/blocked.webp')`,
+        [weekId, artistDeviceId, userId],
+      ),
+    ).rejects.toThrow(BLOCKED);
+  });
+
+  it("refuses a vote from a blocked account", async () => {
+    const { weekId, tileIds, userId } = await seedBlocked();
+    await db.query(
+      `update weeks set posting_ends_at = now() - interval '1 day',
+                        voting_ends_at = now() + interval '6 days'
+        where id = $1`,
+      [weekId],
+    );
+
+    await expect(
+      db.query(
+        `insert into votes (week_id, tile_id, user_id) values ($1, $2, $3)`,
+        [weekId, tileIds[0], userId],
+      ),
+    ).rejects.toThrow(BLOCKED);
+  });
+
+  it("refuses a report from a blocked account", async () => {
+    const { tileIds, userId } = await seedBlocked();
+
+    await expect(
+      db.query(`select record_tile_report($1::uuid, $2::uuid, 'spam')`, [
+        tileIds[0],
+        userId,
+      ]),
+    ).rejects.toThrow(BLOCKED);
+  });
+
+  it("refuses a final vote from a blocked account", async () => {
+    const { venueId, tileIds, userId } = await seedBlocked();
+    const finalId = crypto.randomUUID();
+    await db.query(
+      `insert into monthly_finals (id, venue_id, month, starts_at, ends_at)
+       values ($1, $2, '2026-09-01', now() - interval '1 day', now() + interval '6 days')`,
+      [finalId, venueId],
+    );
+
+    await expect(
+      db.query(
+        `insert into final_votes (final_id, tile_id, user_id) values ($1, $2, $3)`,
+        [finalId, tileIds[0], userId],
+      ),
+    ).rejects.toThrow(BLOCKED);
+  });
+
+  it("only blocks the account on the board that blocked it", async () => {
+    const { userId } = await seedBlocked();
+    const elsewhere = await seedBoard();
+
+    await db.query(
+      `insert into tiles (week_id, device_id, user_id, image_path)
+       values ($1, $2, $3, 'tiles/elsewhere.webp')`,
+      [elsewhere.weekId, elsewhere.artistDeviceId, userId],
+    );
+  });
+
+  it("lets an unblocked account take part again", async () => {
+    const { venueId, weekId, artistDeviceId, userId } = await seedBlocked();
+    await db.query(
+      `delete from venue_blocks where venue_id = $1 and user_id = $2`,
+      [venueId, userId],
+    );
+
+    await db.query(
+      `insert into tiles (week_id, device_id, user_id, image_path)
+       values ($1, $2, $3, 'tiles/unblocked.webp')`,
+      [weekId, artistDeviceId, userId],
+    );
+  });
+
+  it("leaves guest tiles alone", async () => {
+    const { weekId, artistDeviceId } = await seedBlocked();
+
+    await db.query(
+      `insert into tiles (week_id, device_id, image_path)
+       values ($1, $2, 'tiles/guest.webp')`,
+      [weekId, artistDeviceId],
+    );
   });
 });

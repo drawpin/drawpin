@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isSupportedTimeZone } from "@/lib/timezones";
 import { moderateVenueName, venueNameSchema } from "@/lib/venue-name";
 import { formatBoundary, planTimeZoneChange } from "@/lib/venue-time";
+import { blockAuthor } from "./block-account";
 import { changeBoardLink } from "./change-board-link";
 import { removeTile } from "./remove-tile";
 import { renameVenue } from "./rename-venue";
@@ -17,6 +18,7 @@ import {
   listReportedTiles,
   requireOwnedVenue,
   resolveReports,
+  SupabaseBlockStore,
   SupabaseOwnerTileStore,
 } from "./venue";
 
@@ -243,6 +245,76 @@ export async function dismissReportsAction(
   }
 
   await resolveReports(parsed.data.tileId);
+  revalidatePath("/admin");
+  return { status: "idle" };
+}
+
+export type BlockState =
+  { status: "idle" } | { status: "error"; message: string };
+
+/**
+ * Blocks the account behind a drawing from the owner's board and takes down
+ * every drawing it has showing there (ADR-008).
+ */
+export async function blockAccountAction(
+  _previous: BlockState,
+  formData: FormData,
+): Promise<BlockState> {
+  const venue = await requireOwnedVenue();
+  const parsed = removeSchema.safeParse({ tileId: formData.get("tileId") });
+  if (!parsed.success) {
+    return { status: "error", message: "We couldn't block that account." };
+  }
+
+  const admin = createAdminClient();
+  const tiles = new SupabaseOwnerTileStore(admin);
+  const result = await blockAuthor(venue.id, parsed.data.tileId, {
+    store: new SupabaseBlockStore(admin),
+    removeTile: (tileId) =>
+      removeTile(venue.id, tileId, { store: tiles, logError: console.error }),
+    logError: console.error,
+  });
+
+  if (result.status !== "blocked") {
+    console.error(`blockAuthor refused: ${result.status}`);
+    return { status: "error", message: "We couldn't block that account." };
+  }
+
+  revalidatePath("/admin");
+  if (result.failed > 0) {
+    return {
+      status: "error",
+      message: `Blocked. ${result.failed} of their drawings couldn't be removed; try removing them one by one.`,
+    };
+  }
+  return { status: "idle" };
+}
+
+const unblockSchema = z.object({ userId: z.guid() });
+
+/** Lets a blocked account post, vote and report on the board again. */
+export async function unblockAccountAction(
+  _previous: BlockState,
+  formData: FormData,
+): Promise<BlockState> {
+  const venue = await requireOwnedVenue();
+  const parsed = unblockSchema.safeParse({ userId: formData.get("userId") });
+  if (!parsed.success) {
+    return { status: "error", message: "We couldn't unblock that account." };
+  }
+
+  // Scoped to the owner's own board, so one owner can't lift another's block.
+  const { error } = await createAdminClient()
+    .from("venue_blocks")
+    .delete()
+    .eq("venue_id", venue.id)
+    .eq("user_id", parsed.data.userId);
+
+  if (error) {
+    console.error(`unblockAccountAction failed: ${error.message}`);
+    return { status: "error", message: "We couldn't unblock that account." };
+  }
+
   revalidatePath("/admin");
   return { status: "idle" };
 }

@@ -51,6 +51,8 @@ export type DailyAttempt = { hasPosted: boolean; blockedCount: number };
 /** The storage and database operations posting needs. */
 export interface TileStore {
   findVenue(slug: string): Promise<PostingVenue | null>;
+  /** Whether the board's owner has blocked this account (ADR-008). */
+  isAccountBlocked(venueId: string, userId: string): Promise<boolean>;
   /** Today's record for this device, or `null` if it hasn't tried yet. */
   getDailyAttempt(
     venueId: string,
@@ -123,6 +125,7 @@ export type PostTileInput = {
 export type PostTileFailure =
   | "not-found"
   | "paused"
+  | "account-blocked"
   | "invalid-image"
   | "blank"
   | "blocked"
@@ -174,6 +177,11 @@ export async function postTile(
   const venue = await store.findVenue(input.slug);
   if (!venue) return { ok: false, reason: "not-found" };
   if (venue.isPaused) return { ok: false, reason: "paused" };
+  // Before anything is moderated or counted. The database refuses the tile
+  // too; this is so the person hears it before their drawing is processed.
+  if (await store.isAccountBlocked(venue.id, input.userId)) {
+    return { ok: false, reason: "account-blocked" };
+  }
 
   const now = deps.now();
   const localDay = localDayFor(now, zoneAt(venue.clock, now));

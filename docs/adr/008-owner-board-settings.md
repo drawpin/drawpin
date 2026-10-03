@@ -60,6 +60,13 @@ hit had no answer:
   **also removes their live tiles** there, the same way a single removal
   does (a removed winner's week is re-crowned from what's left). The owner
   can unblock; removed tiles don't come back.
+- The owner blocks from a drawing (`Block account` under it, on this week's
+  drawings and on reported ones), so they can only block someone who has
+  posted on their board.
+- Votes the account already cast stay: votes are final.
+- The database refuses a blocked account's post, vote, final vote and report,
+  so the block can't be bypassed. The person is told they can't take part in
+  this board, never who blocked them or why.
 
 ## Consequences
 - `former_slugs` grows by one row per change and is never pruned. Changes are

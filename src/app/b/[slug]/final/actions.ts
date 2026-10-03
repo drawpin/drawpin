@@ -60,6 +60,9 @@ export async function castFinalVoteAction(
         message: "You've already voted in this month's final.",
       };
     }
+    if (error.message.includes("is blocked from this board")) {
+      return { status: "error", message: "You can't vote on this board." };
+    }
     if (error.message.includes("cannot vote on its own tile")) {
       return { status: "error", message: "You can't vote for your own tile." };
     }

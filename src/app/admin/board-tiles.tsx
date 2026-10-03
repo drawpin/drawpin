@@ -4,10 +4,13 @@ import Image from "next/image";
 import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { removeTileAction, type RemoveTileState } from "./actions";
+import { BlockButton } from "./block-button";
 
 export type AdminTile = {
   id: string;
   author: string | null;
+  /** Posted by an account, which the owner can block (ADR-008). */
+  canBlock: boolean;
   caption: string | null;
   imageUrl: string;
 };
@@ -78,6 +81,8 @@ function TileCard({ tile }: { tile: AdminTile }) {
           {state.message}
         </p>
       )}
+
+      <BlockButton tile={tile} />
     </li>
   );
 }
