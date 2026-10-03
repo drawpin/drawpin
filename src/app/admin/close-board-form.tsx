@@ -43,7 +43,10 @@ export function CloseBoardForm({ name }: { name: string }) {
           </ul>
           <div className="flex flex-col gap-1">
             <Label htmlFor="close-board-name" className="text-xs">
-              Type <span className="font-semibold">{name}</span> to confirm
+              {/* One span: Label spaces out its children as separate items. */}
+              <span>
+                Type <span className="font-semibold">{name}</span> to confirm
+              </span>
             </Label>
             <Input
               id="close-board-name"
