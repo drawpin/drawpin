@@ -15,11 +15,13 @@ import {
 } from "@/app/b/[slug]/tiles";
 import { broadcastToBoard, TILE_REMOVED_EVENT } from "@/lib/realtime/broadcast";
 import type { BlockStore } from "./block-account";
+import type { CloseBoardStore } from "./close-board";
 import type { AdminTile } from "./board-tiles";
 import type { OwnedTile, OwnerTileStore } from "./remove-tile";
 
 export type OwnerVenue = {
   id: string;
+  ownerId: string;
   name: string;
   slug: string;
   /** The board's zone, and any change to it the owner has scheduled. */
@@ -46,6 +48,7 @@ export async function requireOwnedVenue(): Promise<OwnerVenue> {
 
   return {
     id: data.id,
+    ownerId: owner.id,
     name: data.name,
     slug: data.slug,
     clock: clockFromRow(data),
@@ -344,4 +347,46 @@ export async function listBlockedAccounts(
         "An account",
     };
   });
+}
+
+/** Rows per page when reading every tile of a board; the API caps a read. */
+const PAGE = 1000;
+
+/** {@link CloseBoardStore} backed by Supabase, using the service role. */
+export class SupabaseCloseBoardStore implements CloseBoardStore {
+  constructor(private readonly admin: SupabaseClient) {}
+
+  async listImagePaths(venueId: string): Promise<string[]> {
+    const paths: string[] = [];
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await this.admin
+        .from("tiles")
+        .select("image_path, weeks!inner(venue_id)")
+        .eq("weeks.venue_id", venueId)
+        .order("id")
+        .range(from, from + PAGE - 1);
+
+      if (error) throw new Error(`listImagePaths: ${error.message}`);
+      paths.push(...data.map((row) => row.image_path));
+      if (data.length < PAGE) return paths;
+    }
+  }
+
+  async deleteImages(paths: string[]): Promise<void> {
+    // A file already gone (a removed tile's) isn't an error here.
+    const { error } = await this.admin.storage.from(TILES_BUCKET).remove(paths);
+    if (error) throw new Error(`deleteImages: ${error.message}`);
+  }
+
+  async closeVenue(venueId: string): Promise<void> {
+    const { error } = await this.admin.rpc("close_venue", {
+      p_venue_id: venueId,
+    });
+    if (error) throw new Error(`closeVenue: ${error.message}`);
+  }
+
+  async deleteLogin(ownerId: string): Promise<void> {
+    const { error } = await this.admin.auth.admin.deleteUser(ownerId);
+    if (error) throw new Error(`deleteLogin: ${error.message}`);
+  }
 }

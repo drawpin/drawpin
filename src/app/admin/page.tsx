@@ -12,6 +12,7 @@ import { setBoardPaused, signOut } from "./actions";
 import { BlockedAccounts } from "./blocked-accounts";
 import { BoardLink } from "./board-link";
 import { BoardTiles } from "./board-tiles";
+import { CloseBoardForm } from "./close-board-form";
 import { RenameBoard } from "./rename-board";
 import { ReportedTiles } from "./reported-tiles";
 import { TimeZone } from "./time-zone";
@@ -151,6 +152,8 @@ export default async function AdminPage() {
       </section>
 
       <BlockedAccounts accounts={blocked} />
+
+      <CloseBoardForm name={venue.name} />
     </main>
   );
 }
