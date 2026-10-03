@@ -21,13 +21,13 @@ import {
   LineSegmentIcon,
   PaintBucketIcon,
   PenIcon,
-  PencilSimpleIcon,
   ShapesIcon,
   SprayBottleIcon,
   SquareIcon,
 } from "@phosphor-icons/react";
 import { signInWithGoogle } from "@/app/auth/sign-in";
 import { Button } from "@/components/ui/button";
+import { hand } from "@/lib/fonts";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DeviceFingerprintField } from "@/components/device-fingerprint";
@@ -298,9 +298,11 @@ export function DrawTileForm({
   const [localError, setLocalError] = useState<string | null>(null);
   // Tapping Post with nothing drawn: a nudge, not an error. It goes for good
   // as soon as there is something on the tile: erasing back to blank doesn't
-  // bring it back, only another try at posting a blank tile does.
-  const [nudgeBlank, setNudgeBlank] = useState(false);
-  if (nudgeBlank && ops.length > 0) setNudgeBlank(false);
+  // bring it back, only another try at posting a blank tile does. Counts the
+  // tries (0 is hidden), so the note pops in again on each one.
+  const [blankTries, setBlankTries] = useState(0);
+  if (blankTries > 0 && ops.length > 0) setBlankTries(0);
+  const nudgeBlank = () => setBlankTries((tries) => tries + 1);
   // Set when a drawing kept across sign-in has just been put back.
   const [restored, setRestored] = useState(false);
   const canvasRef = useRef<DrawingCanvasHandle>(null);
@@ -310,7 +312,7 @@ export function DrawTileForm({
     setLocalError(null);
 
     if (ops.length === 0) {
-      setNudgeBlank(true);
+      nudgeBlank();
       return;
     }
 
@@ -472,7 +474,7 @@ export function DrawTileForm({
     canvasRef.current?.commitSelection();
     closePanel();
     if (ops.length === 0) {
-      setNudgeBlank(true);
+      nudgeBlank();
       return;
     }
     setLocalError(null);
@@ -753,12 +755,14 @@ export function DrawTileForm({
               </p>
             )}
 
-            {nudgeBlank && (
+            {blankTries > 0 && (
+              // A strip of yellow paper, like the board's heading (chosen
+              // from prototypes on 2026-10-02); `nudge-note` pops it in.
               <p
+                key={blankTries}
                 role="status"
-                className="bg-secondary text-secondary-foreground flex items-center gap-2 rounded-2xl px-4 py-3 text-sm"
+                className={`${hand.className} nudge-note bg-winner text-foreground w-fit -rotate-2 px-4 pt-1 pb-0.5 text-2xl leading-tight font-bold shadow-[0_2px_3px_rgb(15_27_45/0.18),0_6px_12px_rgb(15_27_45/0.14)]`}
               >
-                <PencilSimpleIcon aria-hidden className="text-primary size-5" />
                 {BLANK_NUDGE}
               </p>
             )}
@@ -791,7 +795,7 @@ export function DrawTileForm({
                 disabled={!hydrated || pending}
                 onAsk={() => {
                   if (ops.length === 0) {
-                    setNudgeBlank(true);
+                    nudgeBlank();
                     return false;
                   }
                   setLocalError(null);

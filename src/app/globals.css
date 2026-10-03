@@ -369,3 +369,20 @@ body:has([data-board]) {
     animation: close-up-controls 320ms cubic-bezier(0.23, 1, 0.32, 1) 180ms both;
   }
 }
+
+/* The draw screen's note for a blank Post: a strip of yellow paper popping
+   in, again on each try. Seen only when someone tries to post nothing, so
+   it can have a little bounce. */
+@keyframes nudge-note {
+  from {
+    opacity: 0;
+    scale: 0.92;
+    translate: 0 6px;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .nudge-note {
+    transform-origin: 20% 100%;
+    animation: nudge-note 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+}
