@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 };
 
 /**
- * Four directions for the board's look, behind a picker (UI pass,
+ * Directions for the board's look, behind a picker (UI pass, from
  * 2026-10-01). A design exploration only: nothing outside this folder
  * imports from it, and the folder is deleted once a direction is picked.
  */

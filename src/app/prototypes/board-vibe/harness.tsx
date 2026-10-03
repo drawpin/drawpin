@@ -7,14 +7,17 @@ import {
   useRef,
   useState,
 } from "react";
-import { Pinned } from "./pinned";
+import { Shelves } from "./shelves";
+import { Spread } from "./spread";
+import { WashingLine } from "./washing-line";
 
-// Round eight (2026-10-01): an actual board to pin things to, in the
-// palette. What's compared is the board's surface.
+// Round nine (2026-10-02): the board idea dropped. Three new directions,
+// each keeping what's agreed (see `shared.tsx`), differing in how the
+// drawings are laid out.
 const VARIANTS = [
-  { name: "Cork", Component: () => <Pinned surface="cork" /> },
-  { name: "Felt", Component: () => <Pinned surface="felt" /> },
-  { name: "Navy", Component: () => <Pinned surface="navy" /> },
+  { name: "Washing line", Component: WashingLine },
+  { name: "Spread", Component: Spread },
+  { name: "Shelves", Component: Shelves },
 ];
 
 /** The picker's own look, verbatim from the prototype skill: harness chrome. */
