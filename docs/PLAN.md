@@ -1,4 +1,4 @@
-# DrawPin — Product Plan (v9, locked)
+# DrawPin — Product Plan (v10, locked)
 
 > Source of truth for v1 scope. Changes require an ADR in `docs/adr/` and a version bump here.
 
@@ -54,13 +54,13 @@ Drawing for fun needs no account. **Posting and competing do.**
 - Voting flow: pick up to 3 tiles, then cast them in one confirmation. Votes not cast yet stay available for the rest of the voting week.
 - Guest tiles posted before v9 appear on the voting screen but can't be selected: only tiles posted by an account are votable and eligible to win.
 - End of week N+1: the tile with the most votes is **week N's winner** and goes into the venue's Hall of Fame. Ties are broken by the earlier post. A tile needs **at least 1 vote** to win; a week with no votes has no winner.
-- Live vote counts stay hidden until voting closes.
+- The vote page shows the **top 3 so far, with their vote counts**, all week, as a podium (ADR-008). Its order is the winner rule's, so the tile on top when voting closes wins. Who voted for what stays private. Accepted risk: an early leader can snowball on a small board.
 - Accepted risk: someone determined can make a second Google account. Out of scope to chase at this scale; Turnstile still applies to voting.
 
 ### Monthly super winner
 - A week belongs to the month its **Monday** falls in (venue local time).
 - **Finalists:** that month's weekly winners, up to **4** — if there are more, the 4 with the most votes in their own weeks (ties to the earlier post).
-- **Monthly final:** opens once every week of the month has finished voting (about 2 weeks into the next month) and runs one week, Monday 4:00 AM to Monday 4:00 AM. **1 vote per account**, same rules otherwise (not your own tile, final).
+- **Monthly final:** opens once every week of the month has finished voting (about 2 weeks into the next month) and runs one week, Monday 4:00 AM to Monday 4:00 AM. **1 vote per account**, same rules otherwise (not your own tile, final), except that its vote counts stay hidden until it closes (ADR-008).
 - The finalist with the most final votes is the month's **super winner** (ties to the earlier post). A month with a single finalist crowns it without a vote; a final with no votes, or a month with no weekly winners, has no super winner.
 - Opening the app during a final shows a "Vote for this month's super winner" prompt.
 
@@ -147,6 +147,8 @@ v7 changes: the weekly Hall of Fame is a single winner (at least 1 vote) instead
 v8 changes: customer accounts added (ADR-004) — Google sign-in for customers, anonymous drawing stays but guest tiles can't be voted for or win, votes and the monthly final move from per device to per account, a signed-in post must pass both the account and the device daily limit, reporting a tile becomes possible and joins the owner screen, and accounts move from the back pocket into phase 3 so voting and winners are built on them once instead of twice.
 
 v9 changes: guests draw for fun only (ADR-007). Posting needs a Google sign-in, so every tile belongs to an account; guest tiles posted before v9 stay until the normal 30-day clean-up.
+
+v10 changes: weekly vote counts are public while voting is open, as a top-3 podium on the vote page (ADR-008); the monthly final keeps its counts hidden.
 
 ## Diagrams
 

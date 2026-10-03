@@ -5,6 +5,7 @@ import {
   type VoteStore,
   type VotingWeek,
 } from "./cast-votes";
+import type { CastVote } from "./rank-podium";
 
 const UNIQUE_VIOLATION = "23505";
 
@@ -23,8 +24,9 @@ function rejectionFor(message: string): VoteRejection {
 
 /**
  * {@link VoteStore} backed by Supabase. Needs the service-role client: nobody
- * else may read or write `votes`, since live counts stay hidden until voting
- * closes (docs/ERD.md, Row level security).
+ * else may read or write `votes`. Who voted for what stays private; the
+ * server reads the tallies only to show the vote page's podium (docs/ERD.md,
+ * Row level security).
  */
 export class SupabaseVoteStore implements VoteStore {
   constructor(
@@ -64,6 +66,28 @@ export class SupabaseVoteStore implements VoteStore {
 
     if (error) throw new Error(`listVotedTileIds: ${error.message}`);
     return data.map((row) => row.tile_id);
+  }
+
+  /**
+   * Every vote cast so far on a week's live tiles, with when each tile was
+   * posted, for ranking the podium (`rankPodium`). Voters aren't included.
+   */
+  async listCastVotes(weekId: string): Promise<CastVote[]> {
+    const { data, error } = await this.admin
+      .from("votes")
+      .select("tile_id, tiles!inner(created_at, status)")
+      .eq("week_id", weekId)
+      // A tile the owner removed mid-week drops off the podium.
+      .eq("tiles.status", "live")
+      .returns<
+        { tile_id: string; tiles: { created_at: string; status: string } }[]
+      >();
+
+    if (error) throw new Error(`listCastVotes: ${error.message}`);
+    return data.map((row) => ({
+      tileId: row.tile_id,
+      tileCreatedAt: row.tiles.created_at,
+    }));
   }
 
   async insertVotes(

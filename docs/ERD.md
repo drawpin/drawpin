@@ -301,8 +301,9 @@ public board and the owner screen need:
 | `daily_codes` | the owner, for their own venue |
 | `devices`, `votes`, `final_votes`, `post_attempts`, `code_attempts`, `account_posts`, `tile_reports` | nobody (service role only) |
 
-Live vote tallies stay unreadable on purpose — winners are only revealed once
-voting closes.
+Votes stay unreadable on purpose: who voted for what never leaves the server.
+The server reads the weekly tallies to show the vote page's top-3 podium,
+counts included (ADR-008); monthly final tallies stay hidden until it closes.
 
 ## Data API grants
 

@@ -6,8 +6,10 @@ import { GoogleSignIn } from "@/components/google-sign-in";
 import { getCustomer } from "@/lib/customer";
 import { serverEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getBoard, getVotingWeek, listLiveTiles } from "../data";
+import { getBoard, getLiveTiles, getVotingWeek, listLiveTiles } from "../data";
 import { VOTES_PER_WEEK } from "./cast-votes";
+import { type Leader, Podium } from "./podium";
+import { rankPodium } from "./rank-podium";
 import { SupabaseVoteStore } from "./supabase-vote-store";
 import { TileWall } from "./tile-wall";
 import { VoteGrid } from "./vote-grid";
@@ -75,10 +77,26 @@ export default async function VotePage({
     ? await store.listVotedTileIds(week.id, customer.id)
     : [];
 
+  // The live podium: counts are public while voting is open (ADR-008).
+  const places = rankPodium(await store.listCastVotes(week.id));
+  const leaderTiles = await getLiveTiles(
+    places.map((place) => place.tileId),
+    undefined,
+    customer?.id ?? null,
+  );
+  const leaders = places.flatMap((place, index): Leader[] => {
+    const tile = leaderTiles.find((candidate) => candidate.id === place.tileId);
+    return tile
+      ? [{ place: (index + 1) as Leader["place"], tile, votes: place.votes }]
+      : [];
+  });
+
   return (
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 px-4 py-6">
       {heading}
       <p className="text-muted-foreground text-sm">{board.name}</p>
+
+      {page.tiles.length > 0 && <Podium leaders={leaders} />}
 
       {page.tiles.length === 0 ? (
         <p role="status" className="bg-muted rounded-lg px-3 py-2 text-sm">
