@@ -3,20 +3,26 @@ import { pinColorFor, pinStyle } from "@/components/pin";
 import { hand } from "@/lib/fonts";
 import { describeTile } from "../tile-caption";
 import type { Tile } from "../tiles";
+import { StepDoodles, Trophy } from "./scribbles";
 
 /** A drawing on the podium: its place (1 to 3) and its votes so far. */
 export type Leader = { place: 1 | 2 | 3; tile: Tile; votes: number };
 
 /**
  * Each place's step: how tall it stands, its colour (a fill with ink text,
- * never a text colour), and when it rises. The steps go up 3rd, 2nd, then
- * 1st, so the leader arrives last.
+ * never a text colour), the size of its trophy, and when it rises. The
+ * steps go up 3rd, 2nd, then 1st, so the leader arrives last.
  */
 const STEPS = {
-  1: { height: "h-28", fill: "bg-winner", delay: 360 },
-  2: { height: "h-20", fill: "bg-highlight", delay: 180 },
-  3: { height: "h-14", fill: "bg-attention", delay: 0 },
+  1: { height: "h-36", fill: "bg-winner", trophy: 52, delay: 360 },
+  2: { height: "h-28", fill: "bg-highlight", trophy: 42, delay: 180 },
+  3: { height: "h-24", fill: "bg-attention", trophy: 38, delay: 0 },
 } as const;
+
+/** How long after a step starts rising its trophy starts being drawn. */
+const DRAW_AFTER_RISE = 520;
+/** And its doodles, once the trophy is mostly done. */
+const DOODLES_AFTER_RISE = 1300;
 
 /** In place order for screen readers; CSS `order` lays them out 2nd, 1st, 3rd. */
 const PLACES = [1, 2, 3] as const;
@@ -30,8 +36,10 @@ const SPOT = { 1: 1, 2: 0, 3: 2 } as const;
  * (docs/PLAN.md, Weekly cycle; ADR-008). The order is the one that will pick
  * the winner. A place nobody holds yet stands empty.
  *
- * Seen once a visit, so it gets an entrance: each step rises, then its
- * drawing's pin goes in. Off for reduced motion (globals.css).
+ * Each step carries a trophy instead of a number, sized by place, with a few
+ * doodles around it. Seen once a visit, so it gets an entrance: each step
+ * rises, its trophy scribbles itself on stroke by stroke, then the doodles,
+ * and its drawing's pin goes in. Off for reduced motion (globals.css).
  */
 export function Podium({ leaders }: { leaders: Leader[] }) {
   if (leaders.length === 0) {
@@ -89,12 +97,20 @@ export function Podium({ leaders }: { leaders: Leader[] }) {
                 {leader ? (leader.tile.author?.split("#")[0] ?? "Guest") : ""}
               </p>
               <div
-                className={`podium-rise ${step.height} ${step.fill} border-foreground text-foreground flex w-full flex-col items-center justify-center rounded-t-lg border-2 border-b-0`}
+                className={`podium-rise ${step.height} ${step.fill} border-foreground text-foreground relative flex w-full flex-col items-center justify-center gap-1 rounded-t-lg border-2 border-b-0`}
                 style={{ animationDelay: `${step.delay}ms` }}
               >
-                <span className="text-2xl leading-none font-black">
-                  {place}
-                </span>
+                <Trophy
+                  size={step.trophy}
+                  delay={step.delay + DRAW_AFTER_RISE}
+                  faint={!leader}
+                />
+                {leader && (
+                  <StepDoodles
+                    place={place}
+                    delay={step.delay + DOODLES_AFTER_RISE}
+                  />
+                )}
                 {leader && (
                   <span className="text-xs font-bold tabular-nums">
                     {votesLabel(leader.votes)}

@@ -436,3 +436,22 @@ body:has([data-board]) {
     animation: vote-check 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 }
+
+/* scribble: a path drawn on from start to end, as if being doodled; for
+   the podium's trophies and doodles. The path needs `pathLength="1"`.
+   `--delay` and `--dur` time each stroke. With reduced motion the
+   drawing is just there. */
+.scribble {
+  stroke-dasharray: 1;
+}
+@keyframes scribble {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .scribble {
+    animation: scribble var(--dur, 420ms) cubic-bezier(0.65, 0, 0.35, 1)
+      var(--delay, 0ms) both;
+  }
+}

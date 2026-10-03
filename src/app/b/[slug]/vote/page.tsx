@@ -9,7 +9,7 @@ import { serverEnv } from "@/lib/env";
 import { hand } from "@/lib/fonts";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { weekdayFor } from "@/lib/venue-time";
-import { BoardLayout, HEADER_BUTTON, PAPER, YELLOW_STRIP } from "../board-look";
+import { BoardLayout, HEADER_BUTTON, YELLOW_STRIP } from "../board-look";
 import { getBoard, getLiveTiles, getVotingWeek, listLiveTiles } from "../data";
 import { VOTES_PER_WEEK } from "./cast-votes";
 import { type Leader, Podium } from "./podium";
@@ -141,13 +141,14 @@ export default async function VotePage({
             />
           ) : (
             <>
-              {/* The drawings come first in spirit: they are the argument
-                  for signing in, so the card stays short. */}
-              <div className={`flex flex-col gap-3 rounded-xl p-4 ${PAPER}`}>
-                <p className="font-bold">Sign in to vote for your favorites</p>
-                <p className="text-muted-foreground text-sm">
-                  Three votes each per week, so it needs an account. It works
-                  from any device once you&apos;re in.
+              {/* One quiet line: the drawings are the argument for signing
+                  in, so they get the space. */}
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-muted-foreground min-w-0 flex-1 text-sm">
+                  <span className="text-foreground font-semibold">
+                    Want a say?
+                  </span>{" "}
+                  Sign in to vote. Three votes each per week, from any device.
                 </p>
                 <GoogleSignIn next={`/b/${slug}/vote`} size="sm" />
               </div>
