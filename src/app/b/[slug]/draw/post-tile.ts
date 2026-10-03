@@ -5,7 +5,13 @@ import type {
 import type { ModerationCategory } from "@/lib/moderation/categories";
 import { ModerationUnavailableError } from "@/lib/moderation/openai";
 import { BlankTileImageError, InvalidTileImageError } from "@/lib/tile-image";
-import { localDayFor, type WeekBounds, weekBoundsFor } from "@/lib/venue-time";
+import {
+  localDayFor,
+  type VenueClock,
+  type WeekBounds,
+  weekBoundsAt,
+  zoneAt,
+} from "@/lib/venue-time";
 
 /** Blocked attempts in one venue-local day before the device is locked out. */
 export const BLOCKED_ATTEMPT_LIMIT = 3;
@@ -21,7 +27,11 @@ export const BURST_POST_LIMIT = 5;
 /** The window the burst limit is measured over. */
 export const BURST_WINDOW_MS = 10 * 60 * 1000;
 
-export type PostingVenue = { id: string; timezone: string; isPaused: boolean };
+export type PostingVenue = {
+  id: string;
+  clock: VenueClock;
+  isPaused: boolean;
+};
 
 export type NewTile = {
   id: string;
@@ -166,7 +176,7 @@ export async function postTile(
   if (venue.isPaused) return { ok: false, reason: "paused" };
 
   const now = deps.now();
-  const localDay = localDayFor(now, venue.timezone);
+  const localDay = localDayFor(now, zoneAt(venue.clock, now));
 
   const attempt = await store.getDailyAttempt(
     venue.id,
@@ -236,7 +246,7 @@ export async function postTile(
 
   const weekId = await store.ensurePostingWeek(
     venue.id,
-    weekBoundsFor(now, venue.timezone),
+    weekBoundsAt(now, venue.clock),
   );
   if (!weekId) return { ok: false, reason: "week-closed" };
 

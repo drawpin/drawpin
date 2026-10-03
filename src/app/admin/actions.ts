@@ -7,7 +7,9 @@ import { boardUrl } from "@/lib/board";
 import { serverEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { isSupportedTimeZone } from "@/lib/timezones";
 import { moderateVenueName, venueNameSchema } from "@/lib/venue-name";
+import { formatBoundary, planTimeZoneChange } from "@/lib/venue-time";
 import { changeBoardLink } from "./change-board-link";
 import { removeTile } from "./remove-tile";
 import { renameVenue } from "./rename-venue";
@@ -134,6 +136,59 @@ export async function changeBoardLinkAction(): Promise<ChangeLinkState> {
   console.info(`Board link changed: ${venue.id} ${venue.slug} -> ${slug}`);
   revalidatePath("/admin");
   return { status: "changed", url: boardUrl(serverEnv().SITE_URL, slug) };
+}
+
+export type TimeZoneState =
+  | { status: "idle" }
+  | { status: "error"; message: string }
+  | { status: "saved" };
+
+/**
+ * Changes the board's time zone from the end of this posting week, or
+ * cancels a change that hasn't taken over yet (ADR-008). The week under way
+ * keeps its boundaries; see `planTimeZoneChange` for everything else.
+ */
+export async function setTimeZoneAction(
+  _previous: TimeZoneState,
+  formData: FormData,
+): Promise<TimeZoneState> {
+  const venue = await requireOwnedVenue();
+
+  const zone = formData.get("timezone");
+  if (typeof zone !== "string" || !isSupportedTimeZone(zone)) {
+    return { status: "error", message: "Choose a time zone from the list." };
+  }
+
+  const plan = planTimeZoneChange(new Date(), venue.clock, zone);
+  if (plan.status === "unchanged") return { status: "saved" };
+  if (plan.status === "settling") {
+    return {
+      status: "error",
+      message: `Your last change is still taking effect. You can change the time zone again from ${formatBoundary(plan.until, venue.clock.change?.timeZone ?? zone)}.`,
+    };
+  }
+
+  const { error } = await createAdminClient().rpc("set_venue_clock", {
+    p_venue_id: venue.id,
+    p_timezone: plan.clock.timeZone,
+    p_next_timezone: plan.clock.change?.timeZone ?? null,
+    p_timezone_changes_at: plan.clock.change?.from.toISOString() ?? null,
+    p_week_posting_ends_at: plan.week.postingEndsAt.toISOString(),
+    p_week_voting_ends_at: plan.week.votingEndsAt.toISOString(),
+  });
+  if (error) {
+    console.error(`Could not change the time zone: ${error.message}`);
+    return {
+      status: "error",
+      message: "We couldn't change your time zone. Try again in a minute.",
+    };
+  }
+
+  console.info(
+    `Board time zone ${plan.status}: ${venue.id} ${venue.clock.timeZone} -> ${zone}`,
+  );
+  revalidatePath("/admin");
+  return { status: "saved" };
 }
 
 const removeSchema = z.object({ tileId: z.guid() });
