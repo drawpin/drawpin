@@ -128,15 +128,24 @@ export function Podium({ leaders }: { leaders: Leader[] }) {
                   duration={Math.round((SCRIBBLE_MS * step.height) / 144)}
                   className={step.color}
                 />
-                <Image
-                  src={`/trophies/${step.trophy}.webp`}
-                  alt=""
-                  width={step.size}
-                  height={step.size}
-                  // Already small WebP files (public/trophies).
-                  unoptimized
-                  className={`relative ${leader ? "" : "opacity-30 grayscale"}`}
-                />
+                {/* The trophy, with its place written on the cup. */}
+                <span className="relative">
+                  <Image
+                    src={`/trophies/${step.trophy}.webp`}
+                    alt=""
+                    width={step.size}
+                    height={step.size}
+                    // Already small WebP files (public/trophies).
+                    unoptimized
+                  />
+                  <span
+                    aria-hidden
+                    className="text-foreground absolute top-[31%] left-1/2 -translate-x-1/2 -translate-y-1/2 font-black tracking-tight"
+                    style={{ fontSize: Math.round(step.size * 0.22) }}
+                  >
+                    {ordinal(place)}
+                  </span>
+                </span>
                 {leader && (
                   <span className="relative text-xs font-bold tabular-nums">
                     {votesLabel(leader.votes)}

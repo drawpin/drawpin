@@ -1,14 +1,15 @@
 /**
- * A podium step's colour, scribbled in like crayon (UI pass, 2026-10-03):
- * one long stroke zig-zagging back and forth from top to bottom, drawn on
- * from start to end once the step has risen (`scribble`, globals.css). The
- * gaps between passes stay, so the finished step keeps its crayon texture.
- * With reduced motion it's simply filled in.
+ * A podium step's colour, scribbled in with a pen (UI pass, 2026-10-03):
+ * one long, thin stroke zig-zagging tightly back and forth from top to
+ * bottom, drawn on from start to end once the step has risen (`scribble`,
+ * globals.css). The white between the lines stays, so the finished step
+ * reads as quick pen hatching rather than a flat fill. With reduced motion
+ * it's simply there.
  */
 
-/** Pixels between passes; the stroke is wider, so passes overlap a little. */
-const PASS = 7;
-const STROKE = 13;
+/** Pixels between passes, and the pen's line width: tight, with white between. */
+const PASS = 4.5;
+const STROKE = 2.6;
 /** How far each pass runs past the step's edges, so the turns don't show. */
 const OVERSHOOT = 34;
 
@@ -20,7 +21,7 @@ function zigzag(width: number, height: number): string {
   const points: string[] = [];
   for (let y = 2, pass = 0; y < height + PASS; y += PASS, pass++) {
     // A steady wobble, so a re-render doesn't redraw a different scribble.
-    const wobble = ((pass * 7) % 5) - 2;
+    const wobble = (((pass * 7) % 5) - 2) * 0.6;
     const from = pass % 2 ? width + OVERSHOOT : -OVERSHOOT;
     const to = pass % 2 ? -OVERSHOOT : width + OVERSHOOT;
     if (pass === 0) points.push(`M${from} ${y}`);
@@ -71,6 +72,8 @@ export function ScribbleFill({
         fill="none"
         stroke="currentColor"
         strokeWidth={STROKE}
+        // The step stretches the scribble sideways; keep the pen's line even.
+        vectorEffect="non-scaling-stroke"
         strokeLinecap="round"
         strokeLinejoin="round"
       />

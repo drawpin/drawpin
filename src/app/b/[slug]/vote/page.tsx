@@ -148,7 +148,7 @@ export default async function VotePage({
                   <span className="text-foreground font-semibold">
                     Want a say?
                   </span>{" "}
-                  Sign in to vote. Three votes each per week, from any device.
+                  Sign in to vote. Three votes per week!
                 </p>
                 <GoogleSignIn next={`/b/${slug}/vote`} size="sm" />
               </div>
