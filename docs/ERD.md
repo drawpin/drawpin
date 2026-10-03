@@ -247,6 +247,27 @@ means one account can report a tile once, and `record_tile_report` turns down
 an account that has filed ten reports in a day, since a flooded queue is as
 good as no queue.
 
+### `venue_blocks`
+Accounts a board's owner has blocked (ADR-008).
+
+| Column | Type | Notes |
+|---|---|---|
+| `venue_id` | `uuid` | PK with `user_id`; FK → `venues`, `on delete cascade` |
+| `user_id` | `uuid` | FK → `profiles`, `on delete cascade` |
+| `created_at` | `timestamptz` | |
+
+A blocked account can't post, vote, vote in a final or report on that board.
+`<table>_check_block` triggers on `tiles`, `votes`, `final_votes` and
+`tile_reports` refuse it with one message the app matches; they're named to
+fire before the `*_enforce_rules` triggers, so a blocked account is told it's
+blocked rather than some other rule. `is_blocked(venue_id, user_id)` lets the
+app check first; `service_role` only.
+
+Blocking also removes every live tile the account has on the board, one at a
+time the way the owner's Remove does (`src/app/admin/block-account.ts`).
+Unblocking deletes the row; removed tiles stay removed. Votes already cast
+stay, since votes are final.
+
 ### `code_attempts`
 Wrong join-code guesses per network, so an 8-digit code can't be ground
 through. Only the hash of the address is stored.
@@ -329,7 +350,7 @@ public board and the owner screen need:
 | `tiles` | anyone, `status = 'live'` only |
 | `owners` | the owner, their own row |
 | `daily_codes` | the owner, for their own venue |
-| `devices`, `votes`, `final_votes`, `post_attempts`, `code_attempts`, `account_posts`, `tile_reports` | nobody (service role only) |
+| `devices`, `votes`, `final_votes`, `post_attempts`, `code_attempts`, `account_posts`, `tile_reports`, `venue_blocks` | nobody (service role only) |
 
 Live vote tallies stay unreadable on purpose — winners are only revealed once
 voting closes.
@@ -346,7 +367,7 @@ are granted explicitly, and RLS then narrows the rows:
 | `service_role` (server) | all | select, insert, update, delete |
 | `anon`, `authenticated` | `venues`, `weeks`, `tiles`, `hall_of_fame`, `profiles`, `monthly_finals`, `former_slugs` | select |
 | `authenticated` (owners) | `owners`, `daily_codes` | select |
-| `anon`, `authenticated` | `devices`, `votes`, `final_votes`, `post_attempts`, `code_attempts`, `account_posts`, `tile_reports` | none |
+| `anon`, `authenticated` | `devices`, `votes`, `final_votes`, `post_attempts`, `code_attempts`, `account_posts`, `tile_reports`, `venue_blocks` | none |
 
 Functions follow the same rule. `record_blocked_attempt(venue_id, device_id,
 local_day)` counts a moderation-blocked post and returns the day's new total in

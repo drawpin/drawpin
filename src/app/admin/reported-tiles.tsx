@@ -8,6 +8,7 @@ import {
   removeTileAction,
   type RemoveTileState,
 } from "./actions";
+import { BlockButton } from "./block-button";
 import type { AdminTile } from "./board-tiles";
 
 export type ReportedAdminTile = AdminTile & {
@@ -116,6 +117,8 @@ function ReportedCard({ tile }: { tile: ReportedAdminTile }) {
           {error}
         </p>
       )}
+
+      <BlockButton tile={tile} />
     </li>
   );
 }

@@ -39,6 +39,16 @@ export class SupabaseTileStore implements TileStore {
     return moved ? this.findVenue(moved) : null;
   }
 
+  async isAccountBlocked(venueId: string, userId: string): Promise<boolean> {
+    const { data, error } = await this.admin.rpc("is_blocked", {
+      p_venue_id: venueId,
+      p_user_id: userId,
+    });
+
+    if (error) throw new Error(`isAccountBlocked: ${error.message}`);
+    return data === true;
+  }
+
   async getDailyAttempt(
     venueId: string,
     deviceId: string,

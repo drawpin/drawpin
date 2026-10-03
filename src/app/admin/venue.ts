@@ -7,8 +7,14 @@ import {
   VENUE_CLOCK_COLUMNS,
   type VenueClock,
 } from "@/lib/venue-time";
-import { TILES_BUCKET, type TileRow, toTile } from "@/app/b/[slug]/tiles";
+import {
+  formatAuthor,
+  TILES_BUCKET,
+  type TileRow,
+  toTile,
+} from "@/app/b/[slug]/tiles";
 import { broadcastToBoard, TILE_REMOVED_EVENT } from "@/lib/realtime/broadcast";
+import type { BlockStore } from "./block-account";
 import type { AdminTile } from "./board-tiles";
 import type { OwnedTile, OwnerTileStore } from "./remove-tile";
 
@@ -95,6 +101,7 @@ export async function listBoardTiles(venueId: string): Promise<AdminTile[]> {
     return {
       id: tile.id,
       author: tile.author,
+      canBlock: row.user_id !== null,
       caption: tile.caption,
       imageUrl: tile.imageUrl,
     };
@@ -219,6 +226,7 @@ export async function listReportedTiles(
     byTile.set(row.tiles.id, {
       id: tile.id,
       author: tile.author,
+      canBlock: row.tiles.user_id !== null,
       caption: tile.caption,
       imageUrl: tile.imageUrl,
       reportCount: 1,
@@ -238,4 +246,102 @@ export async function resolveReports(tileId: string): Promise<void> {
     .is("resolved_at", null);
 
   if (error) throw new Error(`resolveReports: ${error.message}`);
+}
+
+/** {@link BlockStore} backed by Supabase, using the service role. */
+export class SupabaseBlockStore implements BlockStore {
+  constructor(private readonly admin: SupabaseClient) {}
+
+  async findAuthor(
+    tileId: string,
+  ): Promise<{ venueId: string; userId: string | null } | null> {
+    const { data, error } = await this.admin
+      .from("tiles")
+      .select("user_id, weeks!inner(venue_id)")
+      .eq("id", tileId)
+      .maybeSingle<{ user_id: string | null; weeks: { venue_id: string } }>();
+
+    if (error) throw new Error(`findAuthor: ${error.message}`);
+    return data ? { venueId: data.weeks.venue_id, userId: data.user_id } : null;
+  }
+
+  async addBlock(venueId: string, userId: string): Promise<void> {
+    const { error } = await this.admin
+      .from("venue_blocks")
+      .upsert(
+        { venue_id: venueId, user_id: userId },
+        { onConflict: "venue_id,user_id", ignoreDuplicates: true },
+      );
+
+    if (error) throw new Error(`addBlock: ${error.message}`);
+  }
+
+  async listLiveTileIds(venueId: string, userId: string): Promise<string[]> {
+    const { data, error } = await this.admin
+      .from("tiles")
+      .select("id, weeks!inner(venue_id)")
+      .eq("user_id", userId)
+      .eq("status", "live")
+      .eq("weeks.venue_id", venueId);
+
+    if (error) throw new Error(`listLiveTileIds: ${error.message}`);
+    return data.map((row) => row.id);
+  }
+}
+
+/** An account the owner has blocked, as the owner screen lists it. */
+export type BlockedAccount = {
+  userId: string;
+  /** How their tiles were signed on this board, e.g. "Ahmad#4821". */
+  name: string;
+};
+
+/**
+ * The accounts blocked from this board, most recently blocked first. Each is
+ * named the way its tiles were signed here, since that's how the owner knows
+ * them; the username alone isn't unique.
+ */
+export async function listBlockedAccounts(
+  venueId: string,
+): Promise<BlockedAccount[]> {
+  const admin = createAdminClient();
+  const { data: blocks, error } = await admin
+    .from("venue_blocks")
+    .select("user_id, profiles(username)")
+    .eq("venue_id", venueId)
+    .order("created_at", { ascending: false })
+    .returns<{ user_id: string; profiles: { username: string } | null }[]>();
+
+  if (error) throw new Error(`listBlockedAccounts: ${error.message}`);
+  if (blocks.length === 0) return [];
+
+  const { data: tiles, error: tilesError } = await admin
+    .from("tiles")
+    .select("user_id, display_name, name_tag, weeks!inner(venue_id)")
+    .in(
+      "user_id",
+      blocks.map((block) => block.user_id),
+    )
+    .eq("weeks.venue_id", venueId)
+    .order("created_at", { ascending: false })
+    .returns<
+      {
+        user_id: string;
+        display_name: string | null;
+        name_tag: string | null;
+      }[]
+    >();
+
+  if (tilesError) throw new Error(`listBlockedAccounts: ${tilesError.message}`);
+
+  return blocks.map((block) => {
+    const latest = tiles.find((tile) => tile.user_id === block.user_id);
+    return {
+      userId: block.user_id,
+      name:
+        (latest && formatAuthor(latest.display_name, latest.name_tag)) ??
+        block.profiles?.username ??
+        "An account",
+    };
+  });
 }

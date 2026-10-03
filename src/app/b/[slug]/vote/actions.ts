@@ -18,6 +18,7 @@ const FAILURE_MESSAGES: Record<CastVotesFailure, string> = {
     "One of those can't be voted for. Reload the page and try again.",
   closed: "Voting just closed for that week.",
   "already-used": "You've already voted for one of those.",
+  blocked: "You can't vote on this board.",
   failed: "Something went wrong saving your votes. Try again.",
 };
 

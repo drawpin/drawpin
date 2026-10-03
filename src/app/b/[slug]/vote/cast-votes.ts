@@ -11,7 +11,9 @@ export type VoteRejection =
   /** Voting closed between loading the page and casting. */
   | "closed"
   /** Already voted for that tile, or the limit was reached in a race. */
-  | "already-used";
+  | "already-used"
+  /** The board's owner has blocked this account (ADR-008). */
+  | "blocked";
 
 export class VoteRefusedError extends Error {
   constructor(
@@ -53,6 +55,7 @@ export type CastVotesFailure =
   | "not-votable"
   | "closed"
   | "already-used"
+  | "blocked"
   | "failed";
 
 export type CastVotesResult =

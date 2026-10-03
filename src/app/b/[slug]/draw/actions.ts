@@ -26,6 +26,7 @@ const SIGN_IN_TO_POST = "Sign in with Google to post your drawing.";
 const FAILURE_MESSAGES: Record<Exclude<PostTileFailure, "blocked">, string> = {
   "not-found": "This board doesn't exist anymore.",
   paused: "This board is paused, so posting is off right now.",
+  "account-blocked": "You can't post to this board.",
   "invalid-image": "We couldn't read your drawing. Try again.",
   blank: "Draw something first.",
   locked:
