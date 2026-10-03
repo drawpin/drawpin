@@ -1,18 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { hand } from "@/lib/fonts";
 import { getBrowserClient } from "@/lib/supabase/browser";
 import {
   type BoardStats,
   type BoardStatsRow,
   boardStatsSummary,
+  newThisWeek,
   toBoardStats,
 } from "./stats";
 
 /**
- * The board's participation at a glance: how many people have drawn, how many
- * drawings there are, and how many landed this week. Shown to everyone — the
- * social proof that makes an open board feel worth joining.
+ * The board's name, with its participation at a glance: a note above it for
+ * what's new this week, and a line below with how many people have drawn
+ * and how many drawings there are. Shown to everyone: the social proof that
+ * makes an open board feel worth joining. Sits on the blue header.
  *
  * Starts from the server's numbers, then keeps up by itself: each new drawing
  * in the shown week asks the database for fresh totals. A new drawing can't
@@ -24,11 +27,13 @@ import {
  * change reaches them); the page refreshes itself whenever the tab comes back
  * into view, which brings the numbers back in line.
  */
-export function BoardStatsLine({
+export function BoardTitle({
+  name,
   venueId,
   weekId,
   initialStats,
 }: {
+  name: string;
   venueId: string;
   /** The week the board is showing, or `null` before its first drawing. */
   weekId: string | null;
@@ -85,19 +90,34 @@ export function BoardStatsLine({
   }, [venueId, weekId]);
 
   const summary = boardStatsSummary(stats);
-  if (!summary) return null;
-
-  // Each part stays whole: a narrow header wraps between "15 drawings" and
-  // "5 this week", never inside one.
-  const parts = summary.split(" · ");
+  const note = newThisWeek(stats);
+  // Each part of the summary stays whole: a narrow header wraps between
+  // them, never inside one.
+  const parts = summary?.split(" · ") ?? [];
   return (
-    <p className="text-muted-foreground text-sm">
-      {parts.map((part, index) => (
-        <span key={part} className="whitespace-nowrap">
-          {part}
-          {index < parts.length - 1 && " · "}
-        </span>
-      ))}
-    </p>
+    <>
+      {note && (
+        <p
+          className={`${hand.className} bg-winner text-foreground w-fit -rotate-2 rounded-sm px-2.5 py-0.5 text-xl leading-tight font-bold`}
+        >
+          {note}
+        </p>
+      )}
+      <div className="flex flex-col gap-1">
+        <h1 className="text-4xl leading-[1.02] font-black tracking-tight break-words">
+          {name}
+        </h1>
+        {summary && (
+          <p className="text-sm text-white/80">
+            {parts.map((part, index) => (
+              <span key={part} className="whitespace-nowrap">
+                {part}
+                {index < parts.length - 1 && " · "}
+              </span>
+            ))}
+          </p>
+        )}
+      </div>
+    </>
   );
 }

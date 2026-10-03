@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import {
   ArrowRightIcon,
@@ -8,7 +8,6 @@ import {
 } from "@phosphor-icons/react/ssr";
 import { notFound } from "next/navigation";
 import { AccountLine } from "@/components/account-line";
-import { buttonVariants } from "@/components/ui/button";
 import { connection } from "next/server";
 import { getCustomer } from "@/lib/customer";
 import { openFinal } from "@/lib/monthly-final";
@@ -22,7 +21,7 @@ import {
   listLiveTiles,
   peekAtWeek,
 } from "./data";
-import { BoardStatsLine } from "./board-stats";
+import { BoardTitle } from "./board-title";
 import { listWeekTimings } from "./final/data";
 import { VOTES_PER_WEEK } from "./vote/cast-votes";
 import { SupabaseVoteStore } from "./vote/supabase-vote-store";
@@ -54,6 +53,9 @@ export async function generateMetadata({
     },
   };
 }
+
+/** The phone's status bar matches the board's blue header. */
+export const viewport: Viewport = { themeColor: "#004aad" };
 
 export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
   // Always render per request: the feed changes whenever someone posts.
@@ -93,90 +95,99 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
       : null;
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-5 px-4 py-6">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex min-w-0 flex-col items-start gap-1">
-          <h1 className="text-2xl font-extrabold tracking-tight break-words">
-            {board.name}
-          </h1>
-          {stats && (
-            <BoardStatsLine
+    // `data-board` tints the whole page, footer included (globals.css).
+    <div data-board className="flex flex-1 flex-col">
+      <header className="bg-primary text-primary-foreground border-foreground border-b-2">
+        <div className="mx-auto flex w-full max-w-lg flex-col gap-4 px-4 pt-8 pb-8">
+          {stats ? (
+            <BoardTitle
+              name={board.name}
               venueId={board.id}
               weekId={week?.id ?? null}
               initialStats={stats}
             />
+          ) : (
+            <h1 className="text-4xl leading-[1.02] font-black tracking-tight break-words">
+              {board.name}
+            </h1>
           )}
-          <Link
-            href={`/b/${slug}/hall-of-fame`}
-            className="group text-primary -ml-1 inline-flex min-h-11 items-center gap-1.5 px-1 text-sm font-semibold underline-offset-4 hover:underline"
-          >
-            <TrophyIcon
-              className="size-4 transition-transform duration-200 ease-out group-hover:-translate-y-0.5 motion-reduce:transition-none"
-              weight="bold"
-            />
-            Hall of Fame
-          </Link>
+          <div className="flex items-center justify-between gap-3">
+            {/* A button, not small print: winners are what the board is
+                for. The trophy takes the yellow of winning. */}
+            <Link
+              href={`/b/${slug}/hall-of-fame`}
+              className="focus-visible:ring-highlight inline-flex h-12 items-center gap-2 rounded-xl bg-white/15 px-4 text-sm font-bold ring-1 ring-white/35 transition-colors duration-150 ease-out outline-none hover:bg-white/25 focus-visible:ring-3 motion-reduce:transition-none"
+            >
+              <TrophyIcon weight="fill" className="text-winner size-5" />
+              Hall of Fame
+            </Link>
+            {!board.isPaused && (
+              // Its pencil scribbles every few seconds (`draw-awake`).
+              <Link
+                href={`/b/${slug}/draw`}
+                className="draw-awake border-foreground bg-winner text-foreground focus-visible:ring-highlight inline-flex h-12 items-center gap-2 rounded-xl border-2 px-5 font-extrabold shadow-[4px_4px_0_var(--foreground)] transition-[translate,box-shadow] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] outline-none hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_var(--foreground)] focus-visible:ring-3 active:translate-x-1 active:translate-y-1 active:shadow-none active:duration-75 motion-reduce:transition-none"
+              >
+                <PencilSimpleIcon weight="bold" className="size-5" />
+                Draw
+              </Link>
+            )}
+          </div>
         </div>
-        {!board.isPaused && (
-          <Link href={`/b/${slug}/draw`} className={buttonVariants()}>
-            {/* The pencil tips as if to start drawing. */}
-            <PencilSimpleIcon
-              className="transition-transform duration-200 ease-out group-hover/button:-rotate-12 motion-reduce:transition-none"
-              weight="bold"
-            />
-            Draw
+      </header>
+
+      <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-8 px-4 pt-10 pb-6">
+        {board.isPaused && (
+          <p
+            role="status"
+            className="bg-secondary rounded-2xl px-4 py-3 text-sm"
+          >
+            This board is paused. You can look around, but new posts are off for
+            now.
+          </p>
+        )}
+
+        {votingWeek && votePeek && votePeek.total > 0 && (
+          <VotePeek
+            href={`/b/${slug}/vote`}
+            peek={votePeek}
+            votesLeft={votesLeft}
+            closesOn={weekdayFor(
+              new Date(votingWeek.votingEndsAt),
+              board.timezone,
+            )}
+          />
+        )}
+
+        {monthlyFinal && (
+          // Yellow: it's about crowning a winner.
+          <Link
+            href={`/b/${slug}/final`}
+            className="bg-winner text-foreground border-foreground focus-visible:ring-highlight flex items-center justify-between gap-3 rounded-xl border-2 px-4 py-3.5 font-bold shadow-[4px_4px_0_var(--foreground)] outline-none focus-visible:ring-3"
+          >
+            <span className="flex items-center gap-2">
+              <CrownSimpleIcon className="size-5 shrink-0" weight="fill" />
+              Vote for this month&apos;s super winner
+            </span>
+            <ArrowRightIcon className="size-5 shrink-0" weight="bold" />
           </Link>
         )}
-      </div>
 
-      {board.isPaused && (
-        <p role="status" className="bg-secondary rounded-2xl px-4 py-3 text-sm">
-          This board is paused. You can look around, but new posts are off for
-          now.
-        </p>
-      )}
-
-      {votingWeek && votePeek && votePeek.total > 0 && (
-        <VotePeek
-          href={`/b/${slug}/vote`}
-          peek={votePeek}
-          votesLeft={votesLeft}
-          closesOn={weekdayFor(
-            new Date(votingWeek.votingEndsAt),
-            board.timezone,
-          )}
+        <TileFeed
+          // Tiles and the pagination cursor belong to one week; start fresh when
+          // the board moves on to a new one.
+          key={week?.id ?? "no-week"}
+          venueId={board.id}
+          weekId={week?.id ?? null}
+          canReport={customer !== null}
+          postingEndsAt={week?.postingEndsAt ?? null}
+          initialTiles={page?.tiles ?? []}
+          initialCursor={page?.nextCursor ?? null}
         />
-      )}
 
-      {monthlyFinal && (
-        // Yellow: it's about crowning a winner.
-        <Link
-          href={`/b/${slug}/final`}
-          className="bg-winner text-foreground focus-visible:ring-highlight flex items-center justify-between gap-3 rounded-2xl px-4 py-3.5 font-bold outline-none focus-visible:ring-3"
-        >
-          <span className="flex items-center gap-2">
-            <CrownSimpleIcon className="size-5 shrink-0" weight="fill" />
-            Vote for this month&apos;s super winner
-          </span>
-          <ArrowRightIcon className="size-5 shrink-0" weight="bold" />
-        </Link>
-      )}
-
-      <TileFeed
-        // Tiles and the pagination cursor belong to one week; start fresh when
-        // the board moves on to a new one.
-        key={week?.id ?? "no-week"}
-        venueId={board.id}
-        weekId={week?.id ?? null}
-        canReport={customer !== null}
-        postingEndsAt={week?.postingEndsAt ?? null}
-        initialTiles={page?.tiles ?? []}
-        initialCursor={page?.nextCursor ?? null}
-      />
-
-      {/* Small print at the foot of the board: sign-in turns up on Draw and
+        {/* Small print at the foot of the board: sign-in turns up on Draw and
           Vote, where it's needed, so here it's only for whoever looks. */}
-      <AccountLine customer={customer} next={`/b/${slug}`} />
-    </main>
+        <AccountLine customer={customer} next={`/b/${slug}`} />
+      </main>
+    </div>
   );
 }

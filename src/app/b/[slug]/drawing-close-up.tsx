@@ -3,11 +3,11 @@
 import { XIcon } from "@phosphor-icons/react";
 import Image from "next/image";
 import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
-import type { ProtoTile } from "./data";
-import { TileCaption } from "./caption";
-import { pinStyle } from "./pin";
+import { type PinColor, pinStyle } from "@/components/pin";
+import { describeTile, TileCaption } from "./tile-caption";
+import type { Tile } from "./tiles";
 
-/** Opening is a spring-like ease-out; closing is quicker, since attention has moved on. */
+/** Opening eases out like a spring; closing is quicker, since attention has moved on. */
 const OPEN = { duration: 460, easing: "cubic-bezier(0.32, 0.72, 0, 1)" };
 const CLOSE = { duration: 280, easing: "cubic-bezier(0.32, 0.72, 0, 1)" };
 
@@ -28,27 +28,27 @@ function flipFrom(source: HTMLElement, frame: HTMLElement, lean: number) {
 }
 
 /**
- * A drawing taken down off the board to look at up close. It grows out of
- * the spot it was pinned in and shrinks back into it on close (FLIP), so it
- * reads as the same piece of paper. The caller hides the board's copy
- * until `onClosed`.
+ * A drawing taken down off the board to look at up close (UI pass,
+ * 2026-10-01). It grows out of the spot it was pinned in and shrinks back
+ * into it on close (FLIP), so it reads as the same piece of paper; the
+ * caller hides the board's copy until `onClosed`.
  *
  * A native modal `<dialog>`: it traps focus, Escape closes it, and focus goes
  * back to the drawing that opened it. Reduced motion gets a plain fade.
  */
-export function Lightbox({
+export function DrawingCloseUp({
   tile,
   source,
   lean,
-  tackColor,
+  pinColor,
   onClosed,
 }: {
-  tile: ProtoTile;
-  /** The drawing's frame on the board, which this grows from and back into. */
+  tile: Tile;
+  /** The drawing's paper on the board, which this grows from and back into. */
   source: HTMLElement;
-  /** The frame's tilt on the board, in degrees. */
+  /** The paper's tilt on the board, in degrees. */
   lean: number;
-  tackColor: string;
+  pinColor: PinColor;
   /** Called once the closing animation has finished. */
   onClosed: () => void;
 }) {
@@ -61,7 +61,7 @@ export function Lightbox({
     const frame = frameRef.current;
     if (!dialog || !frame) return;
     if (!dialog.open) dialog.showModal();
-    // Run twice (Strict Mode): measure the frame where it really is.
+    // Strict Mode runs this twice: measure the frame where it really is.
     frame.getAnimations().forEach((running) => running.cancel());
     const root = document.documentElement;
     const overflow = root.style.overflow;
@@ -99,7 +99,7 @@ export function Lightbox({
     };
   }, [source, lean, onClosed]);
 
-  // Escape: run the closing animation instead of the dialog's instant close.
+  // Escape runs the closing animation instead of the dialog's instant close.
   useEffect(() => {
     const dialog = dialogRef.current;
     const onCancel = (event: Event) => {
@@ -113,8 +113,8 @@ export function Lightbox({
   return (
     <dialog
       ref={dialogRef}
-      aria-label={tile.caption ?? `Drawing by ${tile.author}`}
-      className="lightbox m-0 h-dvh max-h-none w-dvw max-w-none bg-transparent p-0"
+      aria-label={describeTile(tile)}
+      className="close-up m-0 h-dvh max-h-none w-dvw max-w-none bg-transparent p-0"
       // A tap anywhere but the drawing closes it.
       onClick={(event) => {
         if (!frameRef.current?.contains(event.target as Node)) close();
@@ -123,26 +123,29 @@ export function Lightbox({
       <div className="flex h-full flex-col items-center justify-center gap-5 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div
           ref={frameRef}
-          style={pinStyle(tackColor)}
-          className="pinned pinned-lg relative w-full max-w-[min(30rem,56dvh)] bg-white p-2.5 shadow-[0_8px_16px_rgb(15_27_45/0.25),0_30px_60px_rgb(15_27_45/0.35)]"
+          style={pinStyle(pinColor)}
+          className="pinned pinned-lg relative flex w-full max-w-[min(30rem,56dvh)] flex-col gap-3 bg-white p-2.5 pb-3 shadow-[0_8px_16px_rgb(15_27_45/0.25),0_30px_60px_rgb(15_27_45/0.35)]"
         >
           <Image
-            src={tile.src}
-            alt={tile.caption ?? `Drawing by ${tile.author}`}
-            width={1024}
-            height={1024}
+            src={tile.imageUrl}
+            alt={describeTile(tile)}
+            width={512}
+            height={512}
+            // Tiles are already small WebP files served from the storage CDN.
             unoptimized
             className="aspect-square w-full object-cover"
           />
-          <TileCaption tile={tile} large />
+          <span className="px-1">
+            <TileCaption tile={tile} large />
+          </span>
         </div>
-        <div className="lightbox-caption flex w-full max-w-[min(30rem,56dvh)] justify-end">
+        <div className="close-up-controls flex w-full max-w-[min(30rem,56dvh)] justify-end">
           <button
             type="button"
             onClick={close}
             aria-label="Close"
             autoFocus
-            className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-full bg-white/15 text-white ring-1 ring-white/35 transition-colors duration-150 ease-out outline-none hover:bg-white/25 focus-visible:ring-3 focus-visible:ring-[#6badfa]"
+            className="focus-visible:ring-highlight grid size-11 shrink-0 cursor-pointer place-items-center rounded-full bg-white/15 text-white ring-1 ring-white/35 transition-colors duration-150 ease-out outline-none hover:bg-white/25 focus-visible:ring-3"
           >
             <XIcon weight="bold" className="size-5" />
           </button>
@@ -151,26 +154,3 @@ export function Lightbox({
     </dialog>
   );
 }
-
-/**
- * The dim behind the drawing, and the caption coming in after it. The
- * backdrop fades out with the drawing on close.
- */
-export const LIGHTBOX_CSS = `
-.lightbox::backdrop {
-  background: rgb(15 27 45 / 0.78);
-  transition: opacity 280ms cubic-bezier(0.32, 0.72, 0, 1);
-}
-.lightbox[data-closing]::backdrop { opacity: 0; }
-.lightbox[data-closing] .lightbox-caption { opacity: 0; transition: opacity 120ms ease-out; }
-@keyframes lightbox-dim { from { opacity: 0; } }
-@keyframes lightbox-caption {
-  from { opacity: 0; translate: 0 8px; filter: blur(2px); }
-}
-@media (prefers-reduced-motion: no-preference) {
-  .lightbox[open]::backdrop { animation: lightbox-dim 320ms cubic-bezier(0.23, 1, 0.32, 1); }
-  .lightbox-caption {
-    animation: lightbox-caption 320ms cubic-bezier(0.23, 1, 0.32, 1) 180ms both;
-  }
-}
-`;

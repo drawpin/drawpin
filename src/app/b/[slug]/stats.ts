@@ -48,6 +48,14 @@ export function boardStatsSummary(stats: BoardStats): string | null {
   return [
     plural(stats.people, "artist", "artists"),
     plural(stats.totalDrawings, "drawing", "drawings"),
-    `${stats.weekDrawings.toLocaleString()} this week`,
   ].join(" · ");
+}
+
+/**
+ * The note above a board's name saying how much is new this week, or `null`
+ * when nothing is, so a quiet week isn't announced.
+ */
+export function newThisWeek(stats: BoardStats): string | null {
+  if (stats.weekDrawings === 0) return null;
+  return `${stats.weekDrawings.toLocaleString()} new this week!`;
 }

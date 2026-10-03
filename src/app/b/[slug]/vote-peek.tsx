@@ -1,22 +1,24 @@
 import Image from "next/image";
 import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
+import { ArrowRightIcon } from "@phosphor-icons/react/ssr";
+import { pinStyle } from "@/components/pin";
 import type { WeekPeek } from "./data";
 
 /** How many of last week's drawings the card fans out; the rest are "+N". */
 export const PEEK_COUNT = 5;
 
 /** A slight lean for each fanned drawing, like a hand of cards. */
-const LEANS = ["-6deg", "3deg", "-2deg", "5deg", "-4deg"];
+const LEANS = [-4, 2.8, 1.6, -2.4, 4];
 
 /**
- * The way into voting while last week is up for a vote: its drawings fanned
- * out, how many votes are left, and when voting closes. Showing what you'd
- * vote on is the invitation (chosen from prototypes on 2026-09-28).
+ * The way into voting while last week is up for a vote: a card pinned up at
+ * the top of the board, its drawings fanned out, with how many votes are
+ * left and when voting closes. Showing what you'd vote on is the invitation
+ * (2026-09-28); the pinned, inked look is from the UI pass (2026-10-02).
  *
- * Seen once a visit, so its motion is small: the drawings fade up one after
- * another, and under a mouse they straighten as if being picked up. Both are
- * skipped for anyone who asks for reduced motion.
+ * It stays awake (globals.css, `vote-awake`): every few seconds the drawings
+ * hop one after another, like being shuffled, and the arrow nudges. Under a
+ * mouse the card lifts; pressed, it sinks onto its shadow.
  */
 export function VotePeek({
   href,
@@ -35,49 +37,45 @@ export function VotePeek({
   return (
     <Link
       href={href}
-      className="group shadow-lift focus-visible:ring-highlight flex flex-col gap-3 rounded-2xl border p-3.5 outline-none focus-visible:ring-3"
+      style={pinStyle("#004aad", 100)}
+      className="pinned pin-pop vote-awake motion-safe:animate-fade-up border-foreground focus-visible:ring-highlight relative flex flex-col gap-3 rounded-xl border-2 bg-white p-4 pt-5 shadow-[5px_5px_0_var(--primary)] transition-[translate,box-shadow] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] outline-none hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[7px_7px_0_var(--primary)] focus-visible:ring-3 active:translate-x-1 active:translate-y-1 active:shadow-[1px_1px_0_var(--primary)] active:duration-75 motion-reduce:transition-none"
     >
-      <span className="flex pl-2" aria-hidden>
+      <span className="flex gap-1.5" aria-hidden>
         {peek.imageUrls.map((url, index) => (
-          <span
+          <Image
             key={url}
-            className="motion-safe:animate-fade-up -ml-2"
-            style={{ animationDelay: `${index * 40}ms` }}
-          >
-            <Image
-              src={url}
-              alt=""
-              width={48}
-              height={48}
-              // Already small WebP files from the storage CDN, like the feed.
-              unoptimized
-              style={
-                { "--lean": LEANS[index % LEANS.length] } as React.CSSProperties
-              }
-              className="size-12 rotate-(--lean) rounded-[10px] border-2 border-white bg-white object-cover shadow-[0_2px_8px_rgb(0_74_173/0.14)] transition-transform duration-200 ease-out group-hover:-translate-y-0.5 group-hover:rotate-0 motion-reduce:transition-none"
-            />
-          </span>
+            src={url}
+            alt=""
+            width={48}
+            height={48}
+            // Already small WebP files from the storage CDN, like the feed.
+            unoptimized
+            className="peek border-foreground/20 size-11 rounded-md border bg-white object-cover"
+            style={{
+              transform: `rotate(${LEANS[index % LEANS.length]}deg)`,
+              animationDelay: `${1.6 + index * 0.12}s`,
+            }}
+          />
         ))}
         {more > 0 && (
-          <span
-            className="motion-safe:animate-fade-up bg-secondary text-primary -ml-2 grid size-12 place-items-center rounded-[10px] border-2 border-white text-sm font-bold"
-            style={{ animationDelay: `${peek.imageUrls.length * 40}ms` }}
-          >
+          <span className="bg-secondary text-primary grid size-11 place-items-center rounded-md text-sm font-bold">
             +{more}
           </span>
         )}
       </span>
-      <span className="flex items-center justify-between gap-3">
+      <span className="flex items-end justify-between gap-3">
         <span className="min-w-0">
-          <span className="block leading-snug font-bold">
-            Last week&apos;s drawings are up for a vote
+          <span className="block text-xl leading-tight font-black">
+            Vote for last week&apos;s best
           </span>
-          <span className="text-muted-foreground block text-sm">
+          <span className="text-muted-foreground block text-sm font-semibold">
             {votesLeft} {votesLeft === 1 ? "vote" : "votes"} left, closes{" "}
             {closesOn}
           </span>
         </span>
-        <span className={buttonVariants({ size: "sm" })}>Vote</span>
+        <span className="arrow bg-primary text-primary-foreground grid size-11 shrink-0 place-items-center rounded-full">
+          <ArrowRightIcon weight="bold" className="size-5" />
+        </span>
       </span>
     </Link>
   );
