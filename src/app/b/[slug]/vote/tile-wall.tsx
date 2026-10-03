@@ -3,12 +3,9 @@ import type { Tile } from "../tiles";
 import { DrawingsHeading, DrawingsList } from "./drawings-list";
 
 /**
- * Last week's board, to look at rather than vote on: shown to anyone not
- * signed in, and to anyone out of votes.
- *
- * Hiding the drawings behind the sign-in prompt left people staring at a wall
- * and asked them to take our word for it that there was something worth
- * voting on.
+ * Last week's board, to look at rather than vote on: shown to anyone who
+ * has used all their votes this week. (Someone signed out gets
+ * `SignInToVote`, where tapping a drawing asks them to sign in.)
  */
 export function TileWall({ tiles }: { tiles: Tile[] }) {
   return (

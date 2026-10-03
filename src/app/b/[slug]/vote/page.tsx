@@ -15,7 +15,7 @@ import { VOTES_PER_WEEK } from "./cast-votes";
 import { type Leader, Podium } from "./podium";
 import { rankPodium } from "./rank-podium";
 import { SupabaseVoteStore } from "./supabase-vote-store";
-import { TileWall } from "./tile-wall";
+import { SignInToVote } from "./sign-in-to-vote";
 import { VoteGrid } from "./vote-grid";
 
 export async function generateMetadata({
@@ -66,13 +66,19 @@ export default async function VotePage({
 
   const header = (
     <>
-      {note && (
-        <p
-          className={`${hand.className} bg-winner text-foreground w-fit -rotate-2 rounded-sm px-2.5 py-0.5 text-xl leading-tight font-bold`}
-        >
-          {note}
-        </p>
-      )}
+      {/* The note, and for anyone signed out, the way in, in the corner. */}
+      <div className="flex min-h-10 items-center justify-between gap-3">
+        {note && (
+          <p
+            className={`${hand.className} bg-winner text-foreground w-fit -rotate-2 rounded-sm px-2.5 py-0.5 text-xl leading-tight font-bold`}
+          >
+            {note}
+          </p>
+        )}
+        {week && !customer && (
+          <GoogleSignIn next={`/b/${slug}/vote`} label="Sign in" size="sm" />
+        )}
+      </div>
       <div className="flex flex-col gap-1">
         <h1 className="text-4xl leading-[1.02] font-black tracking-tight">
           Vote for last week&apos;s best
@@ -140,20 +146,8 @@ export default async function VotePage({
               turnstileSiteKey={serverEnv().NEXT_PUBLIC_TURNSTILE_SITE_KEY}
             />
           ) : (
-            <>
-              {/* One quiet line: the drawings are the argument for signing
-                  in, so they get the space. */}
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-muted-foreground min-w-0 flex-1 text-sm">
-                  <span className="text-foreground font-semibold">
-                    Want a say?
-                  </span>{" "}
-                  Sign in to vote. Three votes per week!
-                </p>
-                <GoogleSignIn next={`/b/${slug}/vote`} size="sm" />
-              </div>
-              <TileWall tiles={page.tiles} />
-            </>
+            // Signed out: tapping a drawing to vote asks them to sign in.
+            <SignInToVote tiles={page.tiles} next={`/b/${slug}/vote`} />
           )}
         </>
       )}

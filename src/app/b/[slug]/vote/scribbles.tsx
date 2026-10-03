@@ -8,24 +8,29 @@
  */
 
 /** Pixels between passes, and the pen's line width: tight, with white between. */
-const PASS = 4.5;
-const STROKE = 2.6;
+const PASS = 3.4;
+const STROKE = 2;
 /** How far each pass runs past the step's edges, so the turns don't show. */
 const OVERSHOOT = 34;
+/** How much each pass drops across the step, so it looks drawn, not ruled. */
+const TILT = 1.4;
 
 /**
- * The zig-zag for a step `width` × `height` px: each pass runs past both
- * edges (the step clips it) and wobbles a little, like a hand going fast.
+ * The zig-zag for a step `width` × `height` px. Every pass leans the same
+ * way and they're evenly spaced, so the hatching is even from edge to edge;
+ * the turns happen outside the step (it clips them), and the first and last
+ * passes sit beyond its top and bottom, so no edge is left bare.
  */
 function zigzag(width: number, height: number): string {
+  const left = -OVERSHOOT;
+  const right = width + OVERSHOOT;
   const points: string[] = [];
-  for (let y = 2, pass = 0; y < height + PASS; y += PASS, pass++) {
+  for (let y = -PASS, pass = 0; y < height + PASS * 2; y += PASS, pass++) {
     // A steady wobble, so a re-render doesn't redraw a different scribble.
-    const wobble = (((pass * 7) % 5) - 2) * 0.6;
-    const from = pass % 2 ? width + OVERSHOOT : -OVERSHOOT;
-    const to = pass % 2 ? -OVERSHOOT : width + OVERSHOOT;
-    if (pass === 0) points.push(`M${from} ${y}`);
-    points.push(`L${to} ${y + PASS * 0.6 + wobble}`);
+    const wobble = (((pass * 7) % 5) - 2) * 0.3;
+    const [from, to] = pass % 2 ? [right, left] : [left, right];
+    points.push(`${pass === 0 ? "M" : "L"}${from} ${y + wobble}`);
+    points.push(`L${to} ${y + TILT + wobble}`);
   }
   return points.join(" ");
 }
