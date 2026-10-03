@@ -7,17 +7,14 @@ import {
   useRef,
   useState,
 } from "react";
-import { Shelves } from "./shelves";
-import { Spread } from "./spread";
-import { WashingLine } from "./washing-line";
+import { Pinned } from "./pinned";
 
-// Round nine (2026-10-02): the board idea dropped. Three new directions,
-// each keeping what's agreed (see `shared.tsx`), differing in how the
-// drawings are laid out.
+// Round ten (2026-10-02): round eight's layout without the board; what's
+// compared is the background behind the drawings.
 const VARIANTS = [
-  { name: "Washing line", Component: WashingLine },
-  { name: "Spread", Component: Spread },
-  { name: "Shelves", Component: Shelves },
+  { name: "Plain", Component: () => <Pinned backdrop="plain" /> },
+  { name: "Tint", Component: () => <Pinned backdrop="tint" /> },
+  { name: "Graph paper", Component: () => <Pinned backdrop="graph" /> },
 ];
 
 /** The picker's own look, verbatim from the prototype skill: harness chrome. */

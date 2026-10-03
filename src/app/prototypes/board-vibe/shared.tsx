@@ -17,8 +17,7 @@ import { PIN_CSS, pinStyle, TACK_COLORS } from "./pin";
 /**
  * What every direction keeps, as agreed by 2026-10-02: the palette, the blue
  * header with Draw and the Hall of Fame, the vote card and its motion, the
- * flat ink pins, and drawings that lift on hover and open big on a tap. The
- * directions differ in how the drawings themselves are laid out.
+ * flat ink pins, and drawings that lift on hover and open big on a tap.
  */
 
 export const INKED = "border-2 border-[#0f1b2d]";
