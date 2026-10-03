@@ -59,14 +59,16 @@ export function ScribbleFill({
   duration: number;
   className: string;
 }) {
-  // The step's width varies with the screen; the scribble is drawn for a
-  // typical width and stretched to fit, which only widens it a little.
-  const width = 120;
+  // The step's width varies with the screen. Rather than stretch the
+  // scribble to fit, which skews the line's measured length so the draw-on
+  // stops short on wide screens, it's drawn wider than any step and the step
+  // crops it, unscaled ("slice").
+  const width = 240;
   return (
     <svg
       aria-hidden
       viewBox={`0 0 ${width} ${height}`}
-      preserveAspectRatio="none"
+      preserveAspectRatio="xMidYMid slice"
       className={`pointer-events-none absolute inset-0 size-full ${className}`}
     >
       <path
@@ -82,8 +84,6 @@ export function ScribbleFill({
         fill="none"
         stroke="currentColor"
         strokeWidth={STROKE}
-        // The step stretches the scribble sideways; keep the pen's line even.
-        vectorEffect="non-scaling-stroke"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
