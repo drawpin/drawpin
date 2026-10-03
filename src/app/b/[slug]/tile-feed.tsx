@@ -119,10 +119,7 @@ export function TileFeed({
 
   if (visibleTiles.length === 0) {
     return (
-      <p
-        style={pinStyle("#ffca39")}
-        className="pinned pin-pop text-muted-foreground relative mt-4 -rotate-1 bg-white px-4 py-10 text-center shadow-[0_2px_3px_rgb(15_27_45/0.14),0_10px_20px_rgb(0_74_173/0.14)]"
-      >
+      <p className="text-muted-foreground -rotate-1 bg-white px-4 py-10 text-center shadow-[0_2px_3px_rgb(15_27_45/0.14),0_10px_20px_rgb(0_74_173/0.14)]">
         Nobody has drawn anything this week. Be the first.
       </p>
     );
@@ -130,10 +127,9 @@ export function TileFeed({
 
   return (
     <section className="flex flex-col gap-4">
-      {/* The heading is a strip of paper pinned up too. */}
+      {/* A strip of yellow paper for a heading. Only drawings are pinned. */}
       <h2
-        style={pinStyle("#004aad", 120)}
-        className={`${hand.className} pinned pin-pop bg-winner text-foreground relative mt-6 w-fit -rotate-2 px-4 pt-1 pb-0.5 text-3xl font-bold shadow-[0_2px_3px_rgb(15_27_45/0.18),0_6px_12px_rgb(15_27_45/0.14)]`}
+        className={`${hand.className} bg-winner text-foreground w-fit -rotate-2 px-4 pt-1 pb-0.5 text-3xl font-bold shadow-[0_2px_3px_rgb(15_27_45/0.18),0_6px_12px_rgb(15_27_45/0.14)]`}
       >
         Pinned up this week
       </h2>

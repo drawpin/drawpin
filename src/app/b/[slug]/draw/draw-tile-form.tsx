@@ -296,9 +296,11 @@ export function DrawTileForm({
     };
   }, []);
   const [localError, setLocalError] = useState<string | null>(null);
-  // Tapping Post with nothing drawn: a nudge, not an error. It goes as soon
-  // as there is something on the tile.
+  // Tapping Post with nothing drawn: a nudge, not an error. It goes for good
+  // as soon as there is something on the tile: erasing back to blank doesn't
+  // bring it back, only another try at posting a blank tile does.
   const [nudgeBlank, setNudgeBlank] = useState(false);
+  if (nudgeBlank && ops.length > 0) setNudgeBlank(false);
   // Set when a drawing kept across sign-in has just been put back.
   const [restored, setRestored] = useState(false);
   const canvasRef = useRef<DrawingCanvasHandle>(null);
@@ -751,7 +753,7 @@ export function DrawTileForm({
               </p>
             )}
 
-            {nudgeBlank && ops.length === 0 && (
+            {nudgeBlank && (
               <p
                 role="status"
                 className="bg-secondary text-secondary-foreground flex items-center gap-2 rounded-2xl px-4 py-3 text-sm"

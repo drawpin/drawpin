@@ -1,7 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRightIcon } from "@phosphor-icons/react/ssr";
-import { pinStyle } from "@/components/pin";
 import type { WeekPeek } from "./data";
 
 /** How many of last week's drawings the card fans out; the rest are "+N". */
@@ -11,10 +10,11 @@ export const PEEK_COUNT = 5;
 const LEANS = [-4, 2.8, 1.6, -2.4, 4];
 
 /**
- * The way into voting while last week is up for a vote: a card pinned up at
- * the top of the board, its drawings fanned out, with how many votes are
+ * The way into voting while last week is up for a vote: a card at the top
+ * of the board, its drawings fanned out, with how many votes are
  * left and when voting closes. Showing what you'd vote on is the invitation
- * (2026-09-28); the pinned, inked look is from the UI pass (2026-10-02).
+ * (2026-09-28); the inked look is from the UI pass (2026-10-02). Only
+ * drawings are pinned up, so the card isn't.
  *
  * It stays awake (globals.css, `vote-awake`): every few seconds the drawings
  * hop one after another, like being shuffled, and the arrow nudges. Under a
@@ -37,8 +37,7 @@ export function VotePeek({
   return (
     <Link
       href={href}
-      style={pinStyle("#004aad", 100)}
-      className="pinned pin-pop vote-awake motion-safe:animate-fade-up border-foreground focus-visible:ring-highlight relative flex flex-col gap-3 rounded-xl border-2 bg-white p-4 pt-5 shadow-[5px_5px_0_var(--primary)] transition-[translate,box-shadow] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] outline-none hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[7px_7px_0_var(--primary)] focus-visible:ring-3 active:translate-x-1 active:translate-y-1 active:shadow-[1px_1px_0_var(--primary)] active:duration-75 motion-reduce:transition-none"
+      className="vote-awake motion-safe:animate-fade-up border-foreground focus-visible:ring-highlight relative flex flex-col gap-3 rounded-xl border-2 bg-white p-4 shadow-[5px_5px_0_var(--primary)] transition-[translate,box-shadow] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] outline-none hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[7px_7px_0_var(--primary)] focus-visible:ring-3 active:translate-x-1 active:translate-y-1 active:shadow-[1px_1px_0_var(--primary)] active:duration-75 motion-reduce:transition-none"
     >
       <span className="flex gap-1.5" aria-hidden>
         {peek.imageUrls.map((url, index) => (
