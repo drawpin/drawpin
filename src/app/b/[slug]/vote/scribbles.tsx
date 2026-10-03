@@ -7,8 +7,10 @@
  */
 
 /** Pixels between passes; the stroke is wider, so passes overlap a little. */
-const PASS = 9;
+const PASS = 7;
 const STROKE = 13;
+/** How far each pass runs past the step's edges, so the turns don't show. */
+const OVERSHOOT = 34;
 
 /**
  * The zig-zag for a step `width` × `height` px: each pass runs past both
@@ -19,8 +21,8 @@ function zigzag(width: number, height: number): string {
   for (let y = 2, pass = 0; y < height + PASS; y += PASS, pass++) {
     // A steady wobble, so a re-render doesn't redraw a different scribble.
     const wobble = ((pass * 7) % 5) - 2;
-    const from = pass % 2 ? width + 8 : -8;
-    const to = pass % 2 ? -8 : width + 8;
+    const from = pass % 2 ? width + OVERSHOOT : -OVERSHOOT;
+    const to = pass % 2 ? -OVERSHOOT : width + OVERSHOOT;
     if (pass === 0) points.push(`M${from} ${y}`);
     points.push(`L${to} ${y + PASS * 0.6 + wobble}`);
   }
