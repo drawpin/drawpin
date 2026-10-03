@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { getCustomer } from "@/lib/customer";
 import { readDeviceId } from "@/lib/device";
 import { serverEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { localDayFor } from "@/lib/venue-time";
-import { getBoard } from "../data";
+import { getBoard, requireBoard } from "../data";
 import { DrawTileForm } from "./draw-tile-form";
 import { BLOCKED_ATTEMPT_LIMIT } from "./post-tile";
 import { SignInFirst } from "./sign-in-first";
@@ -62,8 +61,7 @@ export default async function DrawPage({
   await connection();
 
   const { slug } = await params;
-  const board = await getBoard(slug);
-  if (!board) notFound();
+  const board = await requireBoard(slug, "/draw");
 
   const backLink = (
     <Link href={`/b/${slug}`} className="text-sm underline underline-offset-4">

@@ -47,3 +47,15 @@ export function createBoardSlug(
 
   return `${slugifyVenueName(name)}-${suffix}`;
 }
+
+/**
+ * Whether a board's slug already reads as its name, ignoring the random
+ * suffix: after a rename it doesn't, and that's when changing the link is
+ * worth offering (ADR-008).
+ *
+ * @example slugMatchesName("blue-bottle-k7m2", "Blue Bottle") // true
+ */
+export function slugMatchesName(slug: string, name: string): boolean {
+  const base = slug.replace(new RegExp(`-[a-z0-9]{${SUFFIX_LENGTH}}$`), "");
+  return base === slugifyVenueName(name);
+}

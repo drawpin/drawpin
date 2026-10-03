@@ -3,10 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { boardUrl } from "@/lib/board";
 import { serverEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { moderateVenueName, venueNameSchema } from "@/lib/venue-name";
+import { changeBoardLink } from "./change-board-link";
 import { removeTile } from "./remove-tile";
 import { renameVenue } from "./rename-venue";
 import {
@@ -96,6 +98,42 @@ export async function renameBoardAction(
   }
 
   return { status: "renamed", name };
+}
+
+export type ChangeLinkState =
+  | { status: "idle" }
+  | { status: "error"; message: string }
+  | { status: "changed"; url: string };
+
+/**
+ * Gives the owner's board a new link built from its current name. The old
+ * link, and every QR code printed with it, keeps working: it redirects to the
+ * new one (ADR-008).
+ */
+export async function changeBoardLinkAction(): Promise<ChangeLinkState> {
+  const venue = await requireOwnedVenue();
+
+  let slug: string;
+  try {
+    slug = await changeBoardLink(venue.name, async (next) => {
+      const { error } = await createAdminClient().rpc("change_venue_slug", {
+        p_venue_id: venue.id,
+        p_new_slug: next,
+      });
+      return { error };
+    });
+  } catch (error) {
+    console.error(error);
+    return {
+      status: "error",
+      message: "We couldn't change your board link. Try again in a minute.",
+    };
+  }
+
+  // Kept for the same reason as the rename log: what a board used to be.
+  console.info(`Board link changed: ${venue.id} ${venue.slug} -> ${slug}`);
+  revalidatePath("/admin");
+  return { status: "changed", url: boardUrl(serverEnv().SITE_URL, slug) };
 }
 
 const removeSchema = z.object({ tileId: z.guid() });

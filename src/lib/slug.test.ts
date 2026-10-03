@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createBoardSlug, slugifyVenueName } from "./slug";
+import { createBoardSlug, slugifyVenueName, slugMatchesName } from "./slug";
 
 // Mirrors the venues.slug check constraint in the initial migration.
 const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
@@ -44,5 +44,22 @@ describe("createBoardSlug", () => {
     for (const name of ["Blue Bottle", "Café Olé", "☕", "a".repeat(120)]) {
       expect(createBoardSlug(name)).toMatch(SLUG_PATTERN);
     }
+  });
+});
+
+describe("slugMatchesName", () => {
+  it("matches a slug made from the same name", () => {
+    expect(slugMatchesName("blue-bottle-k7m2", "Blue Bottle")).toBe(true);
+    expect(slugMatchesName(createBoardSlug("Café Olé"), "Café Olé")).toBe(true);
+  });
+
+  it("doesn't match once the board is renamed", () => {
+    expect(slugMatchesName("blue-bottle-k7m2", "Maple Street Café")).toBe(
+      false,
+    );
+  });
+
+  it("doesn't mistake part of the name for the suffix", () => {
+    expect(slugMatchesName("blue-bottle-k7m2", "Blue")).toBe(false);
   });
 });

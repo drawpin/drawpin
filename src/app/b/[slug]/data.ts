@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { notFound, permanentRedirect } from "next/navigation";
 import { cache } from "react";
+import { findMovedSlug } from "@/lib/former-slugs";
 import { createPublicClient } from "@/lib/supabase/public";
 import { type BoardStats, type BoardStatsRow, toBoardStats } from "./stats";
 import {
@@ -18,35 +20,57 @@ const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 export type Board = {
   id: string;
   name: string;
+  /** The board's current slug, which differs from the one asked for when that was a former one. */
+  slug: string;
   timezone: string;
   isPaused: boolean;
 };
 
 /**
- * Looks up a venue's board by its public slug. Cached per request so the page
- * and its metadata share one query.
+ * Looks up a venue's board by its public slug, or by a slug it used to have
+ * (ADR-008). Cached per request so the page and its metadata share one query.
  *
- * @returns The board, or `null` if no venue has this slug.
+ * @returns The board, or `null` if no venue has or had this slug.
  */
 export const getBoard = cache(async (slug: string): Promise<Board | null> => {
   if (!SLUG_PATTERN.test(slug)) return null;
 
-  const { data, error } = await createPublicClient()
+  const client = createPublicClient();
+  const { data, error } = await client
     .from("venues")
-    .select("id, name, timezone, is_paused")
+    .select("id, name, slug, timezone, is_paused")
     .eq("slug", slug)
     .maybeSingle();
 
   if (error) throw new Error(`Could not load board: ${error.message}`);
-  if (!data) return null;
+  if (!data) {
+    const moved = await findMovedSlug(client, slug);
+    return moved ? getBoard(moved) : null;
+  }
 
   return {
     id: data.id,
     name: data.name,
+    slug: data.slug,
     timezone: data.timezone,
     isPaused: data.is_paused,
   };
 });
+
+/**
+ * The board a page under `/b/[slug]` is for. Not found when there's no such
+ * board, and a permanent redirect to the same page at the board's current
+ * slug when `slug` is one it used to have, so old QR codes and shared links
+ * keep working after the owner changes the link (ADR-008).
+ *
+ * @param page - The path after the slug, e.g. `"/vote"`; empty for the board.
+ */
+export async function requireBoard(slug: string, page = ""): Promise<Board> {
+  const board = await getBoard(slug);
+  if (!board) notFound();
+  if (board.slug !== slug) permanentRedirect(`/b/${board.slug}${page}`);
+  return board;
+}
 
 /**
  * Reads a board's participation stats through the `board_stats` function.

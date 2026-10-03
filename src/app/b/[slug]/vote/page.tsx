@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { GoogleSignIn } from "@/components/google-sign-in";
 import { getCustomer } from "@/lib/customer";
 import { serverEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getBoard, getVotingWeek, listLiveTiles } from "../data";
+import { getBoard, requireBoard, getVotingWeek, listLiveTiles } from "../data";
 import { VOTES_PER_WEEK } from "./cast-votes";
 import { SupabaseVoteStore } from "./supabase-vote-store";
 import { TileWall } from "./tile-wall";
@@ -29,8 +28,7 @@ export default async function VotePage({
   await connection();
 
   const { slug } = await params;
-  const board = await getBoard(slug);
-  if (!board) notFound();
+  const board = await requireBoard(slug, "/vote");
 
   const week = await getVotingWeek(board.id);
   const admin = createAdminClient();

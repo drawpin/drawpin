@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getBoard } from "../data";
+import { getBoard, requireBoard } from "../data";
 import { listSuperWinners, listWinners } from "./data";
 
 export async function generateMetadata({
@@ -41,8 +40,7 @@ export default async function HallOfFamePage({
   await connection();
 
   const { slug } = await params;
-  const board = await getBoard(slug);
-  if (!board) notFound();
+  const board = await requireBoard(slug, "/hall-of-fame");
 
   const admin = createAdminClient();
   const winners = await listWinners(admin, board.id);

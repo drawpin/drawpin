@@ -1,4 +1,4 @@
-# DrawPin — Product Plan (v9, locked)
+# DrawPin — Product Plan (v10, locked)
 
 > Source of truth for v1 scope. Changes require an ADR in `docs/adr/` and a version bump here.
 
@@ -71,9 +71,12 @@ Account + signed device ID cookie + browser fingerprint (hashed) + IP rate limit
 - Owners sign in by email magic link (Supabase Auth), single-use, short expiry, rate-limited, Turnstile on login. Customers sign in with Google; the two are separate roles on one auth system.
 - **One board per owner.**
 - Setup: email → link → venue name + time zone → done.
-- One screen: (1) QR + today's code (download/print), (2) Pause board toggle, (3) Remove a tile, (4) reported tiles, surfaced first, (5) rename the board.
-- Renaming changes the display name only. The slug is generated once at setup, the QR encodes `/b/<slug>`, and the daily code is keyed by venue and time window — so a rename reprints nothing. Changing the slug is not in v1: it would kill every printed code, and needs a table of former slugs to redirect from.
-- Not included: analytics, branding, multiple staff logins, any other settings. Blocking an account from a board is the natural next step once reporting is real, but it isn't in v1.
+- One screen: (1) QR + today's code (download/print), (2) Pause board toggle, (3) Remove a tile, (4) reported tiles, surfaced first, (5) rename the board, (6) change the board link, (7) change the time zone, (8) block an account (ADR-008).
+- Renaming changes the display name only. The slug is generated once at setup, the QR encodes `/b/<slug>`, and the daily code is keyed by venue and time window — so a rename reprints nothing.
+- Changing the link builds a new slug from the current name, offered once a rename has left the old one behind. Every former slug redirects to the board for good and is never given to another board, so printed codes keep working.
+- Changing the time zone takes effect from the next week; the current week keeps its boundaries.
+- Blocking an account stops it posting, voting and reporting on that board, and removes its live tiles there. The owner can unblock.
+- Not included: analytics, branding, multiple staff logins, any other settings.
 
 ### Data retention
 - Weekly winners and monthly super winners (the Hall of Fame) are kept forever.
@@ -107,7 +110,7 @@ treats "Sexy" — is a reasonable ask once there's real feedback across more
 than one board. Not v1.
 
 Accounts open a few more: a customer's saved drawings and history (#44),
-blocking an account from a board, and more ways to sign in — Facebook, Apple,
+and more ways to sign in — Facebook, Apple,
 email codes, passkeys (#50). Google is the only provider in v1; anyone without
 one can still draw as a guest. None of these are v1.
 
@@ -147,6 +150,8 @@ v7 changes: the weekly Hall of Fame is a single winner (at least 1 vote) instead
 v8 changes: customer accounts added (ADR-004) — Google sign-in for customers, anonymous drawing stays but guest tiles can't be voted for or win, votes and the monthly final move from per device to per account, a signed-in post must pass both the account and the device daily limit, reporting a tile becomes possible and joins the owner screen, and accounts move from the back pocket into phase 3 so voting and winners are built on them once instead of twice.
 
 v9 changes: guests draw for fun only (ADR-007). Posting needs a Google sign-in, so every tile belongs to an account; guest tiles posted before v9 stay until the normal 30-day clean-up.
+
+v10 changes: the owner screen gains three settings (ADR-008): change the board link, with every former link redirecting; change the time zone from the next week; and block an account from the board, which also removes its tiles there.
 
 ## Diagrams
 

@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { GoogleSignIn } from "@/components/google-sign-in";
 import { getCustomer } from "@/lib/customer";
 import { serverEnv } from "@/lib/env";
 import { openFinal } from "@/lib/monthly-final";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getBoard } from "../data";
+import { getBoard, requireBoard } from "../data";
 import {
   ensureFinal,
   hasVotedInFinal,
@@ -43,8 +42,7 @@ export default async function FinalPage({
   await connection();
 
   const { slug } = await params;
-  const board = await getBoard(slug);
-  if (!board) notFound();
+  const board = await requireBoard(slug, "/final");
 
   const admin = createAdminClient();
   const weeks = await listWeekTimings(admin, board.id);
