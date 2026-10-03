@@ -28,8 +28,12 @@ function zigzag(width: number, height: number): string {
   const right = width + OVERSHOOT;
   const points: string[] = [];
   for (let y = -PASS, pass = 0; y < height + PASS * 2; y += PASS, pass++) {
-    const leftEnd = `${left} ${y}`;
-    const rightEnd = `${right} ${y + TILT}`;
+    // A hand's small unevenness, steady so a re-render draws the same thing,
+    // and too small (a fraction of the gap) for neighbouring lines to touch.
+    const jitter = (((pass * 13) % 5) - 2) * 0.12;
+    const tilt = TILT + (((pass * 7) % 3) - 1) * 0.25;
+    const leftEnd = `${left} ${y + jitter}`;
+    const rightEnd = `${right} ${y + jitter + tilt}`;
     const [from, to] = pass % 2 ? [rightEnd, leftEnd] : [leftEnd, rightEnd];
     points.push(`${pass === 0 ? "M" : "L"}${from}`, `L${to}`);
   }
