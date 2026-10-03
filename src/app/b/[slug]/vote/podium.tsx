@@ -77,7 +77,7 @@ export function Podium({ leaders }: { leaders: Leader[] }) {
       >
         Top 3 so far
       </h2>
-      <ol className="grid grid-cols-3 items-end gap-2 overflow-hidden pt-8">
+      <ol className="border-foreground grid grid-cols-3 items-end gap-2 overflow-hidden border-b-2 pt-8">
         {PLACES.map((place) => {
           const leader = leaders.find((entry) => entry.place === place);
           const step = STEPS[place];
@@ -141,7 +141,7 @@ export function Podium({ leaders }: { leaders: Leader[] }) {
                   <span
                     aria-hidden
                     className="text-foreground absolute top-[31%] left-1/2 -translate-x-1/2 -translate-y-1/2 font-black tracking-tight"
-                    style={{ fontSize: Math.round(step.size * 0.22) }}
+                    style={{ fontSize: Math.round(step.size * 0.19) }}
                   >
                     {ordinal(place)}
                   </span>
