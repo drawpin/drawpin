@@ -21,6 +21,7 @@ import {
   listLiveTiles,
   peekAtWeek,
 } from "./data";
+import { BoardLayout, HEADER_BUTTON, INKED_BUTTON } from "./board-look";
 import { BoardTitle } from "./board-title";
 import { listWeekTimings } from "./final/data";
 import { VOTES_PER_WEEK } from "./vote/cast-votes";
@@ -95,10 +96,9 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
       : null;
 
   return (
-    // `data-board` tints the whole page, footer included (globals.css).
-    <div data-board className="flex flex-1 flex-col">
-      <header className="bg-primary text-primary-foreground border-foreground border-b-2">
-        <div className="mx-auto flex w-full max-w-lg flex-col gap-4 px-4 pt-8 pb-8">
+    <BoardLayout
+      header={
+        <>
           {stats ? (
             <BoardTitle
               name={board.name}
@@ -114,10 +114,7 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
           <div className="flex items-center justify-between gap-3">
             {/* A button, not small print: winners are what the board is
                 for. The trophy takes the yellow of winning. */}
-            <Link
-              href={`/b/${slug}/hall-of-fame`}
-              className="focus-visible:ring-highlight inline-flex h-12 items-center gap-2 rounded-xl bg-white/15 px-4 text-sm font-bold ring-1 ring-white/35 transition-colors duration-150 ease-out outline-none hover:bg-white/25 focus-visible:ring-3 motion-reduce:transition-none"
-            >
+            <Link href={`/b/${slug}/hall-of-fame`} className={HEADER_BUTTON}>
               <TrophyIcon weight="fill" className="text-winner size-5" />
               Hall of Fame
             </Link>
@@ -125,69 +122,64 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
               // Its pencil scribbles every few seconds (`draw-awake`).
               <Link
                 href={`/b/${slug}/draw`}
-                className="draw-awake border-foreground bg-winner text-foreground focus-visible:ring-highlight inline-flex h-12 items-center gap-2 rounded-xl border-2 px-5 font-extrabold shadow-[4px_4px_0_var(--foreground)] transition-[translate,box-shadow] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] outline-none hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_var(--foreground)] focus-visible:ring-3 active:translate-x-1 active:translate-y-1 active:shadow-none active:duration-75 motion-reduce:transition-none"
+                className={`draw-awake ${INKED_BUTTON}`}
               >
                 <PencilSimpleIcon weight="bold" className="size-5" />
                 Draw
               </Link>
             )}
           </div>
-        </div>
-      </header>
+        </>
+      }
+    >
+      {board.isPaused && (
+        <p role="status" className="bg-secondary rounded-2xl px-4 py-3 text-sm">
+          This board is paused. You can look around, but new posts are off for
+          now.
+        </p>
+      )}
 
-      <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-8 px-4 pt-10 pb-6">
-        {board.isPaused && (
-          <p
-            role="status"
-            className="bg-secondary rounded-2xl px-4 py-3 text-sm"
-          >
-            This board is paused. You can look around, but new posts are off for
-            now.
-          </p>
-        )}
-
-        {votingWeek && votePeek && votePeek.total > 0 && (
-          <VotePeek
-            href={`/b/${slug}/vote`}
-            peek={votePeek}
-            votesLeft={votesLeft}
-            closesOn={weekdayFor(
-              new Date(votingWeek.votingEndsAt),
-              board.timezone,
-            )}
-          />
-        )}
-
-        {monthlyFinal && (
-          // Yellow: it's about crowning a winner.
-          <Link
-            href={`/b/${slug}/final`}
-            className="bg-winner text-foreground border-foreground focus-visible:ring-highlight flex items-center justify-between gap-3 rounded-xl border-2 px-4 py-3.5 font-bold shadow-[4px_4px_0_var(--foreground)] outline-none focus-visible:ring-3"
-          >
-            <span className="flex items-center gap-2">
-              <CrownSimpleIcon className="size-5 shrink-0" weight="fill" />
-              Vote for this month&apos;s super winner
-            </span>
-            <ArrowRightIcon className="size-5 shrink-0" weight="bold" />
-          </Link>
-        )}
-
-        <TileFeed
-          // Tiles and the pagination cursor belong to one week; start fresh when
-          // the board moves on to a new one.
-          key={week?.id ?? "no-week"}
-          venueId={board.id}
-          weekId={week?.id ?? null}
-          canReport={customer !== null}
-          postingEndsAt={week?.postingEndsAt ?? null}
-          initialTiles={page?.tiles ?? []}
-          initialCursor={page?.nextCursor ?? null}
+      {votingWeek && votePeek && votePeek.total > 0 && (
+        <VotePeek
+          href={`/b/${slug}/vote`}
+          peek={votePeek}
+          votesLeft={votesLeft}
+          closesOn={weekdayFor(
+            new Date(votingWeek.votingEndsAt),
+            board.timezone,
+          )}
         />
+      )}
 
-        {/* Small print at the foot of the board: sign-in turns up on Draw and
+      {monthlyFinal && (
+        // Yellow: it's about crowning a winner.
+        <Link
+          href={`/b/${slug}/final`}
+          className="bg-winner text-foreground border-foreground focus-visible:ring-highlight flex items-center justify-between gap-3 rounded-xl border-2 px-4 py-3.5 font-bold shadow-[4px_4px_0_var(--foreground)] outline-none focus-visible:ring-3"
+        >
+          <span className="flex items-center gap-2">
+            <CrownSimpleIcon className="size-5 shrink-0" weight="fill" />
+            Vote for this month&apos;s super winner
+          </span>
+          <ArrowRightIcon className="size-5 shrink-0" weight="bold" />
+        </Link>
+      )}
+
+      <TileFeed
+        // Tiles and the pagination cursor belong to one week; start fresh when
+        // the board moves on to a new one.
+        key={week?.id ?? "no-week"}
+        venueId={board.id}
+        weekId={week?.id ?? null}
+        canReport={customer !== null}
+        postingEndsAt={week?.postingEndsAt ?? null}
+        initialTiles={page?.tiles ?? []}
+        initialCursor={page?.nextCursor ?? null}
+      />
+
+      {/* Small print at the foot of the board: sign-in turns up on Draw and
           Vote, where it's needed, so here it's only for whoever looks. */}
-        <AccountLine customer={customer} next={`/b/${slug}`} />
-      </main>
-    </div>
+      <AccountLine customer={customer} next={`/b/${slug}`} />
+    </BoardLayout>
   );
 }

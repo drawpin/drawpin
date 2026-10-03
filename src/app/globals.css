@@ -400,3 +400,39 @@ body:has([data-board]) {
     animation: podium-rise 560ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
   }
 }
+
+/* A drawing on the vote page: it leans on its pin like on the board, lifts
+   a little under a mouse, and when picked lifts, straightens and grows, so
+   a pick reads at a glance. A spring, since picking is a deliberate, rare
+   tap; off for reduced motion, where the check alone shows the pick. */
+.vote-paper {
+  transform: rotate(var(--lean, 0deg));
+}
+.vote-paper[aria-pressed="true"] {
+  transform: translateY(-6px) rotate(0deg) scale(1.03);
+  box-shadow:
+    0 0 0 3px var(--primary),
+    0 4px 6px rgb(0 74 173 / 0.12),
+    0 22px 36px rgb(0 74 173 / 0.2);
+}
+@keyframes vote-check {
+  from {
+    scale: 0.5;
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .vote-paper {
+    transition:
+      transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1),
+      box-shadow 200ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    button.vote-paper:not(:disabled):not([aria-pressed="true"]):hover {
+      transform: translateY(-4px) rotate(var(--lean, 0deg));
+    }
+  }
+  .vote-check {
+    animation: vote-check 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+}

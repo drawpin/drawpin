@@ -1,11 +1,15 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
+import { ArrowLeftIcon } from "@phosphor-icons/react/ssr";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { GoogleSignIn } from "@/components/google-sign-in";
 import { getCustomer } from "@/lib/customer";
 import { serverEnv } from "@/lib/env";
+import { hand } from "@/lib/fonts";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { weekdayFor } from "@/lib/venue-time";
+import { BoardLayout, HEADER_BUTTON, PAPER, YELLOW_STRIP } from "../board-look";
 import { getBoard, getLiveTiles, getVotingWeek, listLiveTiles } from "../data";
 import { VOTES_PER_WEEK } from "./cast-votes";
 import { type Leader, Podium } from "./podium";
@@ -24,6 +28,14 @@ export async function generateMetadata({
   };
 }
 
+/** The phone's status bar matches the blue header, as on the board. */
+export const viewport: Viewport = { themeColor: "#004aad" };
+
+/**
+ * Voting on last week's board, in the board's look (UI pass, 2026-10-03):
+ * the blue header, the live top-3 podium (ADR-008), and last week's drawings
+ * as pinned polaroids to pick from.
+ */
 export default async function VotePage({
   params,
 }: PageProps<"/b/[slug]/vote">) {
@@ -38,30 +50,54 @@ export default async function VotePage({
   const admin = createAdminClient();
   const customer = await getCustomer(admin);
 
-  const backLink = (
-    <Link href={`/b/${slug}`} className="text-sm underline underline-offset-4">
-      Back to the board
-    </Link>
-  );
+  const store = new SupabaseVoteStore(admin);
+  const votedTileIds =
+    week && customer ? await store.listVotedTileIds(week.id, customer.id) : [];
+  const votesLeft = VOTES_PER_WEEK - votedTileIds.length;
 
-  const heading = (
-    <div className="flex items-baseline justify-between gap-4">
-      <h1 className="text-2xl font-semibold tracking-tight">
-        Vote for last week&apos;s best
-      </h1>
-      {backLink}
-    </div>
+  // The note above the title: what this visitor can do this week.
+  const note = !week
+    ? null
+    : !customer
+      ? "Sign in to vote!"
+      : votesLeft === 0
+        ? "All your votes are in!"
+        : `${votesLeft} ${votesLeft === 1 ? "vote" : "votes"} left!`;
+
+  const header = (
+    <>
+      {note && (
+        <p
+          className={`${hand.className} bg-winner text-foreground w-fit -rotate-2 rounded-sm px-2.5 py-0.5 text-xl leading-tight font-bold`}
+        >
+          {note}
+        </p>
+      )}
+      <div className="flex flex-col gap-1">
+        <h1 className="text-4xl leading-[1.02] font-black tracking-tight">
+          Vote for last week&apos;s best
+        </h1>
+        <p className="text-sm text-white/80">
+          {board.name}
+          {week &&
+            ` · closes ${weekdayFor(new Date(week.votingEndsAt), board.timezone)}`}
+        </p>
+      </div>
+      <Link href={`/b/${slug}`} className={`${HEADER_BUTTON} w-fit`}>
+        <ArrowLeftIcon weight="bold" className="size-5" />
+        Back to the board
+      </Link>
+    </>
   );
 
   if (!week) {
     return (
-      <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 px-4 py-6">
-        {heading}
-        <p role="status" className="bg-muted rounded-lg px-3 py-2 text-sm">
+      <BoardLayout header={header}>
+        <p role="status" className={`${YELLOW_STRIP} text-2xl leading-tight`}>
           Voting isn&apos;t open on this board right now. Last week&apos;s
           drawings go up for voting every Monday at 4:00 AM.
         </p>
-      </main>
+      </BoardLayout>
     );
   }
 
@@ -71,11 +107,6 @@ export default async function VotePage({
     undefined,
     customer?.id ?? null,
   );
-
-  const store = new SupabaseVoteStore(admin);
-  const votedTileIds = customer
-    ? await store.listVotedTileIds(week.id, customer.id)
-    : [];
 
   // The live podium: counts are public while voting is open (ADR-008).
   const places = rankPodium(await store.listCastVotes(week.id));
@@ -92,38 +123,39 @@ export default async function VotePage({
   });
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 px-4 py-6">
-      {heading}
-      <p className="text-muted-foreground text-sm">{board.name}</p>
-
-      {page.tiles.length > 0 && <Podium leaders={leaders} />}
-
+    <BoardLayout header={header}>
       {page.tiles.length === 0 ? (
-        <p role="status" className="bg-muted rounded-lg px-3 py-2 text-sm">
+        <p role="status" className={`${YELLOW_STRIP} text-2xl leading-tight`}>
           Nobody drew anything last week, so there&apos;s nothing to vote on.
         </p>
-      ) : customer ? (
-        <VoteGrid
-          slug={slug}
-          tiles={page.tiles}
-          votesLeft={VOTES_PER_WEEK - votedTileIds.length}
-          votedTileIds={votedTileIds}
-          turnstileSiteKey={serverEnv().NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-        />
       ) : (
         <>
-          {/* The drawings come first: they are the argument for signing in. */}
-          <div className="flex flex-col gap-3 rounded-lg border px-3 py-3">
-            <p className="text-sm font-medium">Sign in to vote for one</p>
-            <p className="text-muted-foreground text-xs">
-              Three votes each per week, so it needs an account. It works from
-              any device once you&apos;re in.
-            </p>
-            <GoogleSignIn next={`/b/${slug}/vote`} size="sm" />
-          </div>
-          <TileWall tiles={page.tiles} />
+          <Podium leaders={leaders} />
+          {customer ? (
+            <VoteGrid
+              slug={slug}
+              tiles={page.tiles}
+              votesLeft={votesLeft}
+              votedTileIds={votedTileIds}
+              turnstileSiteKey={serverEnv().NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+            />
+          ) : (
+            <>
+              {/* The drawings come first in spirit: they are the argument
+                  for signing in, so the card stays short. */}
+              <div className={`flex flex-col gap-3 rounded-xl p-4 ${PAPER}`}>
+                <p className="font-bold">Sign in to vote for your favorites</p>
+                <p className="text-muted-foreground text-sm">
+                  Three votes each per week, so it needs an account. It works
+                  from any device once you&apos;re in.
+                </p>
+                <GoogleSignIn next={`/b/${slug}/vote`} size="sm" />
+              </div>
+              <TileWall tiles={page.tiles} />
+            </>
+          )}
         </>
       )}
-    </main>
+    </BoardLayout>
   );
 }
