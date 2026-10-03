@@ -294,7 +294,10 @@ original top seven with a single winner).
 | `vote_count` | `int` | votes the winner had when it was crowned |
 
 `on delete restrict` is what stops the 30-day purge from deleting a winning
-tile.
+tile. It's also why closing a board (ADR-009) goes through
+`close_venue(venue_id)`: it deletes the board's Hall of Fame rows first, then
+the owner row, which cascades to the venue and everything on it, in one
+transaction; `service_role` only.
 
 Rows are written by `finalize_week_winner(week_id)`, called the first time a
 closed week's result is needed rather than by a job (ADR-003). It takes an

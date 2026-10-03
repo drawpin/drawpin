@@ -12,6 +12,7 @@ import { moderateVenueName, venueNameSchema } from "@/lib/venue-name";
 import { formatBoundary, planTimeZoneChange } from "@/lib/venue-time";
 import { blockAuthor } from "./block-account";
 import { changeBoardLink } from "./change-board-link";
+import { closeBoard, type CloseBoardResult } from "./close-board";
 import { removeTile } from "./remove-tile";
 import { renameVenue } from "./rename-venue";
 import {
@@ -19,6 +20,7 @@ import {
   requireOwnedVenue,
   resolveReports,
   SupabaseBlockStore,
+  SupabaseCloseBoardStore,
   SupabaseOwnerTileStore,
 } from "./venue";
 
@@ -317,4 +319,46 @@ export async function unblockAccountAction(
 
   revalidatePath("/admin");
   return { status: "idle" };
+}
+
+export type CloseBoardState =
+  { status: "idle" } | { status: "error"; message: string };
+
+/**
+ * Closes the owner's board for good, then signs them out (ADR-009). The
+ * owner confirms by typing the board's name.
+ */
+export async function closeBoardAction(
+  _previous: CloseBoardState,
+  formData: FormData,
+): Promise<CloseBoardState> {
+  const venue = await requireOwnedVenue();
+  const typed = formData.get("name");
+
+  let result: CloseBoardResult;
+  try {
+    result = await closeBoard(venue, typeof typed === "string" ? typed : "", {
+      store: new SupabaseCloseBoardStore(createAdminClient()),
+      logError: console.error,
+    });
+  } catch (error) {
+    console.error("closeBoardAction failed", error);
+    return {
+      status: "error",
+      message: "We couldn't close your board. Nothing was lost; try again.",
+    };
+  }
+
+  if (result === "name-mismatch") {
+    return {
+      status: "error",
+      message: "Type your board's name exactly as it's shown to close it.",
+    };
+  }
+
+  console.info(`Board closed: ${venue.id} "${venue.name}" (${venue.slug})`);
+  // The login may already be gone; clearing this device's session is all
+  // that's left, and failing to is no reason to stop.
+  await (await createClient()).auth.signOut().catch(() => undefined);
+  redirect("/");
 }
