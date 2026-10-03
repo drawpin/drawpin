@@ -3,6 +3,12 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { cache } from "react";
 import { findMovedSlug } from "@/lib/former-slugs";
 import { createPublicClient } from "@/lib/supabase/public";
+import {
+  clockFromRow,
+  VENUE_CLOCK_COLUMNS,
+  type VenueClock,
+  zoneAt,
+} from "@/lib/venue-time";
 import { type BoardStats, type BoardStatsRow, toBoardStats } from "./stats";
 import {
   olderThanCursorFilter,
@@ -22,7 +28,10 @@ export type Board = {
   name: string;
   /** The board's current slug, which differs from the one asked for when that was a former one. */
   slug: string;
+  /** The time zone in force now. */
   timezone: string;
+  /** The zone, and any change to it the owner has scheduled (ADR-008). */
+  clock: VenueClock;
   isPaused: boolean;
 };
 
@@ -38,7 +47,7 @@ export const getBoard = cache(async (slug: string): Promise<Board | null> => {
   const client = createPublicClient();
   const { data, error } = await client
     .from("venues")
-    .select("id, name, slug, timezone, is_paused")
+    .select(`id, name, slug, is_paused, ${VENUE_CLOCK_COLUMNS}`)
     .eq("slug", slug)
     .maybeSingle();
 
@@ -48,11 +57,13 @@ export const getBoard = cache(async (slug: string): Promise<Board | null> => {
     return moved ? getBoard(moved) : null;
   }
 
+  const clock = clockFromRow(data);
   return {
     id: data.id,
     name: data.name,
     slug: data.slug,
-    timezone: data.timezone,
+    timezone: zoneAt(clock, new Date()),
+    clock,
     isPaused: data.is_paused,
   };
 });

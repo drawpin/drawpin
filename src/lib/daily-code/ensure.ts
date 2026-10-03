@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { dayBoundsFor } from "@/lib/venue-time";
+import { dayBoundsAt, type VenueClock } from "@/lib/venue-time";
 
 /**
  * Today's 8-digit join code for a venue, created on the first ask of the day
@@ -10,10 +10,10 @@ import { dayBoundsFor } from "@/lib/venue-time";
  */
 export async function ensureDailyCode(
   admin: SupabaseClient,
-  venue: { id: string; timezone: string },
+  venue: { id: string; clock: VenueClock },
   now: Date = new Date(),
 ): Promise<string> {
-  const { startsAt, endsAt } = dayBoundsFor(now, venue.timezone);
+  const { startsAt, endsAt } = dayBoundsAt(now, venue.clock);
 
   // A function rather than a read-then-insert: two first views of /admin
   // arriving together must end up with one code, not two.

@@ -1395,7 +1395,15 @@ describe("data API grants", () => {
   const columnRestrictedTables = [
     {
       table: "venues",
-      readable: ["id", "name", "slug", "timezone", "is_paused"],
+      readable: [
+        "id",
+        "name",
+        "slug",
+        "timezone",
+        "is_paused",
+        "next_timezone",
+        "timezone_changes_at",
+      ],
       hidden: ["owner_id"],
     },
     {
@@ -1794,6 +1802,98 @@ describe("former slugs", () => {
       await expect(changeSlug(venueId, `${slug}-hijacked`)).rejects.toThrow(
         /permission denied/i,
       );
+    } finally {
+      await db.exec("reset role");
+    }
+  });
+});
+
+describe("set_venue_clock", () => {
+  async function clockOf(venueId: string) {
+    const result = await db.query<{
+      timezone: string;
+      next_timezone: string | null;
+      timezone_changes_at: Date | null;
+    }>(
+      `select timezone, next_timezone, timezone_changes_at from venues where id = $1`,
+      [venueId],
+    );
+    return result.rows[0];
+  }
+
+  async function votingEndOf(weekId: string) {
+    const result = await db.query<{ voting_ends_at: Date }>(
+      `select voting_ends_at from weeks where id = $1`,
+      [weekId],
+    );
+    return result.rows[0].voting_ends_at.toISOString();
+  }
+
+  const scheduleTokyo = (venueId: string) =>
+    db.query(`select set_venue_clock($1, $2, $3, $4, $5, $6)`, [
+      venueId,
+      "America/Chicago",
+      "Asia/Tokyo",
+      "2026-09-14T09:00:00Z",
+      "2026-09-14T09:00:00Z",
+      "2026-09-20T19:00:00Z",
+    ]);
+
+  it("schedules a change and moves the voting end of the week taking posts", async () => {
+    const { venueId, weekId, nextWeekId } = await seedBoard();
+
+    await scheduleTokyo(venueId);
+
+    expect(await clockOf(venueId)).toMatchObject({
+      timezone: "America/Chicago",
+      next_timezone: "Asia/Tokyo",
+    });
+    expect(await votingEndOf(weekId)).toBe("2026-09-20T19:00:00.000Z");
+    // Any other week is left as it was.
+    expect(await votingEndOf(nextWeekId)).toBe("2026-09-28T09:00:00.000Z");
+  });
+
+  it("cancels a change and puts the week back", async () => {
+    const { venueId, weekId } = await seedBoard();
+    await scheduleTokyo(venueId);
+
+    await db.query(`select set_venue_clock($1, $2, null, null, $3, $4)`, [
+      venueId,
+      "America/Chicago",
+      "2026-09-14T09:00:00Z",
+      "2026-09-21T09:00:00Z",
+    ]);
+
+    expect(await clockOf(venueId)).toEqual({
+      timezone: "America/Chicago",
+      next_timezone: null,
+      timezone_changes_at: null,
+    });
+    expect(await votingEndOf(weekId)).toBe("2026-09-21T09:00:00.000Z");
+  });
+
+  it("refuses a change without its time", async () => {
+    const { venueId } = await seedBoard();
+
+    await expect(
+      db.query(`update venues set next_timezone = $2 where id = $1`, [
+        venueId,
+        "Asia/Tokyo",
+      ]),
+    ).rejects.toThrow(/venues_timezone_change_complete/);
+  });
+
+  it("is for the server alone", async () => {
+    const { venueId } = await seedBoard();
+
+    await db.exec("set role authenticated");
+    try {
+      await expect(
+        db.query(`select set_venue_clock($1, $2, null, null, now(), now())`, [
+          venueId,
+          "UTC",
+        ]),
+      ).rejects.toThrow(/permission denied/i);
     } finally {
       await db.exec("reset role");
     }

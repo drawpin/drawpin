@@ -37,6 +37,23 @@ hit had no answer:
 ### Changing the time zone
 - Any time, taking effect **from the next week**. The current week keeps its
   boundaries, so nobody loses a day or gets a double one partway through.
+- The change takes over at the end of the posting week it was made in,
+  Monday 4:00 AM in the old zone. The two zones' Mondays don't line up, so
+  the **first week in the new zone** runs from that moment to the new zone's
+  Monday 4:00 AM nearest a week later: between about six and eight days. No
+  week overlaps another and none is skipped.
+- The week the change was made in **votes until that first week stops
+  taking posts**, so two weeks are never open for voting at once.
+- Until it takes over, a change can be replaced, or cancelled by picking the
+  current zone again. While the first new week runs, nothing can change.
+  Another change waits until it ends.
+- The first new day starts at the change, not at its own 4:00 AM, so two
+  days' join codes never overlap. Moving west, the hours before the new
+  zone's first 4:00 AM count as the previous date there, so someone who
+  posted that day can't post again until 4:00 AM. That's a few hours, once.
+- A week belongs to the month of its Monday. A week that started in the old
+  zone can read as Sunday or Tuesday in the new one, so it's treated as the
+  Monday next to it.
 
 ### Blocking an account
 - A blocked account can't post, vote or report on that board, and blocking

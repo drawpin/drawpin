@@ -6,11 +6,14 @@ import { ensureDailyCode } from "@/lib/daily-code/ensure";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { serverEnv } from "@/lib/env";
 import { slugifyVenueName, slugMatchesName } from "@/lib/slug";
+import { listTimeZones } from "@/lib/timezones";
+import { clockStatus, formatBoundary } from "@/lib/venue-time";
 import { setBoardPaused, signOut } from "./actions";
 import { BoardLink } from "./board-link";
 import { BoardTiles } from "./board-tiles";
 import { RenameBoard } from "./rename-board";
 import { ReportedTiles } from "./reported-tiles";
+import { TimeZone } from "./time-zone";
 import { listBoardTiles, listReportedTiles, requireOwnedVenue } from "./venue";
 
 export const metadata: Metadata = { title: "Your board · DrawPin" };
@@ -20,6 +23,7 @@ export default async function AdminPage() {
   await connection();
 
   const venue = await requireOwnedVenue();
+  const clock = clockStatus(new Date(), venue.clock);
   const url = boardUrl(serverEnv().SITE_URL, venue.slug);
   const [qr, tiles, code, reported] = await Promise.all([
     createBoardQrCode(url),
@@ -86,6 +90,24 @@ export default async function AdminPage() {
       />
 
       <RenameBoard name={venue.name} />
+
+      {/* Each time is shown in the zone it falls in: a change's start in the
+          zone it ends, a new zone's first week in the new zone. */}
+      <TimeZone
+        zones={listTimeZones()}
+        timeZone={clock.timeZone}
+        scheduled={
+          clock.scheduled && {
+            timeZone: clock.scheduled.timeZone,
+            from: formatBoundary(clock.scheduled.from, clock.timeZone),
+          }
+        }
+        settlingUntil={
+          clock.settlingUntil &&
+          formatBoundary(clock.settlingUntil, clock.timeZone)
+        }
+        nextChangeFrom={formatBoundary(clock.nextChangeFrom, clock.timeZone)}
+      />
 
       <section className="flex flex-col gap-2">
         <h2 className="text-sm font-medium">

@@ -110,7 +110,7 @@ class FakeStore implements TileStore {
 
 const venue: PostingVenue = {
   id: "venue-1",
-  timezone: "America/Chicago",
+  clock: { timeZone: "America/Chicago", change: null },
   isPaused: false,
 };
 

@@ -2,6 +2,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 import { requireOwner } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  clockFromRow,
+  VENUE_CLOCK_COLUMNS,
+  type VenueClock,
+} from "@/lib/venue-time";
 import { TILES_BUCKET, type TileRow, toTile } from "@/app/b/[slug]/tiles";
 import { broadcastToBoard, TILE_REMOVED_EVENT } from "@/lib/realtime/broadcast";
 import type { AdminTile } from "./board-tiles";
@@ -11,7 +16,8 @@ export type OwnerVenue = {
   id: string;
   name: string;
   slug: string;
-  timezone: string;
+  /** The board's zone, and any change to it the owner has scheduled. */
+  clock: VenueClock;
   isPaused: boolean;
 };
 
@@ -25,7 +31,7 @@ export async function requireOwnedVenue(): Promise<OwnerVenue> {
 
   const { data, error } = await createAdminClient()
     .from("venues")
-    .select("id, name, slug, timezone, is_paused")
+    .select(`id, name, slug, is_paused, ${VENUE_CLOCK_COLUMNS}`)
     .eq("owner_id", owner.id)
     .maybeSingle();
 
@@ -36,7 +42,7 @@ export async function requireOwnedVenue(): Promise<OwnerVenue> {
     id: data.id,
     name: data.name,
     slug: data.slug,
-    timezone: data.timezone,
+    clock: clockFromRow(data),
     isPaused: data.is_paused,
   };
 }

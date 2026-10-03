@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { findMovedSlug } from "@/lib/former-slugs";
+import { clockFromRow, VENUE_CLOCK_COLUMNS } from "@/lib/venue-time";
 import type { WeekBounds } from "@/lib/venue-time";
 import { isTakingPosts } from "@/lib/week-phase";
 import { TILES_BUCKET } from "../tiles";
@@ -20,13 +21,17 @@ export class SupabaseTileStore implements TileStore {
   async findVenue(slug: string): Promise<PostingVenue | null> {
     const { data, error } = await this.admin
       .from("venues")
-      .select("id, timezone, is_paused")
+      .select(`id, is_paused, ${VENUE_CLOCK_COLUMNS}`)
       .eq("slug", slug)
       .maybeSingle();
 
     if (error) throw new Error(`findVenue: ${error.message}`);
     if (data) {
-      return { id: data.id, timezone: data.timezone, isPaused: data.is_paused };
+      return {
+        id: data.id,
+        clock: clockFromRow(data),
+        isPaused: data.is_paused,
+      };
     }
 
     // A drawing started before the owner changed the board's link still posts.

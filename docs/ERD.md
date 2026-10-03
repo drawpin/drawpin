@@ -40,8 +40,18 @@ One drawing board per owner, addressed publicly by `slug`.
 | `name` | `text` | 1–120 chars; the owner can change it, and nothing denormalizes a copy |
 | `slug` | `text` | unique, `^[a-z0-9]+(-[a-z0-9]+)*$`; never one in `former_slugs` |
 | `timezone` | `text` | IANA name, validated in the app |
+| `next_timezone` | `text` | nullable; the zone a scheduled change switches to |
+| `timezone_changes_at` | `timestamptz` | nullable, set with `next_timezone`; when it takes over |
 | `is_paused` | `boolean` | owner's pause toggle |
 | `created_at` | `timestamptz` | |
+
+A time zone change (ADR-008) takes over when the posting week it was made in
+ends, so no week under way moves. The app works out every boundary around it
+(`weekBoundsAt` in `src/lib/venue-time.ts`): the week the change was made in
+votes until the first new-zone week stops taking posts, and that first week
+runs from the change to the new zone's Monday 4:00 AM nearest a week later.
+`set_venue_clock(...)` stores a change, or cancels one, and moves that week's
+`voting_ends_at` to match in the same transaction; `service_role` only.
 
 ### `former_slugs`
 Slugs a board used to have (ADR-008). Every printed QR code encodes a slug, so
