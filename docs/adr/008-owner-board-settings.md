@@ -3,7 +3,7 @@
 ## Status
 Accepted. Adds to the owner admin in `docs/PLAN.md` (v10), which listed five
 things only. Built one at a time, in this order: link, time zone, blocking.
-Closing a board and deleting its data is still to be decided.
+Closing a board and deleting its data is ADR-009.
 
 ## Context
 The owner screen was cut to the bare minimum for v1. Three things owners will
@@ -71,7 +71,7 @@ hit had no answer:
 ## Consequences
 - `former_slugs` grows by one row per change and is never pruned. Changes are
   rare and the rows are tiny.
-- Closing a board (still to come) has to decide what happens to its former
-  slugs: deleted with the board, they become free for a new board to take.
+- Closing a board (ADR-009) deletes its former slugs with it, so they become
+  free for a new board to take.
 - An owner can change the link as often as they rename. Each change is
   logged with the old and new slug, as renames are.

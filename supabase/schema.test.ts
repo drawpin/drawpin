@@ -2008,3 +2008,118 @@ describe("venue blocks", () => {
     );
   });
 });
+
+describe("close_venue", () => {
+  /** How many rows each table still holds for a venue. */
+  async function leftFor(venueId: string, ownerId: string) {
+    const result = await db.query<Record<string, number>>(
+      `select
+         (select count(*) from venues where id = $1)::int as venues,
+         (select count(*) from owners where id = $2)::int as owners,
+         (select count(*) from weeks where venue_id = $1)::int as weeks,
+         (select count(*) from tiles t join weeks w on w.id = t.week_id
+           where w.venue_id = $1)::int as tiles,
+         (select count(*) from hall_of_fame where venue_id = $1)::int as hall_of_fame,
+         (select count(*) from monthly_finals where venue_id = $1)::int as finals,
+         (select count(*) from former_slugs where venue_id = $1)::int as former_slugs,
+         (select count(*) from venue_blocks where venue_id = $1)::int as blocks,
+         (select count(*) from daily_codes where venue_id = $1)::int as codes`,
+      [venueId, ownerId],
+    );
+    return result.rows[0];
+  }
+
+  /** A board with a winner, a final, a former slug, a block and a code. */
+  async function seedFullBoard() {
+    const board = await seedBoard();
+    const userId = crypto.randomUUID();
+    await db.exec(`
+      insert into auth.users (id, email) values ('${userId}', '${userId}@example.com');
+      insert into profiles (id, username) values ('${userId}', 'Someone');
+      update tiles set user_id = '${userId}' where id = '${board.tileIds[0]}';
+      insert into hall_of_fame (venue_id, week_id, tile_id, vote_count)
+        values ('${board.venueId}', '${board.weekId}', '${board.tileIds[0]}', 3);
+      insert into monthly_finals (venue_id, month, starts_at, ends_at, winner_tile_id)
+        values ('${board.venueId}', '2026-09-01', '2026-10-12T09:00:00Z',
+                '2026-10-19T09:00:00Z', '${board.tileIds[0]}');
+      insert into venue_blocks (venue_id, user_id) values ('${board.venueId}', '${userId}');
+      insert into daily_codes (venue_id, code, valid_from, valid_until)
+        values ('${board.venueId}', '${String(Math.floor(Math.random() * 1e8)).padStart(8, "0")}',
+                '2026-09-08T09:00:00Z', '2026-09-09T09:00:00Z');
+    `);
+    await db.query(`select change_venue_slug($1, $2)`, [
+      board.venueId,
+      `${board.slug}-moved`,
+    ]);
+    return { ...board, userId };
+  }
+
+  it("deletes everything on the board, the Hall of Fame included", async () => {
+    const { venueId, ownerId } = await seedFullBoard();
+    expect(Object.values(await leftFor(venueId, ownerId))).not.toContain(0);
+
+    await db.query(`select close_venue($1)`, [venueId]);
+
+    expect(await leftFor(venueId, ownerId)).toEqual({
+      venues: 0,
+      owners: 0,
+      weeks: 0,
+      tiles: 0,
+      hall_of_fame: 0,
+      finals: 0,
+      former_slugs: 0,
+      blocks: 0,
+      codes: 0,
+    });
+  });
+
+  it("leaves every other board alone", async () => {
+    const closing = await seedFullBoard();
+    const other = await seedFullBoard();
+
+    await db.query(`select close_venue($1)`, [closing.venueId]);
+
+    expect(
+      Object.values(await leftFor(other.venueId, other.ownerId)),
+    ).not.toContain(0);
+  });
+
+  it("leaves the accounts that drew on it", async () => {
+    const { venueId, userId } = await seedFullBoard();
+
+    await db.query(`select close_venue($1)`, [venueId]);
+
+    const result = await db.query(`select 1 from profiles where id = $1`, [
+      userId,
+    ]);
+    expect(result.rows).toHaveLength(1);
+  });
+
+  it("frees the board's old slugs", async () => {
+    const { venueId, slug } = await seedFullBoard();
+    await db.query(`select close_venue($1)`, [venueId]);
+
+    const ownerId = crypto.randomUUID();
+    await db.exec(`
+      insert into auth.users (id, email) values ('${ownerId}', '${ownerId}@example.com');
+      insert into owners (id, email) values ('${ownerId}', '${ownerId}@example.com');
+    `);
+    await db.query(
+      `insert into venues (owner_id, name, slug, timezone) values ($1, 'New', $2, 'UTC')`,
+      [ownerId, slug],
+    );
+  });
+
+  it("is for the server alone", async () => {
+    const { venueId } = await seedBoard();
+
+    await db.exec("set role authenticated");
+    try {
+      await expect(
+        db.query(`select close_venue($1)`, [venueId]),
+      ).rejects.toThrow(/permission denied/i);
+    } finally {
+      await db.exec("reset role");
+    }
+  });
+});

@@ -1,4 +1,4 @@
-# DrawPin — Product Plan (v10, locked)
+# DrawPin — Product Plan (v11, locked)
 
 > Source of truth for v1 scope. Changes require an ADR in `docs/adr/` and a version bump here.
 
@@ -71,15 +71,16 @@ Account + signed device ID cookie + browser fingerprint (hashed) + IP rate limit
 - Owners sign in by email magic link (Supabase Auth), single-use, short expiry, rate-limited, Turnstile on login. Customers sign in with Google; the two are separate roles on one auth system.
 - **One board per owner.**
 - Setup: email → link → venue name + time zone → done.
-- One screen: (1) QR + today's code (download/print), (2) Pause board toggle, (3) Remove a tile, (4) reported tiles, surfaced first, (5) rename the board, (6) change the board link, (7) change the time zone, (8) block an account (ADR-008).
+- One screen: (1) QR + today's code (download/print), (2) Pause board toggle, (3) Remove a tile, (4) reported tiles, surfaced first, (5) rename the board, (6) change the board link, (7) change the time zone, (8) block an account (ADR-008), (9) close the board (ADR-009).
 - Renaming changes the display name only. The slug is generated once at setup, the QR encodes `/b/<slug>`, and the daily code is keyed by venue and time window — so a rename reprints nothing.
 - Changing the link builds a new slug from the current name, offered once a rename has left the old one behind. Every former slug redirects to the board for good and is never given to another board, so printed codes keep working.
 - Changing the time zone takes effect from the next week; the current week keeps its boundaries.
 - Blocking an account stops it posting, voting and reporting on that board, and removes its live tiles there. The owner can unblock.
+- Closing the board deletes everything on it, the Hall of Fame included, and the owner's sign-in. The owner types the board's name to confirm. Its links aren't reserved afterwards.
 - Not included: analytics, branding, multiple staff logins, any other settings.
 
 ### Data retention
-- Weekly winners and monthly super winners (the Hall of Fame) are kept forever.
+- Weekly winners and monthly super winners (the Hall of Fame) are kept forever, unless the owner closes the board.
 - All other tiles and images are deleted 30 days after that week's voting ends.
 - Daily posting records are deleted after 30 days; devices unused for 90 days with no tiles or votes are deleted.
 - Only hashes of IPs and fingerprints are stored.
@@ -152,6 +153,8 @@ v8 changes: customer accounts added (ADR-004) — Google sign-in for customers, 
 v9 changes: guests draw for fun only (ADR-007). Posting needs a Google sign-in, so every tile belongs to an account; guest tiles posted before v9 stay until the normal 30-day clean-up.
 
 v10 changes: the owner screen gains three settings (ADR-008): change the board link, with every former link redirecting; change the time zone from the next week; and block an account from the board, which also removes its tiles there.
+
+v11 changes: an owner can close their board (ADR-009), deleting everything on it, the Hall of Fame included, and their sign-in.
 
 ## Diagrams
 
