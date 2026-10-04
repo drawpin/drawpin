@@ -113,16 +113,18 @@ export default function PrivacyPage() {
       <section className="flex flex-col gap-2">
         <h2 className="font-medium">Deleting your account</h2>
         <p>
-          Email us at{" "}
+          Sign in on any board and tap Delete account, next to Sign out. That
+          deletes your account, your drawings and your votes straight away.
+          Anything of yours that won a week or a month stays in the Hall of Fame
+          as part of that board&apos;s history, with your name taken off it. If
+          you can&apos;t sign in any more, email us at{" "}
           <a
             className="underline underline-offset-4"
             href={`mailto:${CONTACT_EMAIL}`}
           >
             {CONTACT_EMAIL}
           </a>{" "}
-          and we&apos;ll delete your account, your drawings and your votes.
-          Anything of yours that won a week stays in the Hall of Fame as part of
-          that board&apos;s history, with your name taken off it.
+          and we&apos;ll do it for you.
         </p>
       </section>
 

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { signOutCustomer } from "@/app/auth/customer-actions";
 import { GoogleSignIn } from "@/components/google-sign-in";
 import { Button } from "@/components/ui/button";
@@ -22,12 +23,20 @@ export function AccountBar({
         <span>
           Drawing as <span className="font-medium">{customer.username}</span>
         </span>
-        <form action={signOutCustomer}>
-          <input type="hidden" name="next" value={next} />
-          <Button type="submit" variant="ghost" size="sm">
-            Sign out
-          </Button>
-        </form>
+        <div className="flex items-center gap-1">
+          <Link
+            href={`/account/delete?next=${encodeURIComponent(next)}`}
+            className="px-2 underline-offset-4 hover:underline"
+          >
+            Delete account
+          </Link>
+          <form action={signOutCustomer}>
+            <input type="hidden" name="next" value={next} />
+            <Button type="submit" variant="ghost" size="sm">
+              Sign out
+            </Button>
+          </form>
+        </div>
       </div>
     );
   }

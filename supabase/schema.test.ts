@@ -2123,3 +2123,118 @@ describe("close_venue", () => {
     }
   });
 });
+
+describe("deleting an account", () => {
+  /** An account with a weekly winner, a super winner, a plain tile and a report. */
+  async function seedAccount() {
+    const board = await seedBoard();
+    const userId = crypto.randomUUID();
+    const [weekly, superWinner, plain] = board.tileIds;
+    await db.exec(`
+      insert into auth.users (id, email) values ('${userId}', '${userId}@example.com');
+      insert into profiles (id, username) values ('${userId}', 'Leaving');
+      update tiles set user_id = '${userId}', display_name = 'Leaving', name_tag = '0042'
+        where id in ('${weekly}', '${superWinner}', '${plain}');
+      insert into hall_of_fame (venue_id, week_id, tile_id, vote_count)
+        values ('${board.venueId}', '${board.weekId}', '${weekly}', 4);
+      insert into monthly_finals (venue_id, month, starts_at, ends_at, winner_tile_id)
+        values ('${board.venueId}', '2026-09-01', '2026-10-12T09:00:00Z',
+                '2026-10-19T09:00:00Z', '${superWinner}');
+      insert into tile_reports (tile_id, user_id, reason)
+        values ('${board.tileIds[3]}', '${userId}', 'spam');
+    `);
+    return { ...board, userId, weekly, superWinner, plain };
+  }
+
+  async function deleteAccount(userId: string) {
+    await db.query(`select delete_account_tiles($1)`, [userId]);
+    await db.query(`delete from auth.users where id = $1`, [userId]);
+  }
+
+  it("lists the account's winning tiles", async () => {
+    const { userId, weekly, superWinner } = await seedAccount();
+
+    const result = await db.query<{ id: string }>(
+      `select account_winning_tile_ids as id from account_winning_tile_ids($1)`,
+      [userId],
+    );
+    expect(result.rows.map((row) => row.id).sort()).toEqual(
+      [weekly, superWinner].sort(),
+    );
+  });
+
+  it("deletes the account's other tiles", async () => {
+    const { userId, plain } = await seedAccount();
+
+    await deleteAccount(userId);
+
+    const result = await db.query(`select 1 from tiles where id = $1`, [plain]);
+    expect(result.rows).toEqual([]);
+  });
+
+  it("keeps its winners in the Hall of Fame, without a name", async () => {
+    const { userId, weekly, superWinner } = await seedAccount();
+
+    await deleteAccount(userId);
+
+    const result = await db.query<{
+      id: string;
+      user_id: string | null;
+      display_name: string | null;
+      name_tag: string | null;
+    }>(
+      `select id, user_id, display_name, name_tag from tiles where id = any($1::uuid[]) order by id`,
+      [[weekly, superWinner]],
+    );
+    expect(result.rows).toHaveLength(2);
+    for (const row of result.rows) {
+      expect(row).toMatchObject({
+        user_id: null,
+        display_name: null,
+        name_tag: null,
+      });
+    }
+    const hall = await db.query(
+      `select 1 from hall_of_fame where tile_id = $1`,
+      [weekly],
+    );
+    expect(hall.rows).toHaveLength(1);
+  });
+
+  it("takes the account's reports and profile with it", async () => {
+    const { userId } = await seedAccount();
+
+    await deleteAccount(userId);
+
+    const left = await db.query<{ reports: number; profiles: number }>(
+      `select (select count(*) from tile_reports where user_id = $1)::int as reports,
+              (select count(*) from profiles where id = $1)::int as profiles`,
+      [userId],
+    );
+    expect(left.rows[0]).toEqual({ reports: 0, profiles: 0 });
+  });
+
+  it("leaves other people's tiles alone", async () => {
+    const { userId, tileIds } = await seedAccount();
+
+    await deleteAccount(userId);
+
+    const result = await db.query(`select 1 from tiles where id = $1`, [
+      tileIds[3],
+    ]);
+    expect(result.rows).toHaveLength(1);
+  });
+
+  it("is for the server alone", async () => {
+    const { userId } = await seedAccount();
+
+    await db.exec("set role authenticated");
+    try {
+      await expect(
+        db.query(`select delete_account_tiles($1)`, [userId]),
+      ).rejects.toThrow(/permission denied/i);
+    } finally {
+      await db.exec("reset role");
+    }
+  });
+});

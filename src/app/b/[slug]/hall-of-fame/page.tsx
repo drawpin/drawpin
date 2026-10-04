@@ -6,6 +6,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getBoard, requireBoard } from "../data";
 import { listSuperWinners, listWinners } from "./data";
 
+/** A winner whose account has since been deleted keeps its place, unnamed. */
+const FORMER_MEMBER = "A former member";
+
 export async function generateMetadata({
   params,
 }: PageProps<"/b/[slug]/hall-of-fame">): Promise<Metadata> {
@@ -74,7 +77,7 @@ export default async function HallOfFamePage({
                   src={winner.imageUrl}
                   alt={
                     winner.caption ??
-                    `Super winning drawing by ${winner.author}`
+                    `Super winning drawing by ${winner.author ?? FORMER_MEMBER}`
                   }
                   width={768}
                   height={768}
@@ -85,7 +88,7 @@ export default async function HallOfFamePage({
                   <p className="text-sm break-words">{winner.caption}</p>
                 )}
                 <p className="text-muted-foreground text-xs">
-                  {winner.author} ·{" "}
+                  {winner.author ?? FORMER_MEMBER} ·{" "}
                   {/* A month with one finalist crowns it without a vote, and
                       "0 votes" reads like something went wrong. */}
                   {winner.voteCount === 0
@@ -118,7 +121,10 @@ export default async function HallOfFamePage({
               </h2>
               <Image
                 src={winner.imageUrl}
-                alt={winner.caption ?? `Winning drawing by ${winner.author}`}
+                alt={
+                  winner.caption ??
+                  `Winning drawing by ${winner.author ?? FORMER_MEMBER}`
+                }
                 width={768}
                 height={768}
                 unoptimized
@@ -128,7 +134,7 @@ export default async function HallOfFamePage({
                 <p className="text-sm break-words">{winner.caption}</p>
               )}
               <p className="text-muted-foreground text-xs">
-                {winner.author} · {winner.voteCount}{" "}
+                {winner.author ?? FORMER_MEMBER} · {winner.voteCount}{" "}
                 {winner.voteCount === 1 ? "vote" : "votes"}
               </p>
             </li>
