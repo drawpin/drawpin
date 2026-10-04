@@ -8,8 +8,8 @@
  */
 
 /** Average pixels between passes, and the pen's line width. */
-const PASS = 3.4;
-const STROKE = 1.8;
+const PASS = 5.2;
+const STROKE = 3.2;
 /** The hatching's angle: lines run bottom right to top left ("\"). */
 const ANGLE = 45;
 
