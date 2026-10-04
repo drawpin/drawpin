@@ -1,6 +1,6 @@
 /**
  * A podium step's colour, doodled in with a pen (UI pass, 2026-10-03): one
- * long, thin stroke hatching back and forth on the diagonal, from bottom
+ * long, bold pen stroke hatching back and forth on the diagonal, from bottom
  * right to top left, drawn on from start to end once the step has risen
  * (`scribble`, globals.css). The white between the lines stays, so the
  * finished step reads as quick pen hatching rather than a flat fill. With
