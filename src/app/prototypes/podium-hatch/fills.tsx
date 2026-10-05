@@ -22,77 +22,101 @@ function noise(i: number, salt: number): number {
 
 const f = (n: number) => n.toFixed(1);
 
+/** How loose a hand the scribble is drawn with. */
+type Hand = {
+  /** Average distance the pen moves along the diagonal per pass. */
+  step: number;
+  /** How much that distance varies, as a fraction of it. */
+  stepVariance: number;
+  /** How far past the edge a turn may land (negative: short of it), px. */
+  overshoot: [number, number];
+  /** How far a stroke may bow off straight, px. */
+  bow: number;
+  /** How much a stroke's angle may wander, px at its far end. */
+  lean: number;
+};
+
 /**
- * Straight hatching at `angle` degrees across a `w` × `h` box, `gap` apart
- * (centre to centre). Passes are parallel and long enough to cross the box
- * at any angle; the turns between them fall outside it.
+ * A scribble that sweeps from the box's top-left corner to its bottom-right,
+ * the pen going back and forth across the diagonal as it moves along it,
+ * the way someone colours a shape in. Every pass is a little different:
+ * how far the pen moves on, where it turns (just short of the edge, or just
+ * past it), the angle, and the curve.
+ *
+ * Works in a turned frame: `u` runs along the diagonal (top left to bottom
+ * right), `v` across it. At each `u` the exact stretch of `v` inside the box
+ * is worked out, so the turns hug the real edges at any size.
  */
-function hatch(w: number, h: number, angle: number, gap: number): string {
-  const reach = (w + h) / 2 + 12;
-  const cos = Math.cos((angle * Math.PI) / 180);
-  const sin = Math.sin((angle * Math.PI) / 180);
-  // Turn a point from the flat frame to the angled one, about the centre.
-  const at = (x: number, y: number) =>
-    `${f(w / 2 + x * cos - y * sin)} ${f(h / 2 + x * sin + y * cos)}`;
+function diagonalScribble(w: number, h: number, hand: Hand): string {
+  const root2 = Math.SQRT2;
+  const cx = w / 2;
+  const cy = h / 2;
+  // From the turned frame back to the box.
+  const at = (u: number, v: number) =>
+    `${f(cx + (u + v) / root2)} ${f(cy + (u - v) / root2)}`;
+  // The stretch of the box across the diagonal at `u`.
+  const across = (u: number): [number, number] => [
+    Math.max(-root2 * cx - u, u - root2 * cy),
+    Math.min(root2 * cx - u, u + root2 * cy),
+  ];
+
+  const reach = (w + h) / (2 * root2);
   const points: string[] = [];
-  let pass = 0;
-  for (let y = -reach; y < reach; y += gap, pass++) {
-    const ends = [at(-reach, y), at(reach, y)];
-    const [from, to] = pass % 2 ? [ends[1], ends[0]] : ends;
-    points.push(`${pass === 0 ? "M" : "L"}${from}`, `L${to}`);
+  let u = -reach - PEN;
+  for (let pass = 0; u < reach + PEN; pass++) {
+    const [low, high] = across(Math.max(-reach, Math.min(reach, u)));
+    const [min, max] = hand.overshoot;
+    const past = min + noise(pass, 1) * (max - min);
+    // Alternate sides: down one side, back up the other.
+    const v = pass % 2 ? low - past : high + past;
+    const lean = (noise(pass, 2) - 0.5) * hand.lean;
+    const end = at(u + lean, v);
+    if (pass === 0) {
+      points.push(`M${end}`);
+    } else {
+      // A slight bow through the middle of the stroke.
+      const bow = (noise(pass, 3) - 0.5) * 2 * hand.bow;
+      points.push(`Q${at(u - hand.step / 2 + bow, (low + high) / 2)} ${end}`);
+    }
+    u +=
+      hand.step *
+      (1 - hand.stepVariance / 2 + noise(pass, 4) * hand.stepVariance);
   }
   return points.join(" ");
 }
 
-/** Marker hatch: bold, straight, evenly spaced diagonals. */
-export const marker = (w: number, h: number) => [hatch(w, h, 45, PEN * 2)];
-
-/** Cross-hatch: a diagonal pass, then a second across it. */
-export const cross = (w: number, h: number) => [
-  hatch(w, h, 45, PEN * 3),
-  hatch(w, h, -45, PEN * 3),
+/** Quick: a fast, slightly uneven scribble. */
+export const quick = (w: number, h: number) => [
+  diagonalScribble(w, h, {
+    step: PEN * 1.25,
+    stepVariance: 0.5,
+    overshoot: [-1, 6],
+    bow: 1.5,
+    lean: 3,
+  }),
 ];
 
-/**
- * Scribble: colouring in. The pen goes back and forth across the step with
- * its turns inside the edges, working down, so the V of each turn shows.
- */
-export const scribble = (w: number, h: number) => {
-  const inset = PEN / 2;
-  const drop = PEN * 1.5;
-  const points = [`M${f(inset)} ${f(-PEN)}`];
-  for (let y = -PEN, pass = 0; y < h + drop * 2; pass++) {
-    y += drop * (0.85 + noise(pass, 1) * 0.3);
-    const x = pass % 2 ? inset : w - inset;
-    points.push(`L${f(x)} ${f(y)}`);
-  }
-  return [points.join(" ")];
-};
+/** Loose: curvier strokes and wilder turns, scribbling in a hurry. */
+export const loose = (w: number, h: number) => [
+  diagonalScribble(w, h, {
+    step: PEN * 1.4,
+    stepVariance: 0.8,
+    overshoot: [-3, 12],
+    bow: 5,
+    lean: 7,
+  }),
+];
 
-/**
- * Loops: a coil doodled along rows, left to right then back, each loop a
- * little different, like a pen going round while it moves along.
- */
-export const loops = (w: number, h: number) => {
-  const radius = PEN * 2;
-  const row = radius * 1.5;
-  const advance = radius * 0.32; // along the row per radian
-  const points: string[] = [];
-  let first = true;
-  for (let r = 0, y = 0; y < h + radius; r++, y += row) {
-    const forward = r % 2 === 0;
-    const length = w + radius * 4;
-    for (let t = 0; t * advance < length; t += 0.3) {
-      const along = -radius * 2 + t * advance;
-      const wobble = 1 + (noise(Math.floor(t / 6.28) + r * 40, 2) - 0.5) * 0.3;
-      const x = (forward ? along : w - along) + radius * wobble * Math.cos(t);
-      const yy = y + radius * wobble * Math.sin(forward ? t : -t);
-      points.push(`${first ? "M" : "L"}${f(x)} ${f(yy)}`);
-      first = false;
-    }
-  }
-  return [points.join(" ")];
-};
+/** Dense: tighter passes that overlap, more colour than white. */
+export const dense = (w: number, h: number) => [
+  diagonalScribble(w, h, {
+    step: PEN * 0.85,
+    stepVariance: 0.6,
+    overshoot: [0, 8],
+    bow: 2.5,
+    lean: 4,
+  }),
+];
 
 export type Generator = (w: number, h: number) => string[];
 

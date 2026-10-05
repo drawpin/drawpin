@@ -2,7 +2,7 @@
 
 import { BoardLayout } from "../../b/[slug]/board-look";
 import type { Tile } from "../../b/[slug]/tiles";
-import { cross, loops, makeFill, marker, scribble } from "./fills";
+import { dense, loose, makeFill, quick } from "./fills";
 import { Podium } from "./podium";
 
 /** The preview board's real drawings from last week (public storage). */
@@ -50,10 +50,9 @@ const LEADERS = [
 ];
 
 const FILLS = {
-  marker: makeFill(marker),
-  scribble: makeFill(scribble),
-  cross: makeFill(cross),
-  loops: makeFill(loops),
+  quick: makeFill(quick),
+  loose: makeFill(loose),
+  dense: makeFill(dense),
 };
 
 /** The vote page's top, with one version of the podium's fill. */

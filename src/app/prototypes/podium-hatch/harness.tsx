@@ -9,13 +9,12 @@ import {
 } from "react";
 import { Variant } from "./variant";
 
-// The podium's pen hatching (2026-10-03): thicker lines, all the same
-// thickness, in four different gestures.
+// The podium's fill, round two (2026-10-04): riffs on Scribble, sweeping
+// from top left to bottom right, uneven, in three looseness levels.
 const VARIANTS = [
-  { name: "Marker hatch", Component: () => <Variant fill="marker" /> },
-  { name: "Scribble", Component: () => <Variant fill="scribble" /> },
-  { name: "Cross-hatch", Component: () => <Variant fill="cross" /> },
-  { name: "Loops", Component: () => <Variant fill="loops" /> },
+  { name: "Quick", Component: () => <Variant fill="quick" /> },
+  { name: "Loose", Component: () => <Variant fill="loose" /> },
+  { name: "Dense", Component: () => <Variant fill="dense" /> },
 ];
 
 /** The picker's own look, verbatim from the prototype skill: harness chrome. */
