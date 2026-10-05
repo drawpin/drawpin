@@ -3,21 +3,21 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRightIcon, PencilSimpleIcon } from "@phosphor-icons/react";
-import {
-  HEADER_BUTTON,
-  INKED_BUTTON,
-  PAPER,
-  YELLOW_STRIP,
-} from "../b/[slug]/board-look";
+import { HEADER_BUTTON, INKED_BUTTON, PAPER } from "../b/[slug]/board-look";
 import type { Tile } from "../b/[slug]/tiles";
 import { JoinForm } from "../join/join-form";
+import { CARD_TITLE, SECTION_TITLE } from "./type";
 
-/** Example drawings (Canva doodles, public/examples), made-up names. */
+/**
+ * Example drawings (made in Canva, public/examples), each showing a tool
+ * people get: the spray can, the pressure pen, shapes and the fill bucket.
+ * The names and captions are made up.
+ */
 export const EXAMPLE: Tile[] = [
-  ["cat", "Maya#2041", "party cat"],
-  ["rocket", "Priya#8983", "to the moon"],
-  ["burger", "Theo#1997", "lunch, probably"],
-  ["flower", "Sam#2683", null],
+  ["skyline", "Maya#2041", "golden hour"],
+  ["dog", "Priya#8983", "Biscuit, 4"],
+  ["latte", "Theo#1997", "monday fuel"],
+  ["lake", "Sam#2683", "weekend plans"],
 ].map(([file, author, caption]) => ({
   id: `example-${file}`,
   author,
@@ -36,23 +36,24 @@ export const EXAMPLE: Tile[] = [
 export function Nav() {
   return (
     <nav className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-5">
+      {/* The wordmark, cut from the link card (public/og-v2.png): white
+          letters, so it sits on a white sticker, inked like the buttons. */}
       <Link
         href="/"
-        className="focus-visible:ring-highlight flex items-center gap-2 rounded-lg text-xl font-black tracking-tight text-white outline-none focus-visible:ring-3"
+        aria-label="DrawPin home"
+        className="border-foreground focus-visible:ring-highlight flex h-12 items-center rounded-xl border-2 bg-white px-3 shadow-[3px_3px_0_var(--foreground)] outline-none focus-visible:ring-3"
       >
         <Image
-          src="/logo.webp"
-          alt=""
-          width={36}
-          height={36}
-          // A small WebP made from the site icon (src/app/icon.png).
+          src="/wordmark.webp"
+          alt="DrawPin"
+          width={481}
+          height={120}
           unoptimized
-          className="rounded-lg ring-2 ring-white"
+          className="h-8 w-auto"
         />
-        DrawPin
       </Link>
-      <a href="#try" className={`${HEADER_BUTTON} h-10`}>
-        <PencilSimpleIcon weight="bold" className="size-4" />
+      <a href="#try" className={HEADER_BUTTON}>
+        <PencilSimpleIcon weight="bold" className="size-5" />
         Try it
       </a>
     </nav>
@@ -85,18 +86,16 @@ export function Ending() {
           id="join"
           className="border-foreground flex scroll-mt-6 flex-col gap-4 rounded-xl border-2 bg-white px-5 py-7 shadow-[5px_5px_0_var(--primary)]"
         >
-          <h2 className="text-2xl font-black tracking-tight">Got a code?</h2>
-          <p className="text-muted-foreground -mt-2 text-sm">
+          <h2 className={CARD_TITLE}>Got a code?</h2>
+          <p className="text-muted-foreground -mt-2">
             It&apos;s on the board&apos;s card, and changes every morning.
           </p>
           <JoinForm />
         </section>
         <section className="bg-primary text-primary-foreground border-foreground flex flex-col items-start justify-between gap-4 rounded-xl border-2 px-5 py-7 shadow-[5px_5px_0_var(--foreground)]">
           <div className="flex flex-col gap-2">
-            <h2 className="text-2xl font-black tracking-tight">
-              Start one for your people
-            </h2>
-            <p className="text-sm text-white/85">
+            <h2 className={CARD_TITLE}>Start one for your people</h2>
+            <p className="text-white/85">
               Free. One QR card on the table and it runs itself.
             </p>
           </div>
@@ -108,9 +107,9 @@ export function Ending() {
       </div>
 
       <section className="flex flex-col gap-5">
-        <h2 className={`${YELLOW_STRIP} text-3xl`}>Why I made this</h2>
+        <h2 className={SECTION_TITLE}>Why I made this</h2>
         <div
-          className={`text-muted-foreground flex max-w-2xl flex-col gap-3 rounded-lg p-6 text-[15px] leading-relaxed ${PAPER}`}
+          className={`text-muted-foreground flex max-w-2xl flex-col gap-3 rounded-xl p-6 text-base leading-relaxed ${PAPER}`}
         >
           <p>
             Whether you&apos;re waiting for your food or sitting with a group of

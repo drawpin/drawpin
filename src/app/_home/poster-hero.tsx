@@ -12,9 +12,9 @@ import { EXAMPLE, Nav, TrophyBadge } from "./shared";
  * they sit in a scattered row under it instead.
  */
 const SPOTS = [
-  "md:absolute md:top-6 md:right-[4%] md:w-44 md:rotate-6",
-  "md:absolute md:top-[46%] md:right-[22%] md:w-40 md:-rotate-3",
-  "md:absolute md:bottom-10 md:right-[2%] md:w-36 md:rotate-3",
+  "md:absolute md:top-4 md:right-[4%] md:w-40 md:rotate-6",
+  "md:absolute md:top-[44%] md:right-[22%] md:w-40 md:-rotate-3",
+  "md:absolute md:bottom-6 md:right-[3%] md:w-40 md:rotate-3",
 ];
 
 /** The poster itself, on its own for a page that goes on from it. */
@@ -28,14 +28,14 @@ export function PosterHero() {
           <br />
           <span className="text-winner">Pin it.</span>
         </h1>
-        <p className="relative z-10 max-w-sm text-xl font-semibold text-white/90">
+        <p className="relative z-10 max-w-md text-lg text-white/85">
           One drawing a day. Everyone votes. One winner a week.
         </p>
         <div className="relative z-10 flex flex-wrap gap-3">
           <a href="#join" className={`draw-awake ${INKED_BUTTON}`}>
             <PencilSimpleIcon weight="bold" className="size-5" />I have a code
           </a>
-          <Link href="/login" className={HEADER_BUTTON}>
+          <Link href="/login" className={`${HEADER_BUTTON} text-base`}>
             Start a board
           </Link>
         </div>

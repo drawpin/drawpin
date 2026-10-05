@@ -62,7 +62,7 @@ function Screen({ beat }: { beat: number }) {
   }
   return (
     <div className="motion-safe:animate-fade-up flex flex-col items-center gap-4 pt-6">
-      <div className="w-44">
+      <div className="w-40">
         <PinnedDrawing
           tile={EXAMPLE[0]}
           index={0}
@@ -128,7 +128,7 @@ export function WeekStory() {
               type="button"
               onClick={() => setBeat(index)}
               aria-current={beat === index ? "step" : undefined}
-              className={`focus-visible:ring-highlight flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-[background-color,opacity] duration-200 outline-none focus-visible:ring-3 ${beat === index ? "bg-white opacity-100 shadow-[0_2px_3px_rgb(15_27_45/0.08)]" : "opacity-50 hover:opacity-80"}`}
+              className={`focus-visible:ring-highlight flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-[background-color,opacity] duration-200 outline-none focus-visible:ring-3 ${beat === index ? "bg-secondary opacity-100" : "opacity-50 hover:opacity-80"}`}
             >
               <span
                 className={`${hand.className} text-primary w-24 shrink-0 pt-0.5 text-xl leading-tight font-bold`}

@@ -60,7 +60,14 @@ const SPOT = { 1: 1, 2: 0, 3: 2 } as const;
  * scribbled in like crayon, and its drawing's pin goes in. Off for reduced
  * motion, where the steps are simply coloured in (globals.css).
  */
-export function Podium({ leaders }: { leaders: Leader[] }) {
+export function Podium({
+  leaders,
+  heading = "Top 3 so far",
+}: {
+  leaders: Leader[];
+  /** Over the podium; the home page's "what could be" says something else. */
+  heading?: string;
+}) {
   if (leaders.length === 0) {
     return (
       <p className="bg-winner text-foreground w-fit -rotate-1 px-4 py-2 font-semibold shadow-[0_2px_3px_rgb(15_27_45/0.18),0_6px_12px_rgb(15_27_45/0.14)]">
@@ -75,7 +82,7 @@ export function Podium({ leaders }: { leaders: Leader[] }) {
         id="podium-heading"
         className={`${hand.className} text-primary text-3xl leading-none font-bold`}
       >
-        Top 3 so far
+        {heading}
       </h2>
       <ol className="border-foreground grid grid-cols-3 items-end gap-2 overflow-hidden border-b-2 pt-8">
         {PLACES.map((place) => {

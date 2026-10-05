@@ -1,8 +1,8 @@
 import type { Viewport } from "next";
-import { YELLOW_STRIP } from "./b/[slug]/board-look";
 import { PosterHero } from "./_home/poster-hero";
 import { Ending } from "./_home/shared";
 import { TryItPlay } from "./_home/try-it";
+import { NOTE, SECTION_TITLE } from "./_home/type";
 import { WeekStory } from "./_home/week-story";
 
 /** The phone's status bar matches the blue hero, as on a board. */
@@ -12,20 +12,24 @@ export const viewport: Viewport = { themeColor: "#004aad" };
  * The home page (UI pass, chosen from prototypes on 2026-10-05, "All
  * three"): three answers to "why start?" in the order a visitor needs them.
  * The poster lands the idea in one glance; trying it gets them drawing on the
- * spot, onto an example board; and the week shows what happens next, from the
- * first drawing to the winner's trophy. Then the code, starting a board, and
- * the owner's own story, word for word.
+ * spot, and shows their drawing winning; and the week shows what happens
+ * next, from the first drawing to the winner's trophy. Then the code,
+ * starting a board, and the owner's own story, word for word.
+ *
+ * White under the blue hero, not the boards' blue-grey tint: straight from
+ * the deep blue, the tint read as a muddy change of colour.
  */
 export default function Home() {
   return (
-    <div data-board className="flex flex-1 flex-col">
+    <div className="flex flex-1 flex-col bg-white">
       <PosterHero />
-      <section id="try" className="scroll-mt-4 pt-8">
-        <TryItPlay tone="tint" />
+      <section id="try" className="scroll-mt-4 py-14">
+        <TryItPlay />
       </section>
-      <section className="flex flex-col">
-        <div className="mx-auto w-full max-w-5xl px-5">
-          <h2 className={`${YELLOW_STRIP} text-3xl`}>Then, every week</h2>
+      <section className="flex flex-col gap-4 py-6">
+        <div className="mx-auto flex w-full max-w-5xl flex-col items-start gap-4 px-5">
+          <p className={NOTE}>Then, every week</p>
+          <h2 className={SECTION_TITLE}>A week on a board.</h2>
         </div>
         <WeekStory />
       </section>
