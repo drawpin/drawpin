@@ -87,14 +87,18 @@ function Pin({ color, mono }: { color: string; mono?: boolean }) {
   );
 }
 
-/** The site's wordmark. Its image has a white ground, so it sits on white. */
+/**
+ * The wordmark with its tagline, cut from the link-preview card
+ * (og-v2.png) at print resolution: it's the complete lockup, pencil tip and
+ * letter shadows included. Its image has a white ground, so it sits on white.
+ */
 function Wordmark({ width, mono }: { width: string; mono?: boolean }) {
   return (
     <Image
-      src="/wordmark.webp"
+      src="/print-wordmark.png"
       alt="DrawPin"
-      width={481}
-      height={120}
+      width={635}
+      height={212}
       className={`${width} ${mono ? "contrast-150 grayscale" : ""}`}
     />
   );
@@ -200,7 +204,7 @@ function Card({
         >
           {CARD_COPY.footer}
         </p>
-        {!poster && <Wordmark width="w-[1.1in]" mono={theme.mono} />}
+        {!poster && <Wordmark width="w-[1.3in]" mono={theme.mono} />}
       </div>
     </div>
   );
@@ -346,9 +350,9 @@ export function Look({
       {theme.edge?.(layout)}
       {poster && (
         <div
-          className={`relative self-center ${theme.wordmarkTab ? "rounded-full bg-white px-[0.2in] py-[0.06in]" : ""}`}
+          className={`relative self-center ${theme.wordmarkTab ? "rounded-[0.18in] bg-white px-[0.25in] py-[0.1in]" : ""}`}
         >
-          <Wordmark width="w-[2.8in]" mono={theme.mono} />
+          <Wordmark width="w-[3in]" mono={theme.mono} />
         </div>
       )}
       <div
