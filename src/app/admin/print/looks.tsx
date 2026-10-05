@@ -270,9 +270,29 @@ function Doodles({ layout }: { layout: CardLayout }) {
   ));
 }
 
-/** The link-preview card's blue waves, in each corner. */
+/**
+ * The link-preview card's corner waves, exactly: the three shapes of its
+ * top-left corner, copied from the Canva design (drawpin-logo, page 2), whose
+ * other corners are mirror images. On that 1200 × 630 card a corner is 379.4
+ * × 194.1, so here it's sized to about the same share of the sheet's width.
+ */
+const WAVE_SHAPES = [
+  {
+    fill: "#85b7eb",
+    d: "M0.0,0.0 L0.0,158.8 C52.9,150.0 88.2,194.1 150.0,176.5 C211.8,158.8 238.2,105.9 300.0,120.0 C344.1,128.8 370.6,88.2 379.4,0.0 Z",
+  },
+  {
+    fill: "#378add",
+    d: "M0.0,0.0 L0.0,105.9 C35.3,100.6 61.8,127.1 105.9,116.5 C150.0,105.9 167.6,74.1 211.8,82.9 C247.1,90.0 264.7,61.8 270.0,0.0 Z",
+  },
+  {
+    fill: "#185fa5",
+    d: "M0.0,0.0 L0.0,52.9 C26.5,51.2 44.1,67.1 70.6,61.8 C97.1,56.5 109.4,35.3 132.4,38.8 C150.0,42.4 158.8,26.5 162.4,0.0 Z",
+  },
+];
+
 function Waves({ layout }: { layout: CardLayout }) {
-  const width = layout === "poster" ? "w-[2.6in]" : "w-[1.7in]";
+  const width = layout === "poster" ? "w-[2.7in]" : "w-[1.75in]";
   const corners = [
     "top-0 left-0",
     "top-0 right-0 -scale-x-100",
@@ -282,13 +302,13 @@ function Waves({ layout }: { layout: CardLayout }) {
   return corners.map((corner) => (
     <svg
       key={corner}
-      viewBox="0 0 300 200"
+      viewBox="0 0 379.4 194.1"
       aria-hidden
       className={`absolute ${width} ${corner}`}
     >
-      <path d="M0 0h300c-20 40-60 60-110 70S80 120 60 200H0z" fill="#9cc4f2" />
-      <path d="M0 0h240c-15 30-50 45-95 52S50 95 35 150H0z" fill="#3b8ae0" />
-      <path d="M0 0h170c-10 22-40 32-75 37S25 70 15 100H0z" fill={BLUE} />
+      {WAVE_SHAPES.map((shape) => (
+        <path key={shape.fill} d={shape.d} fill={shape.fill} />
+      ))}
     </svg>
   ));
 }
