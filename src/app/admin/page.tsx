@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { connection } from "next/server";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { boardUrl, createBoardQrCode } from "@/lib/board";
@@ -74,6 +75,16 @@ export default async function AdminPage() {
         >
           Download QR code to print
         </a>
+        <Link
+          href="/admin/print"
+          className={buttonVariants({
+            variant: "outline",
+            size: "lg",
+            className: "w-full",
+          })}
+        >
+          Print a table card or poster
+        </Link>
       </section>
 
       {/* First thing on the screen when there is one: it is the only part

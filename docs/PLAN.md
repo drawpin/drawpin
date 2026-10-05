@@ -1,4 +1,4 @@
-# DrawPin — Product Plan (v11, locked)
+# DrawPin — Product Plan (v13, locked)
 
 > Source of truth for v1 scope. Changes require an ADR in `docs/adr/` and a version bump here.
 
@@ -26,7 +26,7 @@ Drawing for fun needs no account. **Posting and competing do.**
 | Vote | no | yes, from any device |
 | Report a tile | no | yes |
 
-- **Google sign-in only** for customers (Supabase Auth). Owners keep their email magic link.
+- Customers sign in **with Google, or with a code emailed to any address** (Supabase Auth, ADR-010). Owners keep their email magic link.
 - A customer picks a username on first sign-in; usernames aren't unique, so a tile shows the same 4-digit tag as before, e.g. `Ahmad#4821`, derived from the account instead of the device.
 - Deleting an account deletes that person's tiles and votes. Hall of Fame entries stay, shown without a name.
 
@@ -111,9 +111,9 @@ treats "Sexy" — is a reasonable ask once there's real feedback across more
 than one board. Not v1.
 
 Accounts open a few more: a customer's saved drawings and history (#44),
-and more ways to sign in — Facebook, Apple,
-email codes, passkeys (#50). Google is the only provider in v1; anyone without
-one can still draw as a guest. None of these are v1.
+and more ways to sign in — Facebook, Apple, passkeys (#50). Google and
+emailed codes (ADR-010) are the ways in for v1; anyone who'd rather not can
+still draw as a guest. None of these are v1.
 
 **Downloading your own drawings** (#57) is the one worth pulling forward
 soonest: everything but a winner is deleted 30 days after voting, image and
@@ -155,6 +155,8 @@ v9 changes: guests draw for fun only (ADR-007). Posting needs a Google sign-in, 
 v10 changes: the owner screen gains three settings (ADR-008): change the board link, with every former link redirecting; change the time zone from the next week; and block an account from the board, which also removes its tiles there.
 
 v11 changes: an owner can close their board (ADR-009), deleting everything on it, the Hall of Fame included, and their sign-in.
+
+v13 changes: customers can sign in with a code emailed to any address as well as with Google (ADR-010).
 
 ## Diagrams
 
