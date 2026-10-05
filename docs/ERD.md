@@ -132,6 +132,14 @@ A drawing plus optional caption and username, posted to one week.
 | `status` | `tile_status` | `live` \| `removed` |
 | `created_at` | `timestamptz` | |
 
+A customer deleting their account (docs/PLAN.md, Accounts) goes through
+`delete_account_tiles(user_id)`: it takes the name and account off their
+winners (`account_winning_tile_ids`: Hall of Fame and super winners), which
+stay, and deletes the rest of their tiles, in one transaction. The app deletes
+their images before it and the auth user after it; the profile, votes, final
+votes, reports, blocks and daily post records cascade from that. Both
+functions are `service_role` only.
+
 ### `votes`
 Final votes cast during the following week. Three per **account** per week, so
 they follow the person rather than the browser (ADR-004).
