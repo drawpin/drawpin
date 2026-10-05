@@ -73,32 +73,40 @@ export default async function DrawPage({
       : null;
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 px-4 py-6">
-      {/* Back first, where a phone's back button is expected; it asks
+    // The tint behind, as on the board, so the white canvas stands out.
+    <div data-board className="flex flex-1 flex-col">
+      <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 px-4 py-6">
+        {/* Back first, where a phone's back button is expected; it asks
           before leaving a drawing behind. */}
-      <div className="flex items-center gap-3">
-        <BackToBoard href={`/b/${slug}`} />
-        <div className="min-w-0">
-          <h1 className="text-2xl font-extrabold tracking-tight">
-            Draw a tile
-          </h1>
-          <p className="text-muted-foreground truncate text-sm">{board.name}</p>
+        <div className="flex items-center gap-3">
+          <BackToBoard href={`/b/${slug}`} />
+          <div className="min-w-0">
+            <h1 className="text-2xl font-extrabold tracking-tight">
+              Draw a tile
+            </h1>
+            <p className="text-muted-foreground truncate text-sm">
+              {board.name}
+            </p>
+          </div>
         </div>
-      </div>
 
-      {blocked ? (
-        <p role="status" className="bg-secondary rounded-2xl px-4 py-3 text-sm">
-          {blocked}
-        </p>
-      ) : (
-        <>
-          <DrawTileForm
-            slug={slug}
-            turnstileSiteKey={serverEnv().NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-            username={customer?.username ?? null}
-          />
-        </>
-      )}
-    </main>
+        {blocked ? (
+          <p
+            role="status"
+            className="bg-secondary rounded-2xl px-4 py-3 text-sm"
+          >
+            {blocked}
+          </p>
+        ) : (
+          <>
+            <DrawTileForm
+              slug={slug}
+              turnstileSiteKey={serverEnv().NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+              username={customer?.username ?? null}
+            />
+          </>
+        )}
+      </main>
+    </div>
   );
 }
