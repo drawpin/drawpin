@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { pinStyle } from "@/components/pin";
 import { hand } from "@/lib/fonts";
-import { PAPER } from "../../b/[slug]/board-look";
+import { PAPER } from "../b/[slug]/board-look";
 import { QUOTES } from "./quotes";
 
 /** How each card sits in the pile, top first. */
@@ -15,11 +15,12 @@ const PILE = [
 ];
 
 /**
- * Shuffle: the three quotes as notes pinned in a pile. Tapping the top one
- * sends it to the back, like flicking through a stack, and the next one
- * comes up. Axis: interaction, a deck you work through.
+ * What people say, as notes pinned in a pile (chosen from prototypes on
+ * 2026-10-05, "Shuffle"): one from a restaurant, an office and a friend
+ * group, no star ratings. Tapping the top note sends it to the back, like
+ * flicking through a stack, and the next one comes up.
  */
-export function Stack() {
+export function ReviewStack() {
   const [order, setOrder] = useState([0, 1, 2]);
   const next = () => setOrder(([first, ...rest]) => [...rest, first]);
 

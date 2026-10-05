@@ -1,6 +1,7 @@
 /**
- * One quote from each kind of group. PLACEHOLDERS (2026-10-05): the owner is
- * sending the real statements from people using DrawPin; swap them in here.
+ * One quote from each kind of group, for the home page's "What people say".
+ * PLACEHOLDERS (2026-10-05): the owner is sending the real statements from
+ * people using DrawPin (TODO.md); swap them in here.
  */
 export type Quote = {
   place: "Restaurant" | "Office" | "Friends";
