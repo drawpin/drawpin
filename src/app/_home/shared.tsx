@@ -41,15 +41,15 @@ export function Nav() {
       <Link
         href="/"
         aria-label="DrawPin home"
-        className="border-foreground focus-visible:ring-highlight flex h-12 items-center rounded-xl border-2 bg-white px-3 shadow-[3px_3px_0_var(--foreground)] outline-none focus-visible:ring-3"
+        className="border-foreground focus-visible:ring-highlight flex h-14 items-center rounded-xl border-2 bg-white px-3 shadow-[3px_3px_0_var(--foreground)] outline-none focus-visible:ring-3"
       >
         <Image
           src="/wordmark.webp"
           alt="DrawPin"
-          width={481}
-          height={120}
+          width={463}
+          height={152}
           unoptimized
-          className="h-8 w-auto"
+          className="h-9 w-auto"
         />
       </Link>
       <a href="#try" className={HEADER_BUTTON}>
