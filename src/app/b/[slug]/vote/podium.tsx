@@ -118,9 +118,25 @@ export function Podium({
                     className="aspect-square w-full object-cover"
                   />
                 </div>
-              ) : null}
-              <p className="text-foreground w-full truncate text-center text-xs font-bold">
-                {leader ? (leader.tile.author?.split("#")[0] ?? "Guest") : ""}
+              ) : (
+                // A place nobody holds yet: an empty paper waiting for a
+                // drawing, so the podium never looks half built.
+                <div
+                  aria-hidden
+                  className="border-foreground/25 text-muted-foreground grid aspect-square w-[86%] place-items-center rounded-sm border-2 border-dashed bg-white/60 text-2xl font-black"
+                  style={{
+                    rotate: place === 2 ? "-3deg" : "3deg",
+                  }}
+                >
+                  ?
+                </div>
+              )}
+              <p
+                className={`w-full truncate text-center text-xs font-bold ${leader ? "text-foreground" : "text-muted-foreground"}`}
+              >
+                {leader
+                  ? (leader.tile.author?.split("#")[0] ?? "Guest")
+                  : "Up for grabs"}
               </p>
               <div
                 className="podium-rise border-foreground text-foreground relative flex w-full flex-col items-center justify-center gap-1 overflow-hidden rounded-t-lg border-2 border-b-0 bg-white"

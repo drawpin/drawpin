@@ -12,9 +12,9 @@ import { EXAMPLE, Nav, TrophyBadge } from "./shared";
  * they sit in a scattered row under it instead.
  */
 const SPOTS = [
-  "md:absolute md:top-4 md:right-[4%] md:w-40 md:rotate-6",
-  "md:absolute md:top-[44%] md:right-[22%] md:w-40 md:-rotate-3",
-  "md:absolute md:bottom-6 md:right-[3%] md:w-40 md:rotate-3",
+  "md:absolute md:top-4 md:right-[4%] md:w-40 md:rotate-2",
+  "md:absolute md:top-[44%] md:right-[22%] md:w-40 md:-rotate-1",
+  "md:absolute md:bottom-6 md:right-[3%] md:w-40 md:rotate-1",
 ];
 
 /** The poster itself, on its own for a page that goes on from it. */
@@ -42,10 +42,7 @@ export function PosterHero() {
 
         <ul className="grid grid-cols-3 gap-3 pt-6 md:contents">
           {EXAMPLE.slice(0, 3).map((tile, index) => (
-            <li
-              key={tile.id}
-              className={`min-w-0 ${index % 2 ? "rotate-2" : "-rotate-2"} ${SPOTS[index]}`}
-            >
+            <li key={tile.id} className={`min-w-0 ${SPOTS[index]}`}>
               <PinnedDrawing
                 tile={tile}
                 index={index}

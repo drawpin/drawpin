@@ -7,10 +7,10 @@ import { EXAMPLE, TrophyBadge } from "./shared";
 
 /** The week, in four beats: what's said, and what the phone shows. */
 const BEATS = [
-  { day: "Monday", line: "Someone scans the code and draws one tile." },
+  { day: "Any day", line: "Someone scans the code and draws one tile." },
   { day: "All week", line: "The board fills up as people draw." },
   { day: "Next week", line: "Everyone votes on last week's board." },
-  { day: "Sunday night", line: "The winner gets the trophy, for good." },
+  { day: "Week’s end", line: "The winner gets the trophy, for good." },
 ] as const;
 
 /** What the phone shows at each beat, built from the real board pieces. */
