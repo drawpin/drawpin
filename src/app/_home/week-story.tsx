@@ -1,11 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { hand } from "@/lib/fonts";
-import { HEADER_BUTTON, INKED_BUTTON } from "../../b/[slug]/board-look";
-import { PinnedDrawing } from "../../b/[slug]/pinned-drawing";
-import { EXAMPLE, Ending, Nav, TrophyBadge } from "./shared";
+import { PinnedDrawing } from "../b/[slug]/pinned-drawing";
+import { EXAMPLE, TrophyBadge } from "./shared";
 
 /** The week, in four beats: what's said, and what the phone shows. */
 const BEATS = [
@@ -74,38 +72,6 @@ function Screen({ beat }: { beat: number }) {
       <p className={`${hand.className} text-primary text-2xl font-bold`}>
         Into the Hall of Fame
       </p>
-    </div>
-  );
-}
-
-/**
- * A week: scroll through one board's week. A phone stays put and plays it
- * out, from the first drawing to the winner's trophy, one short line per
- * beat. Axis: storytelling, the loop shown in order.
- */
-export function Week() {
-  return (
-    <div data-board className="flex min-h-dvh flex-col">
-      <header className="bg-primary text-primary-foreground border-foreground border-b-2">
-        <Nav />
-        <section className="mx-auto flex w-full max-w-5xl flex-col items-start gap-5 px-5 pt-6 pb-14">
-          <h1 className="max-w-3xl text-5xl leading-[1] font-black tracking-tight text-balance sm:text-6xl">
-            A drawing board your whole room shares.
-          </h1>
-          <p className="text-lg text-white/85">Here&apos;s one week of it.</p>
-          <div className="flex flex-wrap gap-3">
-            <a href="#join" className={INKED_BUTTON}>
-              I have a code
-            </a>
-            <Link href="/login" className={HEADER_BUTTON}>
-              Start a board
-            </Link>
-          </div>
-        </section>
-      </header>
-
-      <WeekStory />
-      <Ending />
     </div>
   );
 }

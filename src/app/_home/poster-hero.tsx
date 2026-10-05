@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { PencilSimpleIcon } from "@phosphor-icons/react";
-import { HEADER_BUTTON, INKED_BUTTON } from "../../b/[slug]/board-look";
-import { PinnedDrawing } from "../../b/[slug]/pinned-drawing";
-import { EXAMPLE, Ending, Nav, TrophyBadge } from "./shared";
+import { HEADER_BUTTON, INKED_BUTTON } from "../b/[slug]/board-look";
+import { PinnedDrawing } from "../b/[slug]/pinned-drawing";
+import { EXAMPLE, Nav, TrophyBadge } from "./shared";
 
 /**
  * Where each drawing is pinned on the poster, desktop only: overlapping the
@@ -16,20 +16,6 @@ const SPOTS = [
   "md:absolute md:top-[46%] md:right-[22%] md:w-40 md:-rotate-3",
   "md:absolute md:bottom-10 md:right-[2%] md:w-36 md:rotate-3",
 ];
-
-/**
- * Poster: one loud message, "Draw it. Pin it." (the line on the link card),
- * set huge, with real-looking drawings pinned over its edges. Almost no copy.
- * Axis: layout, a single poster instead of a page of sections.
- */
-export function Poster() {
-  return (
-    <div data-board className="flex min-h-dvh flex-col">
-      <PosterHero />
-      <Ending />
-    </div>
-  );
-}
 
 /** The poster itself, on its own for a page that goes on from it. */
 export function PosterHero() {

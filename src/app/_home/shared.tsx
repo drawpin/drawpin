@@ -2,15 +2,15 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRightIcon, PushPinIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon, PencilSimpleIcon } from "@phosphor-icons/react";
 import {
   HEADER_BUTTON,
   INKED_BUTTON,
   PAPER,
   YELLOW_STRIP,
-} from "../../b/[slug]/board-look";
-import type { Tile } from "../../b/[slug]/tiles";
-import { JoinForm } from "../../join/join-form";
+} from "../b/[slug]/board-look";
+import type { Tile } from "../b/[slug]/tiles";
+import { JoinForm } from "../join/join-form";
 
 /** Example drawings (Canva doodles, public/examples), made-up names. */
 export const EXAMPLE: Tile[] = [
@@ -28,26 +28,33 @@ export const EXAMPLE: Tile[] = [
   createdAt: "",
 }));
 
-/** The site's top bar, on whatever the hero's background is. */
-export function Nav({ tone = "blue" }: { tone?: "blue" | "tint" }) {
+/**
+ * The home page's top bar: the logo and name on the left, linking home, and
+ * on the right the way to try drawing, the one thing the hero's buttons
+ * don't already offer.
+ */
+export function Nav() {
   return (
     <nav className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-5">
-      <span
-        className={`flex items-center gap-1.5 text-lg font-black tracking-tight ${tone === "blue" ? "text-white" : "text-foreground"}`}
-      >
-        <PushPinIcon weight="fill" className="text-winner size-5" />
-        DrawPin
-      </span>
       <Link
-        href="/login"
-        className={
-          tone === "blue"
-            ? `${HEADER_BUTTON} h-10 text-white`
-            : `border-foreground hover:bg-secondary inline-flex h-10 items-center rounded-xl border-2 bg-white px-4 text-sm font-bold`
-        }
+        href="/"
+        className="focus-visible:ring-highlight flex items-center gap-2 rounded-lg text-xl font-black tracking-tight text-white outline-none focus-visible:ring-3"
       >
-        Start a board
+        <Image
+          src="/logo.webp"
+          alt=""
+          width={36}
+          height={36}
+          // A small WebP made from the site icon (src/app/icon.png).
+          unoptimized
+          className="rounded-lg ring-2 ring-white"
+        />
+        DrawPin
       </Link>
+      <a href="#try" className={`${HEADER_BUTTON} h-10`}>
+        <PencilSimpleIcon weight="bold" className="size-4" />
+        Try it
+      </a>
     </nav>
   );
 }
@@ -67,7 +74,7 @@ export function TrophyBadge({ size }: { size: number }) {
 }
 
 /**
- * The same short ending under every direction: open a board with a code,
+ * The home page's short ending: open a board with a code,
  * start one, and the owner's story word for word.
  */
 export function Ending() {

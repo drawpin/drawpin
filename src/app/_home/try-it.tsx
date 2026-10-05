@@ -4,34 +4,16 @@ import {
   ArrowCounterClockwiseIcon,
   PencilSimpleIcon,
 } from "@phosphor-icons/react";
-import Link from "next/link";
 import { useRef, useState } from "react";
 import { pinStyle } from "@/components/pin";
 import { hand } from "@/lib/fonts";
-import { HEADER_BUTTON, INKED_BUTTON, PAPER } from "../../b/[slug]/board-look";
-import { PinnedDrawing } from "../../b/[slug]/pinned-drawing";
-import type { Tile } from "../../b/[slug]/tiles";
-import { EXAMPLE, Ending, Nav, TrophyBadge } from "./shared";
+import { HEADER_BUTTON, INKED_BUTTON, PAPER } from "../b/[slug]/board-look";
+import { PinnedDrawing } from "../b/[slug]/pinned-drawing";
+import type { Tile } from "../b/[slug]/tiles";
+import { EXAMPLE, TrophyBadge } from "./shared";
 
 /** A few pens from the board's palette, plus ink. */
 const PENS = ["#0f1b2d", "#004aad", "#ff821b", "#ffca39", "#22c55e"];
-
-/**
- * Try it: the hero is a canvas. Draw something, pin it, and it lands on an
- * example board beside other people's. The reason to start is having
- * already started. Axis: interaction, doing instead of reading.
- */
-export function TryIt() {
-  return (
-    <div data-board className="flex min-h-dvh flex-col">
-      <header className="bg-primary text-primary-foreground border-foreground border-b-2">
-        <Nav />
-        <TryItPlay />
-      </header>
-      <Ending />
-    </div>
-  );
-}
 
 /** A light button on the tint, where the blue header's buttons would vanish. */
 const TINT_BUTTON =
@@ -122,17 +104,19 @@ export function TryItPlay({ tone = "blue" }: { tone?: "blue" | "tint" }) {
             : "That's how a board starts. No app, no sign-up."}
         </p>
         {pinned && (
-          <div className="motion-safe:animate-fade-up flex flex-wrap gap-3">
-            <a href="#join" className={INKED_BUTTON}>
-              I have a code
-            </a>
-            <Link
-              href="/login"
-              className={onBlue ? HEADER_BUTTON : TINT_BUTTON}
-            >
-              Start a board
-            </Link>
-          </div>
+          // Not the hero's buttons again: another go, since drawing is
+          // the point.
+          <button
+            type="button"
+            onClick={() => {
+              setPinned(null);
+              setDrawn(false);
+            }}
+            className={`motion-safe:animate-fade-up ${onBlue ? HEADER_BUTTON : TINT_BUTTON}`}
+          >
+            <ArrowCounterClockwiseIcon weight="bold" className="size-5" />
+            Draw another
+          </button>
         )}
       </section>
 
