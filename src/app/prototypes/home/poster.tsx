@@ -25,43 +25,50 @@ const SPOTS = [
 export function Poster() {
   return (
     <div data-board className="flex min-h-dvh flex-col">
-      <header className="bg-primary text-primary-foreground border-foreground overflow-hidden border-b-2">
-        <Nav />
-        <div className="relative mx-auto flex w-full max-w-5xl flex-col gap-8 px-5 pt-6 pb-16 md:min-h-[78dvh] md:justify-center">
-          <h1 className="relative z-10 text-[clamp(4rem,15vw,10.5rem)] leading-[0.86] font-black tracking-tighter">
-            Draw it.
-            <br />
-            <span className="text-winner">Pin it.</span>
-          </h1>
-          <p className="relative z-10 max-w-sm text-xl font-semibold text-white/90">
-            One drawing a day. Everyone votes. One winner a week.
-          </p>
-          <div className="relative z-10 flex flex-wrap gap-3">
-            <a href="#join" className={`draw-awake ${INKED_BUTTON}`}>
-              <PencilSimpleIcon weight="bold" className="size-5" />I have a code
-            </a>
-            <Link href="/login" className={HEADER_BUTTON}>
-              Start a board
-            </Link>
-          </div>
-
-          <ul className="grid grid-cols-3 gap-3 pt-6 md:contents">
-            {EXAMPLE.slice(0, 3).map((tile, index) => (
-              <li
-                key={tile.id}
-                className={`min-w-0 ${index % 2 ? "rotate-2" : "-rotate-2"} ${SPOTS[index]}`}
-              >
-                <PinnedDrawing
-                  tile={tile}
-                  index={index}
-                  badge={index === 0 ? <TrophyBadge size={40} /> : undefined}
-                />
-              </li>
-            ))}
-          </ul>
-        </div>
-      </header>
+      <PosterHero />
       <Ending />
     </div>
+  );
+}
+
+/** The poster itself, on its own for a page that goes on from it. */
+export function PosterHero() {
+  return (
+    <header className="bg-primary text-primary-foreground border-foreground overflow-hidden border-b-2">
+      <Nav />
+      <div className="relative mx-auto flex w-full max-w-5xl flex-col gap-8 px-5 pt-6 pb-16 md:min-h-[78dvh] md:justify-center">
+        <h1 className="relative z-10 text-[clamp(4rem,15vw,10.5rem)] leading-[0.86] font-black tracking-tighter">
+          Draw it.
+          <br />
+          <span className="text-winner">Pin it.</span>
+        </h1>
+        <p className="relative z-10 max-w-sm text-xl font-semibold text-white/90">
+          One drawing a day. Everyone votes. One winner a week.
+        </p>
+        <div className="relative z-10 flex flex-wrap gap-3">
+          <a href="#join" className={`draw-awake ${INKED_BUTTON}`}>
+            <PencilSimpleIcon weight="bold" className="size-5" />I have a code
+          </a>
+          <Link href="/login" className={HEADER_BUTTON}>
+            Start a board
+          </Link>
+        </div>
+
+        <ul className="grid grid-cols-3 gap-3 pt-6 md:contents">
+          {EXAMPLE.slice(0, 3).map((tile, index) => (
+            <li
+              key={tile.id}
+              className={`min-w-0 ${index % 2 ? "rotate-2" : "-rotate-2"} ${SPOTS[index]}`}
+            >
+              <PinnedDrawing
+                tile={tile}
+                index={index}
+                badge={index === 0 ? <TrophyBadge size={40} /> : undefined}
+              />
+            </li>
+          ))}
+        </ul>
+      </div>
+    </header>
   );
 }

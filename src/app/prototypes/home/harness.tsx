@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import { Poster } from "./poster";
+import { Together } from "./together";
 import { TryIt } from "./try-it";
 import { Week } from "./week";
 
@@ -17,6 +18,7 @@ const VARIANTS = [
   { name: "Try it", Component: TryIt },
   { name: "Poster", Component: Poster },
   { name: "A week", Component: Week },
+  { name: "All three", Component: Together },
 ];
 
 /** The picker's own look, verbatim from the prototype skill: harness chrome. */
