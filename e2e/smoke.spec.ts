@@ -1,8 +1,10 @@
 import { expect, test } from "@playwright/test";
 
-test("homepage loads and shows the DrawPin heading", async ({ page }) => {
+test("homepage loads and shows its headline", async ({ page }) => {
   const response = await page.goto("/");
 
   expect(response?.ok()).toBe(true);
-  await expect(page.getByRole("heading", { name: "DrawPin" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { level: 1, name: /shared drawing board/ }),
+  ).toBeVisible();
 });
