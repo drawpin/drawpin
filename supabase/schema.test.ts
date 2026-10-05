@@ -2238,3 +2238,80 @@ describe("deleting an account", () => {
     }
   });
 });
+
+describe("a crowned week", () => {
+  /** A closed week: Artist's first tile has 2 votes, the second 1. */
+  async function seedCrowned() {
+    const board = await seedBoard();
+    const artistId = crypto.randomUUID();
+    const voters = [crypto.randomUUID(), crypto.randomUUID()];
+    await db.exec(`
+      insert into auth.users (id, email) values
+        ('${artistId}', '${artistId}@example.com'),
+        ${voters.map((id) => `('${id}', '${id}@example.com')`).join(", ")};
+      insert into profiles (id, username) values
+        ('${artistId}', 'Artist'),
+        ${voters.map((id, i) => `('${id}', 'Voter${i}')`).join(", ")};
+      update tiles set user_id = '${artistId}'
+        where week_id = '${board.weekId}' and device_id = '${board.artistDeviceId}';
+      update weeks set posting_ends_at = now() - interval '2 days',
+                       voting_ends_at = now() + interval '1 day'
+        where id = '${board.weekId}';
+    `);
+    const [winner, runnerUp, other] = board.tileIds;
+    for (const [userId, tileId] of [
+      [voters[0], winner],
+      [voters[1], winner],
+      [voters[0], runnerUp],
+    ]) {
+      await db.query(
+        `insert into votes (week_id, tile_id, user_id) values ($1, $2, $3)`,
+        [board.weekId, tileId, userId],
+      );
+    }
+    await db.query(
+      `update weeks set voting_ends_at = now() - interval '1 minute' where id = $1`,
+      [board.weekId],
+    );
+    await db.query(`select finalize_week_winner($1)`, [board.weekId]);
+    return { ...board, artistId, voters, winner, runnerUp, other };
+  }
+
+  async function crowned(weekId: string) {
+    const result = await db.query<{ tile_id: string }>(
+      `select tile_id from hall_of_fame where week_id = $1`,
+      [weekId],
+    );
+    return result.rows[0]?.tile_id ?? null;
+  }
+
+  it("keeps its winner when the winner's account is deleted and the week is judged again", async () => {
+    const { weekId, artistId, winner, other } = await seedCrowned();
+
+    await db.query(`select delete_account_tiles($1)`, [artistId]);
+    await db.query(`delete from auth.users where id = $1`, [artistId]);
+    // Removing any other tile re-judges the week.
+    await db.query(`update tiles set status = 'removed' where id = $1`, [other]);
+    await db.query(`select finalize_week_winner($1)`, [weekId]);
+
+    expect(await crowned(weekId)).toBe(winner);
+  });
+
+  it("keeps its winner when voters' accounts are deleted", async () => {
+    const { weekId, voters, winner } = await seedCrowned();
+
+    await db.query(`delete from auth.users where id = $1`, [voters[1]]);
+    await db.query(`select finalize_week_winner($1)`, [weekId]);
+
+    expect(await crowned(weekId)).toBe(winner);
+  });
+
+  it("is re-crowned from what's left when its winner is removed", async () => {
+    const { weekId, winner, runnerUp } = await seedCrowned();
+
+    await db.query(`update tiles set status = 'removed' where id = $1`, [winner]);
+    await db.query(`select finalize_week_winner($1)`, [weekId]);
+
+    expect(await crowned(weekId)).toBe(runnerUp);
+  });
+});
