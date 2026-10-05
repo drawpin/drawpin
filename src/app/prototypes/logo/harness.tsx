@@ -9,12 +9,12 @@ import {
 } from "react";
 import { Hero } from "./hero";
 
-// The logo in the home page's corner (2026-10-05): three ways for it to
-// read as a logo rather than a button.
+// The logo, round two (2026-10-05): it must stand out on the blue without
+// looking like a button, and the pin belongs to the board, not the home page.
 const VARIANTS = [
-  { name: "On the blue", Component: () => <Hero logo="cutout" /> },
-  { name: "White outline", Component: () => <Hero logo="white" /> },
-  { name: "Pinned up", Component: () => <Hero logo="pinned" /> },
+  { name: "White bar", Component: () => <Hero logo="bar" /> },
+  { name: "Tab", Component: () => <Hero logo="tab" /> },
+  { name: "Yellow", Component: () => <Hero logo="yellow" /> },
 ];
 
 /** The picker's own look, verbatim from the prototype skill: harness chrome. */
