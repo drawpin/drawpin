@@ -4,6 +4,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getBoard, requireBoard } from "../data";
+import { sharePreview } from "../share-preview";
 import { listSuperWinners, listWinners } from "./data";
 
 /** A winner whose account has since been deleted keeps its place, unnamed. */
@@ -16,6 +17,7 @@ export async function generateMetadata({
   const board = await getBoard(slug);
   return {
     title: board ? `Hall of Fame · ${board.name}` : "Board not found · DrawPin",
+    openGraph: board ? sharePreview("hall-of-fame", board) : undefined,
   };
 }
 

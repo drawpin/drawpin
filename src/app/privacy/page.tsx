@@ -38,8 +38,9 @@ export default function PrivacyPage() {
         <h2 className="font-medium">What we keep when you sign in</h2>
         <ul className="list-disc pl-5">
           <li>
-            The email address on your Google account, and the name on it — the
-            name is only used to suggest a username, which you can change.
+            Your email address: the one on your Google account, or the one you
+            had a sign-in code sent to. With Google we also get the name on the
+            account, only to suggest a username, which you can change.
           </li>
           <li>The username you choose, which is shown on your drawings.</li>
           <li>
@@ -88,6 +89,10 @@ export default function PrivacyPage() {
           <li>
             <strong>Google</strong>, if you choose to sign in with it.
           </li>
+          <li>
+            <strong>Resend</strong> delivers sign-in emails, so it sees the
+            address a code is sent to.
+          </li>
         </ul>
       </section>
 
@@ -113,11 +118,12 @@ export default function PrivacyPage() {
       <section className="flex flex-col gap-2">
         <h2 className="font-medium">Deleting your account</h2>
         <p>
-          Sign in on any board and tap Delete account, next to Sign out. That
-          deletes your account, your drawings and your votes straight away.
-          Anything of yours that won a week or a month stays in the Hall of Fame
-          as part of that board&apos;s history, with your name taken off it. If
-          you can&apos;t sign in any more, email us at{" "}
+          Sign in on any board, tap Your drawings next to Sign out, then Delete
+          account at the bottom. That deletes your account, your drawings and
+          your votes straight away. Anything of yours that won a week or a month
+          stays in the Hall of Fame as part of that board&apos;s history, with
+          your name taken off it. If you can&apos;t sign in any more, email us
+          at{" "}
           <a
             className="underline underline-offset-4"
             href={`mailto:${CONTACT_EMAIL}`}
@@ -141,8 +147,8 @@ export default function PrivacyPage() {
         <h2 className="font-medium">Children</h2>
         <p>
           Drawing for fun needs no account and we ask nothing about who you are.
-          Posting, voting and reporting use a Google account, which has its own
-          age rules.
+          Posting, voting and reporting need an account, through Google, which
+          has its own age rules, or an email address.
         </p>
       </section>
 

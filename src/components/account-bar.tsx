@@ -25,10 +25,10 @@ export function AccountBar({
         </span>
         <div className="flex items-center gap-1">
           <Link
-            href={`/account/delete?next=${encodeURIComponent(next)}`}
+            href={`/account?next=${encodeURIComponent(next)}`}
             className="px-2 underline-offset-4 hover:underline"
           >
-            Delete account
+            Your drawings
           </Link>
           <form action={signOutCustomer}>
             <input type="hidden" name="next" value={next} />
