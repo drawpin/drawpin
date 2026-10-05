@@ -123,7 +123,6 @@ export function Podium({ leaders }: { leaders: Leader[] }) {
                 }}
               >
                 <ScribbleFill
-                  height={step.height}
                   delay={step.delay + SCRIBBLE_AFTER_RISE}
                   duration={Math.round((SCRIBBLE_MS * step.height) / 144)}
                   className={step.color}
