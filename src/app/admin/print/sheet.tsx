@@ -1,4 +1,4 @@
-import { type CardLayout, LOOKS, type LookId } from "./looks";
+import { type CardLayout, Look, type LookId } from "./looks";
 
 export type PrintFormat = "tent" | "poster";
 export type Paper = "letter" | "a4";
@@ -27,10 +27,9 @@ export function Sheet({
   name: string;
   qrSvg: string;
 }) {
-  const { Look } = LOOKS.find((each) => each.id === look) ?? LOOKS[0];
   const size = PAPER_SIZE[paper];
   const card = (layout: CardLayout) => (
-    <Look name={name} qrSvg={qrSvg} layout={layout} />
+    <Look look={look} name={name} qrSvg={qrSvg} layout={layout} />
   );
 
   return (
