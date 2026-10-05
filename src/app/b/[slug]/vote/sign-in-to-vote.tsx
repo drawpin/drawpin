@@ -17,25 +17,36 @@ import { DrawingsHeading, DrawingsList } from "./drawings-list";
 export function SignInToVote({
   tiles,
   next,
+  heading = <DrawingsHeading />,
+  notes,
+  ask = "Sign in to vote. Three votes per week!",
 }: {
   tiles: Tile[];
   /** Where to come back to after signing in. */
   next: string;
+  /** Over the drawings; last week's by default. */
+  heading?: React.ReactNode;
+  /** A line under each drawing, by tile id (the monthly final's "won its week"). */
+  notes?: Record<string, React.ReactNode>;
+  /** What the card says after "Want a say?". */
+  ask?: string;
 }) {
   const [asking, setAsking] = useState(false);
 
   return (
     <>
       <section className="flex flex-col gap-4">
-        <DrawingsHeading />
+        {heading}
         <DrawingsList>
           {tiles.map((tile, index) => (
-            <PinnedDrawing
-              key={tile.id}
-              tile={tile}
-              index={index}
-              onPick={() => setAsking(true)}
-            />
+            <div key={tile.id} className="flex flex-col gap-2">
+              <PinnedDrawing
+                tile={tile}
+                index={index}
+                onPick={() => setAsking(true)}
+              />
+              {notes?.[tile.id]}
+            </div>
           ))}
         </DrawingsList>
       </section>
@@ -48,7 +59,7 @@ export function SignInToVote({
         >
           <p className="text-muted-foreground min-w-0 flex-1 text-sm">
             <span className="text-foreground font-semibold">Want a say?</span>{" "}
-            Sign in to vote. Three votes per week!
+            {ask}
           </p>
           <GoogleSignIn next={next} label="Sign in" size="sm" />
           <button
