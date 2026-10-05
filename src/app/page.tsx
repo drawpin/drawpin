@@ -121,9 +121,9 @@ export default async function Home() {
 
             {/* An example board: the real polaroids, pinned and swinging
                 in, with this week's leader holding the trophy. */}
-            <section aria-label="An example board" className="relative">
+            <section aria-label="An example board" className="flex flex-col">
               <p
-                className={`${hand.className} absolute -top-7 right-0 rotate-3 text-xl font-bold text-white/80`}
+                className={`${hand.className} -mb-2 rotate-2 self-end text-xl font-bold text-white/80`}
               >
                 an example board
               </p>
