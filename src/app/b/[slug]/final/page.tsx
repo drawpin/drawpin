@@ -7,6 +7,7 @@ import { serverEnv } from "@/lib/env";
 import { openFinal } from "@/lib/monthly-final";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getBoard, requireBoard } from "../data";
+import { sharePreview } from "../share-preview";
 import {
   ensureFinal,
   hasVotedInFinal,
@@ -25,6 +26,7 @@ export async function generateMetadata({
     title: board
       ? `Monthly final · ${board.name}`
       : "Board not found · DrawPin",
+    openGraph: board ? sharePreview("final", board) : undefined,
   };
 }
 
