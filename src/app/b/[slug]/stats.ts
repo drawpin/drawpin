@@ -1,11 +1,13 @@
 /** Public participation numbers shown on a board. */
 export type BoardStats = {
   /**
-   * Distinct people who have drawn on the board (all weeks): accounts, plus a
-   * device for each guest tile left from before guests stopped posting.
+   * Everyone who has ever drawn on the board, all time: each account once,
+   * still counted after the clean-up or an account deletion. Boards older
+   * than the tally (20261005140000_all_time_counts.sql) also count a device
+   * for each guest tile they held when it was backfilled.
    */
   people: number;
-  /** Live drawings the board still holds (all weeks). */
+  /** Every drawing ever posted, all time, less the ones the owner removed. */
   totalDrawings: number;
   /** Live drawings in the week that is taking posts now. */
   weekDrawings: number;
