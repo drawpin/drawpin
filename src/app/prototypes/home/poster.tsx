@@ -1,0 +1,67 @@
+"use client";
+
+import Link from "next/link";
+import { PencilSimpleIcon } from "@phosphor-icons/react";
+import { HEADER_BUTTON, INKED_BUTTON } from "../../b/[slug]/board-look";
+import { PinnedDrawing } from "../../b/[slug]/pinned-drawing";
+import { EXAMPLE, Ending, Nav, TrophyBadge } from "./shared";
+
+/**
+ * Where each drawing is pinned on the poster, desktop only: overlapping the
+ * edges of the type, at a slant, like a wall someone's been at. On a phone
+ * they sit in a scattered row under it instead.
+ */
+const SPOTS = [
+  "md:absolute md:top-6 md:right-[4%] md:w-44 md:rotate-6",
+  "md:absolute md:top-[46%] md:right-[22%] md:w-40 md:-rotate-3",
+  "md:absolute md:bottom-10 md:right-[2%] md:w-36 md:rotate-3",
+];
+
+/**
+ * Poster: one loud message, "Draw it. Pin it." (the line on the link card),
+ * set huge, with real-looking drawings pinned over its edges. Almost no copy.
+ * Axis: layout, a single poster instead of a page of sections.
+ */
+export function Poster() {
+  return (
+    <div data-board className="flex min-h-dvh flex-col">
+      <header className="bg-primary text-primary-foreground border-foreground overflow-hidden border-b-2">
+        <Nav />
+        <div className="relative mx-auto flex w-full max-w-5xl flex-col gap-8 px-5 pt-6 pb-16 md:min-h-[78dvh] md:justify-center">
+          <h1 className="relative z-10 text-[clamp(4rem,15vw,10.5rem)] leading-[0.86] font-black tracking-tighter">
+            Draw it.
+            <br />
+            <span className="text-winner">Pin it.</span>
+          </h1>
+          <p className="relative z-10 max-w-sm text-xl font-semibold text-white/90">
+            One drawing a day. Everyone votes. One winner a week.
+          </p>
+          <div className="relative z-10 flex flex-wrap gap-3">
+            <a href="#join" className={`draw-awake ${INKED_BUTTON}`}>
+              <PencilSimpleIcon weight="bold" className="size-5" />I have a code
+            </a>
+            <Link href="/login" className={HEADER_BUTTON}>
+              Start a board
+            </Link>
+          </div>
+
+          <ul className="grid grid-cols-3 gap-3 pt-6 md:contents">
+            {EXAMPLE.slice(0, 3).map((tile, index) => (
+              <li
+                key={tile.id}
+                className={`min-w-0 ${index % 2 ? "rotate-2" : "-rotate-2"} ${SPOTS[index]}`}
+              >
+                <PinnedDrawing
+                  tile={tile}
+                  index={index}
+                  badge={index === 0 ? <TrophyBadge size={40} /> : undefined}
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
+      </header>
+      <Ending />
+    </div>
+  );
+}
