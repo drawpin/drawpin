@@ -7,6 +7,7 @@ import { serverEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { localDayFor } from "@/lib/venue-time";
 import { getBoard, requireBoard } from "../data";
+import { sharePreview } from "../share-preview";
 import { DrawTileForm } from "./draw-tile-form";
 import { BLOCKED_ATTEMPT_LIMIT } from "./post-tile";
 import { SignInFirst } from "./sign-in-first";
@@ -18,6 +19,7 @@ export async function generateMetadata({
   const board = await getBoard(slug);
   return {
     title: board ? `Draw a tile · ${board.name}` : "Board not found · DrawPin",
+    openGraph: board ? sharePreview("draw", board) : undefined,
   };
 }
 

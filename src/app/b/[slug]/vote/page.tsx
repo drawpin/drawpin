@@ -6,6 +6,7 @@ import { getCustomer } from "@/lib/customer";
 import { serverEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getBoard, requireBoard, getVotingWeek, listLiveTiles } from "../data";
+import { sharePreview } from "../share-preview";
 import { VOTES_PER_WEEK } from "./cast-votes";
 import { SupabaseVoteStore } from "./supabase-vote-store";
 import { TileWall } from "./tile-wall";
@@ -18,6 +19,7 @@ export async function generateMetadata({
   const board = await getBoard(slug);
   return {
     title: board ? `Vote · ${board.name}` : "Board not found · DrawPin",
+    openGraph: board ? sharePreview("vote", board) : undefined,
   };
 }
 
