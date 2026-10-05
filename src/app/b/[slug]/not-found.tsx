@@ -1,22 +1,18 @@
 import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
+import { CardPage, INKED_BUTTON } from "./board-look";
 
 export default function BoardNotFound() {
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Board not found
-        </h1>
-        <p className="text-muted-foreground max-w-sm">
-          Check the link, or scan the board&apos;s code again.
-        </p>
-      </div>
+    <CardPage
+      note="Hmm, no board here"
+      title="Board not found"
+      intro={<p>Check the link, or scan the board&apos;s code again.</p>}
+    >
       {/* A stale link is the likeliest way anyone gets here, and the code on
           the counter is the way out of it. */}
-      <Link href="/#join" className={buttonVariants()}>
+      <Link href="/#join" className={`${INKED_BUTTON} w-full`}>
         Open a board with a code
       </Link>
-    </main>
+    </CardPage>
   );
 }

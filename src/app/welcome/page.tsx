@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { CardPage } from "@/app/b/[slug]/board-look";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { requireOwner } from "@/lib/auth";
@@ -34,21 +35,20 @@ export default async function WelcomePage({
   if (profile) redirect(destination);
 
   return (
-    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-6">
-      <div className="flex flex-col gap-2 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          You&apos;re in the running
-        </h1>
-        <p className="text-muted-foreground text-sm">
+    <CardPage
+      note="Welcome!"
+      title="You're in the running"
+      intro={
+        <p>
           Signed in, so your drawings can be voted for and you can vote on last
           week&apos;s board.
         </p>
-      </div>
-
+      }
+    >
       <WelcomeForm
         next={destination}
         suggestion={suggestedName(user.user_metadata ?? {})}
       />
-    </main>
+    </CardPage>
   );
 }

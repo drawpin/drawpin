@@ -45,3 +45,44 @@ export function BoardLayout({
     </div>
   );
 }
+
+/**
+ * A small page in the boards' look, for a form or a message on its own
+ * (sign-in, setup, picking a name, not found): the tint behind, and an inked
+ * white card in the middle with a handwritten note over the title.
+ */
+export function CardPage({
+  note,
+  title,
+  intro,
+  children,
+}: {
+  /** The yellow note above the title, in the handwriting. */
+  note: string;
+  title: string;
+  intro?: ReactNode;
+  children?: ReactNode;
+}) {
+  return (
+    <div data-board className="flex flex-1 flex-col justify-center px-4 py-10">
+      <main className="border-foreground mx-auto flex w-full max-w-sm flex-col gap-5 rounded-xl border-2 bg-white px-5 py-7 shadow-[5px_5px_0_var(--primary)]">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <p
+            className={`${hand.className} bg-winner text-foreground w-fit -rotate-2 rounded-sm px-2.5 py-0.5 text-xl leading-tight font-bold`}
+          >
+            {note}
+          </p>
+          <h1 className="text-3xl leading-tight font-black tracking-tight text-balance">
+            {title}
+          </h1>
+          {intro && (
+            <div className="text-muted-foreground text-sm text-pretty">
+              {intro}
+            </div>
+          )}
+        </div>
+        {children}
+      </main>
+    </div>
+  );
+}
