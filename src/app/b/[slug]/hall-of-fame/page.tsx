@@ -163,7 +163,7 @@ export default async function HallOfFamePage({
           <h2 className={`${YELLOW_STRIP} text-3xl`}>Weekly winners</h2>
           <DrawingsList>
             {winners.map((winner, index) => (
-              <div key={winner.weekId} className="flex flex-col gap-2">
+              <div key={winner.weekId} className="flex flex-col gap-5">
                 <PinnedDrawing
                   tile={asTile(winner.weekId, winner)}
                   index={index}
