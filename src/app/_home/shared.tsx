@@ -32,12 +32,13 @@ export const EXAMPLE: Tile[] = [
  * The home page's top bar (chosen from prototypes on 2026-10-05, "White
  * bar"): a slim white strip above the blue hero, with the wordmark in its
  * own colours on the left, linking home, and on the right the way to try
- * drawing, the one thing the hero's buttons don't already offer.
+ * drawing, the one thing the hero's buttons don't already offer. No rule
+ * under it: the hero fades in from the white instead of starting on a line.
  */
 export function Nav() {
   return (
-    <div className="border-foreground border-b-2 bg-white">
-      <nav className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-2.5">
+    <div className="bg-white">
+      <nav className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-1.5">
         {/* Cut from the link card (public/og-v2.png), the only copy of the
             wordmark there is. */}
         <Link
@@ -51,11 +52,11 @@ export function Nav() {
             width={463}
             height={152}
             unoptimized
-            className="h-10 w-auto"
+            className="h-8 w-auto"
           />
         </Link>
-        <a href="#try" className={OUTLINE_BUTTON}>
-          <PencilSimpleIcon weight="bold" className="size-5" />
+        <a href="#try" className={`${OUTLINE_BUTTON} h-10 px-3 text-sm`}>
+          <PencilSimpleIcon weight="bold" className="size-4" />
           Try it
         </a>
       </nav>

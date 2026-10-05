@@ -12,18 +12,26 @@ import { EXAMPLE, Nav, TrophyBadge } from "./shared";
  * they sit in a scattered row under it instead.
  */
 const SPOTS = [
-  "md:absolute md:top-12 md:right-[4%] md:w-40 md:rotate-2",
+  "md:absolute md:top-4 md:right-[4%] md:w-40 md:rotate-2",
   "md:absolute md:top-[44%] md:right-[22%] md:w-40 md:-rotate-1",
   "md:absolute md:bottom-6 md:right-[3%] md:w-40 md:rotate-1",
 ];
 
-/** The poster itself, on its own for a page that goes on from it. */
+/**
+ * The poster itself, on its own for a page that goes on from it. Its blue
+ * fades in from the white bar above and back out to the white page below,
+ * instead of starting and stopping on a hard edge.
+ */
 export function PosterHero() {
   return (
     <>
       <Nav />
-      <header className="bg-primary text-primary-foreground border-foreground overflow-hidden border-b-2">
-        <div className="relative mx-auto flex w-full max-w-5xl flex-col gap-6 px-5 pt-8 pb-10 md:min-h-[30rem] md:justify-center">
+      <header className="bg-primary text-primary-foreground overflow-hidden">
+        <div
+          aria-hidden
+          className="to-primary h-20 bg-linear-to-b from-white"
+        />
+        <div className="relative mx-auto flex w-full max-w-5xl flex-col gap-6 px-5 pt-2 pb-10 md:min-h-[30rem] md:justify-center">
           <h1 className="relative z-10 text-[clamp(4rem,15vw,10.5rem)] leading-[0.86] font-black tracking-tighter">
             Draw it.
             <br />
@@ -53,6 +61,10 @@ export function PosterHero() {
             ))}
           </ul>
         </div>
+        <div
+          aria-hidden
+          className="from-primary h-32 bg-linear-to-b to-white"
+        />
       </header>
     </>
   );
