@@ -35,7 +35,7 @@ export function BoardLayout({
   return (
     <div data-board className="flex flex-1 flex-col">
       <header className="bg-primary text-primary-foreground border-foreground border-b-2">
-        <div className="mx-auto flex w-full max-w-lg flex-col gap-4 px-4 pt-8 pb-8">
+        <div className="relative mx-auto flex w-full max-w-lg flex-col gap-4 px-4 pt-8 pb-8">
           {header}
         </div>
       </header>

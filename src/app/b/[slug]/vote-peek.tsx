@@ -37,6 +37,8 @@ export function VotePeek({
   return (
     <Link
       href={href}
+      // The board switches to its vote view in place, header and all.
+      scroll={false}
       className="vote-awake motion-safe:animate-fade-up border-foreground focus-visible:ring-highlight relative flex flex-col gap-3 rounded-xl border-2 bg-white p-4 shadow-[5px_5px_0_var(--primary)] transition-[translate,box-shadow] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] outline-none hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[7px_7px_0_var(--primary)] focus-visible:ring-3 active:translate-x-1 active:translate-y-1 active:shadow-[1px_1px_0_var(--primary)] active:duration-75 motion-reduce:transition-none"
     >
       <span className="flex gap-1.5" aria-hidden>
