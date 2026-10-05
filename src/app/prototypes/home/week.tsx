@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { hand } from "@/lib/fonts";
@@ -111,64 +110,69 @@ export function Week() {
   );
 }
 
-/** The week played out on a phone as the beats scroll by. */
+/** How long each beat stays up before the next, in ms. */
+const BEAT_MS = 2800;
+
+/**
+ * The week played out on a phone, compact: the beats as a short list beside
+ * it, stepping on by themselves every few seconds (only while it's on screen),
+ * and a tap on a beat jumps to it. With reduced motion it doesn't step on
+ * by itself; the beats are still there to tap.
+ */
 export function WeekStory() {
   const [beat, setBeat] = useState(0);
-  const steps = useRef<(HTMLLIElement | null)[]>([]);
+  const box = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
 
-  // Whichever beat is in the middle of the screen is the one shown.
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting)
-            setBeat(Number((entry.target as HTMLElement).dataset.beat));
-        }
-      },
-      { rootMargin: "-45% 0px -45% 0px" },
+    const element = box.current;
+    if (!element) return;
+    const observer = new IntersectionObserver(([entry]) =>
+      setVisible(entry.isIntersecting),
     );
-    for (const step of steps.current) if (step) observer.observe(step);
+    observer.observe(element);
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    if (!visible) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const timer = window.setInterval(
+      () => setBeat((current) => (current + 1) % BEATS.length),
+      BEAT_MS,
+    );
+    return () => window.clearInterval(timer);
+  }, [visible, beat]);
+
   return (
-    <div className="mx-auto grid w-full max-w-5xl gap-10 px-5 py-14 md:grid-cols-2">
-      {/* The phone: sticky beside the beats on a wide screen, and on a
-            phone, stuck to the top while the beats scroll under it. */}
-      <div className="sticky top-3 z-10 self-start">
-        <div className="border-foreground bg-secondary mx-auto h-[380px] w-full max-w-[300px] overflow-hidden rounded-[2rem] border-4 px-4 shadow-[6px_6px_0_var(--primary)] md:h-[480px]">
-          <p className="text-primary pt-3 text-center text-xs font-black tracking-wide">
-            {BEATS[beat].day}
-          </p>
-          <Screen key={beat} beat={beat} />
-        </div>
+    <div
+      ref={box}
+      className="mx-auto grid w-full max-w-5xl items-center gap-6 px-5 py-6 md:grid-cols-2"
+    >
+      <div className="border-foreground bg-secondary mx-auto h-[340px] w-full max-w-[280px] overflow-hidden rounded-[2rem] border-4 px-4 shadow-[6px_6px_0_var(--primary)] md:h-[400px]">
+        <p className="text-primary pt-3 text-center text-xs font-black tracking-wide">
+          {BEATS[beat].day}
+        </p>
+        <Screen key={beat} beat={beat} />
       </div>
-      <ol className="flex flex-col">
+      <ol className="flex flex-col gap-1">
         {BEATS.map((item, index) => (
-          <li
-            key={item.day}
-            ref={(element) => {
-              steps.current[index] = element;
-            }}
-            data-beat={index}
-            className={`flex min-h-[60dvh] flex-col justify-center gap-2 transition-opacity duration-300 ${beat === index ? "opacity-100" : "opacity-35"}`}
-          >
-            <p className={`${hand.className} text-primary text-3xl font-bold`}>
-              {item.day}
-            </p>
-            <p className="text-3xl leading-tight font-black tracking-tight text-balance">
-              {item.line}
-            </p>
-            {index === BEATS.length - 1 && (
-              <Image
-                src="/trophies/gold.webp"
-                alt=""
-                width={56}
-                height={56}
-                unoptimized
-                className="mt-2"
-              />
-            )}
+          <li key={item.day}>
+            <button
+              type="button"
+              onClick={() => setBeat(index)}
+              aria-current={beat === index ? "step" : undefined}
+              className={`focus-visible:ring-highlight flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-[background-color,opacity] duration-200 outline-none focus-visible:ring-3 ${beat === index ? "bg-white opacity-100 shadow-[0_2px_3px_rgb(15_27_45/0.08)]" : "opacity-50 hover:opacity-80"}`}
+            >
+              <span
+                className={`${hand.className} text-primary w-24 shrink-0 pt-0.5 text-xl leading-tight font-bold`}
+              >
+                {item.day}
+              </span>
+              <span className="text-lg leading-snug font-black tracking-tight">
+                {item.line}
+              </span>
+            </button>
           </li>
         ))}
       </ol>

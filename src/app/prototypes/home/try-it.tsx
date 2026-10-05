@@ -104,7 +104,7 @@ export function TryItPlay({ tone = "blue" }: { tone?: "blue" | "tint" }) {
   }
 
   return (
-    <div className="mx-auto grid w-full max-w-5xl items-center gap-10 px-5 pt-4 pb-16 md:grid-cols-[1fr_1.05fr]">
+    <div className="mx-auto grid w-full max-w-5xl items-center gap-8 px-5 pt-2 pb-10 md:grid-cols-[1fr_1.05fr]">
       <section className="flex flex-col items-start gap-5">
         <p
           className={`${hand.className} bg-winner text-foreground -rotate-2 rounded-sm px-2.5 py-0.5 text-xl font-bold`}

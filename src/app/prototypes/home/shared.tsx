@@ -72,7 +72,7 @@ export function TrophyBadge({ size }: { size: number }) {
  */
 export function Ending() {
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-16 px-5 py-16">
+    <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-5 py-10">
       <div className="grid gap-6 md:grid-cols-2">
         <section
           id="join"

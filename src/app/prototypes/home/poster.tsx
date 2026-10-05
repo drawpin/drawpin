@@ -36,7 +36,7 @@ export function PosterHero() {
   return (
     <header className="bg-primary text-primary-foreground border-foreground overflow-hidden border-b-2">
       <Nav />
-      <div className="relative mx-auto flex w-full max-w-5xl flex-col gap-8 px-5 pt-6 pb-16 md:min-h-[78dvh] md:justify-center">
+      <div className="relative mx-auto flex w-full max-w-5xl flex-col gap-6 px-5 pt-2 pb-10 md:min-h-[30rem] md:justify-center">
         <h1 className="relative z-10 text-[clamp(4rem,15vw,10.5rem)] leading-[0.86] font-black tracking-tighter">
           Draw it.
           <br />
