@@ -3,10 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRightIcon, PencilSimpleIcon } from "@phosphor-icons/react";
-import { HEADER_BUTTON, INKED_BUTTON, PAPER } from "../b/[slug]/board-look";
+import { INKED_BUTTON, PAPER } from "../b/[slug]/board-look";
 import type { Tile } from "../b/[slug]/tiles";
 import { JoinForm } from "../join/join-form";
-import { CARD_TITLE, SECTION_TITLE } from "./type";
+import { CARD_TITLE, OUTLINE_BUTTON, SECTION_TITLE } from "./type";
 
 /**
  * Example drawings (made in Canva, public/examples), each showing a tool
@@ -29,34 +29,37 @@ export const EXAMPLE: Tile[] = [
 }));
 
 /**
- * The home page's top bar: the logo and name on the left, linking home, and
- * on the right the way to try drawing, the one thing the hero's buttons
- * don't already offer.
+ * The home page's top bar (chosen from prototypes on 2026-10-05, "White
+ * bar"): a slim white strip above the blue hero, with the wordmark in its
+ * own colours on the left, linking home, and on the right the way to try
+ * drawing, the one thing the hero's buttons don't already offer.
  */
 export function Nav() {
   return (
-    <nav className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-5">
-      {/* The wordmark, cut from the link card (public/og-v2.png): white
-          letters, so it sits on a white sticker, inked like the buttons. */}
-      <Link
-        href="/"
-        aria-label="DrawPin home"
-        className="border-foreground focus-visible:ring-highlight flex h-14 items-center rounded-xl border-2 bg-white px-3 shadow-[3px_3px_0_var(--foreground)] outline-none focus-visible:ring-3"
-      >
-        <Image
-          src="/wordmark.webp"
-          alt="DrawPin"
-          width={463}
-          height={152}
-          unoptimized
-          className="h-9 w-auto"
-        />
-      </Link>
-      <a href="#try" className={HEADER_BUTTON}>
-        <PencilSimpleIcon weight="bold" className="size-5" />
-        Try it
-      </a>
-    </nav>
+    <div className="border-foreground border-b-2 bg-white">
+      <nav className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-2.5">
+        {/* Cut from the link card (public/og-v2.png), the only copy of the
+            wordmark there is. */}
+        <Link
+          href="/"
+          aria-label="DrawPin home"
+          className="focus-visible:ring-highlight rounded-lg outline-none focus-visible:ring-3"
+        >
+          <Image
+            src="/wordmark.webp"
+            alt="DrawPin"
+            width={463}
+            height={152}
+            unoptimized
+            className="h-10 w-auto"
+          />
+        </Link>
+        <a href="#try" className={OUTLINE_BUTTON}>
+          <PencilSimpleIcon weight="bold" className="size-5" />
+          Try it
+        </a>
+      </nav>
+    </div>
   );
 }
 
