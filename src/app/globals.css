@@ -455,3 +455,24 @@ body:has([data-board]) {
       var(--delay, 0ms) both;
   }
 }
+
+/* Printing the admin page prints only the board's QR card, centred near the
+   top of the page, at a size that scans from across a table. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-card,
+  .print-card * {
+    visibility: visible;
+  }
+  .print-card {
+    position: absolute;
+    top: 2cm;
+    left: 50%;
+    translate: -50% 0;
+    width: 9cm;
+    max-width: none;
+    box-shadow: none;
+  }
+}
