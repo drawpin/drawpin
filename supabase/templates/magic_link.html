@@ -15,6 +15,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light" />
+    <!-- Stops Apple Mail turning the 8-digit code into a phone number link,
+         which would make pressing on it offer to call rather than copy. -->
+    <meta name="format-detection" content="telephone=no, date=no" />
     <title>Your DrawPin sign-in code</title>
   </head>
   <body style="margin: 0; padding: 0; background: #eef4fd">
@@ -74,7 +77,7 @@
                   Here's your sign-in code
                 </h1>
                 <p style="margin: 0 0 24px; font-size: 15px; line-height: 1.5">
-                  Type it on the page where you asked for it.
+                  Type or paste it on the page where you asked for it.
                 </p>
 
                 <table
@@ -100,7 +103,19 @@
                         color: #0f1b2d;
                       "
                     >
-                      {{ .Token }}
+                      <!-- The code alone in its own element, with nothing
+                           around it, so a double tap or a long press selects
+                           exactly the code. user-select: all makes one tap
+                           select all of it where the client honors it. Email
+                           can't run a Copy button. --><span
+                        style="
+                          -webkit-user-select: all;
+                          user-select: all;
+                          color: #0f1b2d;
+                          text-decoration: none;
+                        "
+                        >{{ .Token }}</span
+                      >
                     </td>
                   </tr>
                 </table>
@@ -114,7 +129,8 @@
                     text-align: center;
                   "
                 >
-                  It works once and expires in 15 minutes.
+                  To copy it, press and hold the code. It works once and expires
+                  in 15 minutes.
                 </p>
 
                 <hr

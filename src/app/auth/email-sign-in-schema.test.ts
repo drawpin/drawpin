@@ -12,10 +12,11 @@ describe("emailSchema", () => {
 });
 
 describe("codeSchema", () => {
-  it("accepts the code at the project's length, with or without spaces", () => {
+  it("accepts the code at the project's length, with or without spaces or dashes", () => {
     expect(codeSchema.parse("123456")).toBe("123456");
     expect(codeSchema.parse("123 456")).toBe("123456");
     expect(codeSchema.parse("1234 5678")).toBe("12345678");
+    expect(codeSchema.parse("1234-5678")).toBe("12345678");
   });
 
   it.each(["12345", "12345678901", "12a456", ""])("refuses %j", (code) => {

@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CodeInput } from "@/components/code-input";
 import { Label } from "@/components/ui/label";
 import { Turnstile } from "@/components/turnstile";
 import {
@@ -69,20 +70,14 @@ export function LoginForm({ turnstileSiteKey }: { turnstileSiteKey: string }) {
         >
           <input type="hidden" name="email" value={email} />
           <Label htmlFor="owner-code">Code</Label>
-          <Input
+          <CodeInput
             id="owner-code"
             name="code"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            pattern="[0-9 ]*"
-            maxLength={13}
-            required
             autoFocus
             aria-invalid={checked.status === "error"}
             aria-describedby={
               checked.status === "error" ? "code-error" : undefined
             }
-            className="text-center font-mono text-lg tracking-[0.4em]"
           />
           {checked.status === "error" && (
             <p
