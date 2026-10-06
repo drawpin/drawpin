@@ -5,7 +5,7 @@ import { PencilSimpleIcon } from "@phosphor-icons/react";
 import { useEffect, useState, type ReactNode } from "react";
 import { hand } from "@/lib/fonts";
 import { HEADER_BUTTON, INKED_BUTTON } from "../../b/[slug]/board-look";
-import { Drawings, RestOfPage, TryLink, Wordmark } from "./shared";
+import { Drawings, RestOfPage, TryLink } from "./shared";
 
 /** A pencil for a cursor, so the headline looks like something to touch. */
 const PENCIL_CURSOR = `url("data:image/svg+xml,${encodeURIComponent(
@@ -46,17 +46,17 @@ function useSwap() {
 }
 
 /**
- * The Framed poster with a word-swap headline: `render` draws "Draw it."
- * turning into "Pin it." for the given state. A handwritten "hover me" sits
- * by it on a computer until the first hover.
+ * The Framed poster with the logo for its headline: `render` draws the
+ * wordmark going from "draw" to "pin" for the given state. A handwritten
+ * "hover me" sits by it on a computer until the first hover. The logo is
+ * the headline, so the bar above keeps only "Try it".
  */
 export function SwapPoster({ render }: { render: (on: boolean) => ReactNode }) {
   const { on, seen, handlers } = useSwap();
 
   return (
     <div className="flex flex-1 flex-col bg-white">
-      <nav className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-5 py-2">
-        <Wordmark />
+      <nav className="mx-auto flex w-full max-w-6xl items-center justify-end gap-4 px-5 py-2">
         <TryLink />
       </nav>
       <div className="mx-auto w-full max-w-6xl px-3 md:px-5">
@@ -70,8 +70,8 @@ export function SwapPoster({ render }: { render: (on: boolean) => ReactNode }) {
                 hover me ↓
               </p>
               <h1
-                aria-label="Draw it. Pin it."
-                className="text-[clamp(4rem,15vw,10.5rem)] leading-[0.95] font-black tracking-tighter select-none"
+                aria-label="DrawPin"
+                className="select-none"
                 style={{ cursor: PENCIL_CURSOR }}
                 {...handlers}
               >
@@ -79,7 +79,8 @@ export function SwapPoster({ render }: { render: (on: boolean) => ReactNode }) {
               </h1>
             </div>
             <p className="relative z-10 max-w-md text-lg text-white/85">
-              One drawing a day. Everyone votes. One winner a week.
+              <strong className="text-white">Draw it. Pin it.</strong> One
+              drawing a day. Everyone votes. One winner a week.
             </p>
             <div className="relative z-10 flex flex-wrap gap-3">
               <a href="#join" className={`draw-awake ${INKED_BUTTON}`}>

@@ -7,16 +7,16 @@ import {
   useRef,
   useState,
 } from "react";
-import { Flip } from "./flip";
-import { Scribble } from "./scribble";
-import { Slot } from "./slot";
+import { PinDrop } from "./pin-drop";
+import { Roll } from "./roll";
+import { Spotlight } from "./spotlight";
 
-// Round two (2026-10-05): the Framed poster, its headline a word swap from
-// "Draw it." to "Pin it." on a hover (looping on a phone), three ways.
+// Round three (2026-10-05): the Framed poster with the logo for a headline,
+// going from "draw" to "pin" on a hover (looping on a phone), three ways.
 const VARIANTS = [
-  { name: "Flip", Component: Flip },
-  { name: "Slot", Component: Slot },
-  { name: "Scribble", Component: Scribble },
+  { name: "Spotlight", Component: Spotlight },
+  { name: "Roll", Component: Roll },
+  { name: "Pin drop", Component: PinDrop },
 ];
 
 /** The picker's own look, verbatim from the prototype skill: harness chrome. */
