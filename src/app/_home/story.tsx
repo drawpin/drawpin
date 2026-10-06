@@ -5,7 +5,6 @@ import {
   DatabaseIcon,
   EyeIcon,
   GitBranchIcon,
-  GithubLogoIcon,
   KeyIcon,
   LightningIcon,
   PaletteIcon,
@@ -69,9 +68,6 @@ const SKILLS: { name: string; tools: string; icon: Icon }[] = [
   },
 ];
 
-/** The public repository, for anyone who wants to read how it's built. */
-const REPO_URL = "https://github.com/drawpin/drawpin";
-
 /** The icon circles take the palette's three accents in turn. */
 const TINTS = ["bg-winner", "bg-highlight", "bg-attention"];
 
@@ -103,7 +99,7 @@ function Skills() {
 /** The letter's pages, in order: a tab label and what the page says. */
 const PAGES: { tab: string; body: ReactNode }[] = [
   {
-    tab: "The gap",
+    tab: "The story",
     body: (
       <div className={`flex flex-col gap-3 ${BODY}`}>
         <p
@@ -116,19 +112,28 @@ const PAGES: { tab: string; body: ReactNode }[] = [
           lives. There seems to be a gap between software that makes work better
           and software that gives everyone something fun to do every day.
         </p>
+        <p>
+          DrawPin is my attempt to point what I know about building software in
+          that direction. Draw a tile every day with your friend group, at work
+          or at your favorite local spot. It goes up next to everyone
+          else&apos;s, and at the end of the week the competition begins. That
+          was the idea, anyway.
+        </p>
+        <p>
+          It became a chance to bring groups of people a good time, and to give
+          myself a better learning experience than I ever expected.
+        </p>
+        <p
+          className={`${hand.className} text-primary pt-2 text-4xl leading-tight font-bold`}
+        >
+          So have fun, and get drawing :)
+        </p>
+        <p
+          className={`${hand.className} text-foreground text-3xl leading-tight font-bold`}
+        >
+          - Ahmad
+        </p>
       </div>
-    ),
-  },
-  {
-    tab: "The idea",
-    body: (
-      <p className={BODY}>
-        DrawPin is my attempt to point what I know about building software in
-        that direction. Draw a tile every day with your friend group, at work or
-        at your favorite local spot. It goes up next to everyone else&apos;s,
-        and at the end of the week the competition begins. That was the idea,
-        anyway.
-      </p>
     ),
   },
   {
@@ -141,32 +146,9 @@ const PAGES: { tab: string; body: ReactNode }[] = [
           software I felt unsure about:
         </p>
         <Skills />
-      </div>
-    ),
-  },
-  {
-    tab: "Get drawing",
-    body: (
-      <div className={`flex flex-col items-start gap-5 ${BODY}`}>
-        <p>
-          And much more. It became a chance to bring groups of people a good
-          time, and to give myself a better learning experience than I ever
-          expected.
+        <p className="text-muted-foreground text-base font-semibold">
+          And much more.
         </p>
-        <p
-          className={`${hand.className} text-primary text-4xl leading-tight font-bold`}
-        >
-          So have fun, and get drawing :)
-        </p>
-        <a
-          href={REPO_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={OUTLINE_BUTTON}
-        >
-          <GithubLogoIcon weight="bold" className="size-5" />
-          See the code on GitHub
-        </a>
       </div>
     ),
   },
@@ -175,13 +157,12 @@ const PAGES: { tab: string; body: ReactNode }[] = [
 /**
  * "Why I made this" (UI pass, 2026-10-05): the owner's story as a letter
  * pinned to the page, read a page at a time instead of as one long card.
- * Tabs name the pages (the gap, the idea, what I learned, the sign-off),
- * and Back and Next turn them; each page slides in from the side it comes
- * from. All the pages share one grid cell, so the letter is as tall as its
- * longest page and never jumps. With reduced motion pages just swap. The
- * skills page is set out for anyone learning to build software: each skill
- * with the tools behind it, and the public code to read. The story's words
- * are the owner's.
+ * Two pages: the story itself, signed by the owner, and what building it
+ * taught them, set out for anyone learning to build software (each skill
+ * with the tools behind it). Tabs and Back and Next turn the pages; each
+ * slides in from the side it comes from. Both pages share one grid cell, so
+ * the letter is as tall as its longer page and never jumps. With reduced
+ * motion the pages just swap. The story's words are the owner's.
  */
 export function Story() {
   const [page, setPage] = useState(0);
