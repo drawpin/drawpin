@@ -11,15 +11,28 @@
  * every call fails quietly: the worst case is the old behaviour.
  */
 
-const KEY = "drawpin:email-code";
+/**
+ * Which sign-in a code belongs to. A board's owner and its players sign in
+ * on different pages, and one browser can hold both.
+ */
+export type PendingCodeFor = "customer" | "owner";
+
+const KEYS: Record<PendingCodeFor, string> = {
+  customer: "drawpin:email-code",
+  owner: "drawpin:owner-email-code",
+};
 
 /** How long a sent code is worth offering to type: the code's own expiry. */
 export const PENDING_CODE_MS = 15 * 60 * 1000;
 
 /** Notes that `email` was just sent a code. */
-export function savePendingEmail(email: string, now = Date.now()): void {
+export function savePendingEmail(
+  email: string,
+  scope: PendingCodeFor = "customer",
+  now = Date.now(),
+): void {
   try {
-    localStorage.setItem(KEY, JSON.stringify({ email, sentAt: now }));
+    localStorage.setItem(KEYS[scope], JSON.stringify({ email, sentAt: now }));
   } catch {
     // No storage: the code step just won't survive a reload.
   }
@@ -29,9 +42,12 @@ export function savePendingEmail(email: string, now = Date.now()): void {
  * The address sent a code in the last {@link PENDING_CODE_MS}, if any.
  * Anything older, or unreadable, counts as none.
  */
-export function readPendingEmail(now = Date.now()): string | null {
+export function readPendingEmail(
+  scope: PendingCodeFor = "customer",
+  now = Date.now(),
+): string | null {
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = localStorage.getItem(KEYS[scope]);
     if (!raw) return null;
     const value: unknown = JSON.parse(raw);
     if (
@@ -53,9 +69,9 @@ export function readPendingEmail(now = Date.now()): string | null {
 }
 
 /** Forgets the pending address, e.g. when someone switches to another one. */
-export function clearPendingEmail(): void {
+export function clearPendingEmail(scope: PendingCodeFor = "customer"): void {
   try {
-    localStorage.removeItem(KEY);
+    localStorage.removeItem(KEYS[scope]);
   } catch {
     // Nothing to clear without storage.
   }

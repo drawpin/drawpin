@@ -13,24 +13,34 @@ afterEach(() => {
 
 describe("pending email code", () => {
   it("remembers the address a code was sent to", () => {
-    savePendingEmail("ana@example.com", 1_000);
-    expect(readPendingEmail(1_000 + 60_000)).toBe("ana@example.com");
+    savePendingEmail("ana@example.com", "customer", 1_000);
+    expect(readPendingEmail("customer", 1_000 + 60_000)).toBe(
+      "ana@example.com",
+    );
   });
 
   it("forgets it once the code would have expired", () => {
-    savePendingEmail("ana@example.com", 1_000);
-    expect(readPendingEmail(1_000 + PENDING_CODE_MS)).toBeNull();
+    savePendingEmail("ana@example.com", "customer", 1_000);
+    expect(readPendingEmail("customer", 1_000 + PENDING_CODE_MS)).toBeNull();
   });
 
   it("ignores a time in the future", () => {
-    savePendingEmail("ana@example.com", 10_000);
-    expect(readPendingEmail(5_000)).toBeNull();
+    savePendingEmail("ana@example.com", "customer", 10_000);
+    expect(readPendingEmail("customer", 5_000)).toBeNull();
   });
 
   it("forgets it when cleared", () => {
-    savePendingEmail("ana@example.com", 1_000);
+    savePendingEmail("ana@example.com", "customer", 1_000);
     clearPendingEmail();
-    expect(readPendingEmail(2_000)).toBeNull();
+    expect(readPendingEmail("customer", 2_000)).toBeNull();
+  });
+
+  it("keeps an owner's code apart from a player's", () => {
+    savePendingEmail("owner@example.com", "owner", 1_000);
+    expect(readPendingEmail("customer", 2_000)).toBeNull();
+    expect(readPendingEmail("owner", 2_000)).toBe("owner@example.com");
+    clearPendingEmail("customer");
+    expect(readPendingEmail("owner", 2_000)).toBe("owner@example.com");
   });
 
   it("treats junk in storage as nothing pending", () => {
