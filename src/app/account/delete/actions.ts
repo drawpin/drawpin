@@ -12,13 +12,37 @@ export type DeleteAccountState =
 
 /**
  * Deletes the signed-in customer's DrawPin account, then signs them out
- * (docs/PLAN.md, Accounts). Owners have no profile, so this never reaches
- * a board; theirs closes from the owner screen instead (ADR-009).
+ * (docs/PLAN.md, Accounts).
+ *
+ * One account can draw and own a board (ADR-013), and deleting the sign-in
+ * would take the board with it (its owner row cascades from it). So an
+ * account that owns a board is asked to close the board first, from the
+ * owner screen (ADR-009), rather than losing it here by surprise.
  */
 export async function deleteAccountAction(): Promise<DeleteAccountState> {
   const admin = createAdminClient();
   const customer = await getCustomer(admin);
   if (!customer) redirect("/");
+
+  const { data: board, error: boardError } = await admin
+    .from("venues")
+    .select("id")
+    .eq("owner_id", customer.id)
+    .maybeSingle();
+  if (boardError) {
+    console.error("deleteAccountAction: board check failed", boardError);
+    return {
+      status: "error",
+      message: "We couldn't delete your account. Try again in a minute.",
+    };
+  }
+  if (board) {
+    return {
+      status: "error",
+      message:
+        "You also run a board with this account. Close it first from Manage my board, then delete your account.",
+    };
+  }
 
   try {
     await deleteAccount(customer.id, {

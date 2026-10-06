@@ -21,8 +21,8 @@ because customers sign in too (ADR-004) and aren't owners.
 | `created_at` | `timestamptz` | |
 
 ### `profiles`
-Customers (ADR-004). The counterpart to `owners`: an account has one or the
-other, never both, which is how the app tells a venue owner from a customer.
+Customers (ADR-004). The counterpart to `owners`. Since ADR-013 an account can
+have both: someone who draws can also own a board.
 
 | Column | Type | Notes |
 |---|---|---|

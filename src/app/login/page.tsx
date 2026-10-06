@@ -2,23 +2,19 @@ import type { Metadata } from "next";
 import { CardPage } from "@/app/b/[slug]/board-look";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getAccount, getOwner, signedInLoginDestination } from "@/lib/auth";
+import { getOwner } from "@/lib/auth";
 import { serverEnv } from "@/lib/env";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Sign in · DrawPin" };
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
-  // Most visitors here are already signed in to draw, so being signed in
-  // doesn't make someone an owner: only owners skip the form.
-  const user = await getOwner();
-  const account = user ? await getAccount(user, createAdminClient()) : null;
-  const destination = account && signedInLoginDestination(account.kind);
-  if (destination) redirect(destination);
+  // Anyone already signed in, to draw or to run a board, goes straight on:
+  // one account can do both (ADR-013). /admin shows their board, or sends
+  // them to set one up if they don't have one yet.
+  if (await getOwner()) redirect("/admin");
 
   const { error } = await searchParams;
-  const drawingAs = user && (account?.username ?? user.email);
 
   return (
     <CardPage
@@ -31,17 +27,6 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         </p>
       }
     >
-      {/* Signing in with the board's email replaces this session, so the
-          customer doesn't have to sign out first. The same email as their
-          drawing account would just sign them back in to it and land here
-          again, which is why the last sentence is there. */}
-      {drawingAs && (
-        <p className="bg-muted rounded-md px-3 py-2 text-center text-sm text-pretty">
-          You&apos;re signed in as <strong>{drawingAs}</strong> for drawing.
-          Sign in below with your board&apos;s email to switch this browser to
-          it. Use a different email from the one you draw with.
-        </p>
-      )}
       {error === "link" && (
         <p role="alert" className="text-destructive text-center text-sm">
           That sign-in link didn&apos;t work. Links expire after 15 minutes and

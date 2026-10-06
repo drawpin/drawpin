@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { canSetUpBoard, getAccount, requireOwner } from "@/lib/auth";
+import { requireOwner } from "@/lib/auth";
 import { serverEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { moderateVenueName } from "@/lib/venue-name";
@@ -14,11 +14,10 @@ export async function createVenueAction(
   _previous: SetupState,
   formData: FormData,
 ): Promise<SetupState> {
+  // Any signed-in account can set up a board, including one that draws
+  // (ADR-013); one board per account still holds below.
   const owner = await requireOwner();
-  // A customer's account can reach this action as easily as the page.
   const admin = createAdminClient();
-  const account = await getAccount(owner, admin);
-  if (!canSetUpBoard(account.kind)) redirect("/login");
 
   const parsed = setupSchema.safeParse({
     name: formData.get("name"),

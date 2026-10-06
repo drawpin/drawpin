@@ -6,6 +6,8 @@ export interface CloseBoardStore {
   deleteImages(paths: string[]): Promise<void>;
   /** Deletes the board and everything on it, in one transaction. */
   closeVenue(venueId: string): Promise<void>;
+  /** Whether the owner's account also draws (has a profile, ADR-013). */
+  hasProfile(ownerId: string): Promise<boolean>;
   /** Deletes the owner's sign-in. */
   deleteLogin(ownerId: string): Promise<void>;
 }
@@ -22,7 +24,9 @@ const IMAGE_BATCH = 100;
 
 /**
  * Closes an owner's board for good (ADR-009): every drawing and image, every
- * week, vote and report, the Hall of Fame, its links, and the owner's login.
+ * week, vote and report, the Hall of Fame, its links, and the owner's
+ * login, unless that account also draws (ADR-013): then only the board goes,
+ * and the person keeps their drawings, votes and sign-in.
  *
  * The owner types the board's name to confirm, so it can't happen by a stray
  * tap. Images go first: if Storage fails, nothing else has been touched and
@@ -45,6 +49,9 @@ export async function closeBoard(
   await deps.store.closeVenue(venue.id);
 
   try {
+    // One account can draw and own a board (ADR-013). Deleting the sign-in
+    // would take the drawing account with it, so it stays when there is one.
+    if (await deps.store.hasProfile(venue.ownerId)) return "closed";
     await deps.store.deleteLogin(venue.ownerId);
   } catch (error) {
     deps.logError(

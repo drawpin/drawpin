@@ -3,8 +3,7 @@ import { CardPage } from "@/app/b/[slug]/board-look";
 import { redirect } from "next/navigation";
 import { signOut } from "@/app/admin/actions";
 import { Button } from "@/components/ui/button";
-import { canSetUpBoard, getAccount, requireOwner } from "@/lib/auth";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { requireOwner } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { listTimeZones } from "@/lib/timezones";
 import { SetupForm } from "./setup-form";
@@ -12,11 +11,9 @@ import { SetupForm } from "./setup-form";
 export const metadata: Metadata = { title: "Set up your board · DrawPin" };
 
 export default async function SetupPage() {
+  // Any signed-in account can set up a board, including one that draws
+  // (ADR-013). One board per account: someone who has one goes to it.
   const owner = await requireOwner();
-  // Customers are signed in too (ADR-004); only owner accounts set up boards.
-  // The login page tells a customer how to switch to a board account.
-  const account = await getAccount(owner, createAdminClient());
-  if (!canSetUpBoard(account.kind)) redirect("/login");
 
   const supabase = await createClient();
   const { data: venue, error } = await supabase
