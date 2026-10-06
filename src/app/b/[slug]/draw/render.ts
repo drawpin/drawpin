@@ -404,15 +404,43 @@ export function renderScene(
   context: CanvasRenderingContext2D,
   scene: Scene,
 ): void {
-  // Painted explicitly so the exported PNG isn't transparent.
-  context.fillStyle = "#ffffff";
-  context.fillRect(0, 0, TILE_SIZE, TILE_SIZE);
+  paintOps(context, scene.ops);
+  paintOverlay(context, scene);
+}
 
-  for (const op of scene.ops) drawOp(context, op);
+/**
+ * Paints finished steps, in tile coordinates: from the paper up when `from`
+ * is 0, or only the steps from `from` on, over a canvas that already holds
+ * the ones before. The drawing screen keeps its finished steps on a layer
+ * and adds each new one this way, rather than painting them all again on
+ * every move of the pen.
+ */
+export function paintOps(
+  context: CanvasRenderingContext2D,
+  ops: DrawOp[],
+  from = 0,
+): void {
+  if (from === 0) {
+    // Painted explicitly so the exported PNG isn't transparent.
+    context.fillStyle = PAPER;
+    context.fillRect(0, 0, TILE_SIZE, TILE_SIZE);
+  }
+  for (let index = from; index < ops.length; index++) {
+    drawOp(context, ops[index]);
+  }
+}
+
+/**
+ * What goes over the finished steps: a lasso selection being moved, the
+ * stroke or shape in progress, and the grid last, so it stays a guide rather
+ * than something to paint over.
+ */
+export function paintOverlay(
+  context: CanvasRenderingContext2D,
+  scene: Pick<Scene, "active" | "floating" | "showGrid">,
+): void {
   if (scene.floating) drawLifted(context, scene.floating);
   if (scene.active) drawOp(context, scene.active);
-
-  // Last, so it stays a guide rather than something to paint over.
   if (scene.showGrid) drawGrid(context);
 }
 

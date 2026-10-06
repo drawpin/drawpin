@@ -19,8 +19,9 @@ import {
   fillAt,
   type Lifted,
   liftSelection,
+  paintOps,
+  paintOverlay,
   panBy,
-  renderScene,
   renderTile,
   screenToTile,
   type Shape,
@@ -178,10 +179,79 @@ export const DrawingCanvas = forwardRef<
   const hover = useRef<Finger | null>(null);
   const outlineRef = useRef<HTMLDivElement>(null);
 
+  // The finished steps, painted once at the current size and zoom and kept.
+  // A new step is added to it on its own, so each frame paints this layer
+  // plus only what's in progress, rather than the whole drawing again: that
+  // grew with every stroke until drawing lagged and then stopped responding.
+  const finished = useRef<{
+    canvas: HTMLCanvasElement;
+    ops: DrawOp[];
+    /** The view it was painted at; `null` until its first paint. */
+    view: View | null;
+  } | null>(null);
+
+  /** The finished-steps layer for `canvas` at `view`, brought up to date. */
+  const finishedLayer = useCallback(
+    (canvas: HTMLCanvasElement): HTMLCanvasElement | null => {
+      let layer = finished.current;
+      if (
+        !layer ||
+        layer.canvas.width !== canvas.width ||
+        layer.canvas.height !== canvas.height
+      ) {
+        const fresh = document.createElement("canvas");
+        fresh.width = canvas.width;
+        fresh.height = canvas.height;
+        layer = { canvas: fresh, ops: [], view: null };
+        finished.current = layer;
+      }
+      const context = layer.canvas.getContext("2d");
+      if (!context) return null;
+
+      const density = canvas.width / TILE_SIZE;
+      const scale = density * view.scale;
+      context.setTransform(
+        scale,
+        0,
+        0,
+        scale,
+        -view.offsetX * scale,
+        -view.offsetY * scale,
+      );
+
+      // Only new steps added to the end can go on top of what's there; an
+      // undo, a clear or a new zoom paints it all again, once.
+      const sameView = layer.view === view;
+      const extends_ =
+        sameView &&
+        ops.length >= layer.ops.length &&
+        layer.ops.every((op, index) => ops[index] === op);
+      if (!extends_) {
+        context.save();
+        context.setTransform(1, 0, 0, 1, 0, 0);
+        context.clearRect(0, 0, layer.canvas.width, layer.canvas.height);
+        context.restore();
+        paintOps(context, ops);
+      } else if (ops.length > layer.ops.length) {
+        paintOps(context, ops, layer.ops.length);
+      }
+      layer.ops = ops;
+      layer.view = view;
+      return layer.canvas;
+    },
+    [ops, view],
+  );
+
   const redraw = useCallback(() => {
     const canvas = canvasRef.current;
     const context = canvas?.getContext("2d");
     if (!canvas || !context) return;
+    const layer = finishedLayer(canvas);
+
+    // The kept layer goes down pixel for pixel; it's already at this zoom.
+    context.setTransform(1, 0, 0, 1, 0, 0);
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    if (layer) context.drawImage(layer, 0, 0);
 
     // Device pixels per tile unit, then the window onto the tile. Everything
     // downstream draws in tile units and knows nothing about either.
@@ -195,10 +265,8 @@ export const DrawingCanvas = forwardRef<
       -view.offsetX * scale,
       -view.offsetY * scale,
     );
-    // The canvas keeps whatever is outside the zoomed window, so clear it.
-    context.clearRect(0, 0, canvas.width, canvas.height);
 
-    renderScene(context, { ops, active: active.current, showGrid, floating });
+    paintOverlay(context, { active: active.current, showGrid, floating });
 
     // Guides for the lasso, in screen pixels: one CSS pixel is this many
     // tile units at the current size and zoom.
@@ -217,7 +285,7 @@ export const DrawingCanvas = forwardRef<
       context.restore();
     }
     if (floating) drawSelectionFrame(context, floating.target, pixel);
-  }, [ops, showGrid, view, floating]);
+  }, [finishedLayer, showGrid, view, floating]);
 
   /** Puts the selection down where it is, unless it was never moved. */
   function putDown(): boolean {
@@ -241,6 +309,28 @@ export const DrawingCanvas = forwardRef<
   }
 
   useEffect(redraw, [redraw, backingSize]);
+
+  // While the pen moves, paints are asked for here and happen once per frame:
+  // a fast pointer sends moves faster than the screen shows them.
+  const pendingFrame = useRef<number | null>(null);
+  const latestRedraw = useRef(redraw);
+  useEffect(() => {
+    latestRedraw.current = redraw;
+  }, [redraw]);
+  useEffect(
+    () => () => {
+      if (pendingFrame.current !== null)
+        cancelAnimationFrame(pendingFrame.current);
+    },
+    [],
+  );
+  function redrawSoon() {
+    if (pendingFrame.current !== null) return;
+    pendingFrame.current = requestAnimationFrame(() => {
+      pendingFrame.current = null;
+      latestRedraw.current();
+    });
+  }
 
   /** Puts the eraser's outline under the pointer, at the size it erases. */
   const placeOutline = useCallback(() => {
@@ -566,7 +656,7 @@ export const DrawingCanvas = forwardRef<
     if (loop) {
       const [x, y] = toTilePoint(event, rect);
       loop.push([x, y]);
-      redraw();
+      redrawSoon();
       return;
     }
 
@@ -583,7 +673,7 @@ export const DrawingCanvas = forwardRef<
         [x, y],
         keepsPerfect(drawing.shape, event.shiftKey),
       );
-      redraw();
+      redrawSoon();
       return;
     }
 
@@ -606,7 +696,7 @@ export const DrawingCanvas = forwardRef<
     ) {
       startHold(finger);
     }
-    redraw();
+    redrawSoon();
   }
 
   function handlePointerUp(event: PointerEvent<HTMLCanvasElement>) {
