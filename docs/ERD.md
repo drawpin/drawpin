@@ -222,6 +222,11 @@ the most final votes wins, ties to the earlier post, a lone finalist wins
 without a vote, and a real contest nobody voted in crowns nobody. It takes an
 advisory lock and is safe to call again, like the weekly equivalent.
 
+`week_podium(week_id)` and `final_podium(final_id)` return the top three of a
+closed week or final with their vote counts, for the board's winners reveal.
+They return nothing while voting is open, rank exactly as the crowning
+functions do, and are `service_role` only.
+
 ### `final_votes`
 One vote per account per final.
 
