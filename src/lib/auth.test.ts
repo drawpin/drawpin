@@ -102,6 +102,46 @@ describe("canSetUpBoard", () => {
   });
 });
 
+// The path behind "Start a board" and "Manage my board", step by step, so no
+// step can quietly send someone back to the home page again.
+describe("starting a board while signed in to draw", () => {
+  it("shows the form, then lets the new board account set up and manage", () => {
+    const customer = classifyAccount({
+      hasOwnerRow: false,
+      hasProfile: true,
+      signedInByEmail: false,
+    });
+    // /login shows the owner form rather than redirecting.
+    expect(signedInLoginDestination(customer)).toBeNull();
+    // Signing in there with the board's email replaces the session with a
+    // fresh email account: /admin has no board for it, so it goes to /setup.
+    const fresh = classifyAccount({
+      hasOwnerRow: false,
+      hasProfile: false,
+      signedInByEmail: true,
+    });
+    expect(canSetUpBoard(fresh)).toBe(true);
+    // Setting up writes the owners row; from then on it's an owner.
+    const owner = classifyAccount({
+      hasOwnerRow: true,
+      hasProfile: false,
+      signedInByEmail: true,
+    });
+    expect(signedInLoginDestination(owner)).toBe("/admin");
+  });
+
+  it("keeps the drawing account itself out of /setup", () => {
+    for (const signedInByEmail of [true, false]) {
+      const kind = classifyAccount({
+        hasOwnerRow: false,
+        hasProfile: true,
+        signedInByEmail,
+      });
+      expect(canSetUpBoard(kind)).toBe(false);
+    }
+  });
+});
+
 type Lookup = { data: object | null; error: { message: string } | null };
 
 /** A client whose `owners` and `profiles` lookups return what's given. */
