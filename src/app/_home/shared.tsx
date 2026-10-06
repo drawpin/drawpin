@@ -80,22 +80,29 @@ export function Ending() {
           className={`text-muted-foreground flex max-w-2xl flex-col gap-3 rounded-xl p-6 text-base leading-relaxed ${PAPER}`}
         >
           <p>
-            Whether you&apos;re waiting for your food or sitting with a group of
-            friends, there&apos;s a gap — long enough to be bored, too short to
-            start anything. Everyone fills it the same way, looking down at a
-            phone on their own.
+            I love it when software makes a difference in people&apos;s everyday
+            lives. There seems to be a gap between software that makes work
+            better and software that gives everyone something fun to do every
+            day.
           </p>
           <p>
-            DrawPin is an attempt to point that at the room instead. You draw
-            one small thing, it goes up next to what everyone else drew today,
-            and at the end of the week the room decides which one it liked.
+            DrawPin is my attempt to point what I know about building software
+            in that direction. Draw a tile every day with your friend group, at
+            work or at your favorite local spot. It goes up next to everyone
+            else&apos;s, and at the end of the week the competition begins. That
+            was the idea, anyway.
           </p>
           <p>
-            That was the idea, anyway. It turns out a room doesn&apos;t have to
-            be a café — a classroom, a party, an office, a group chat with
-            nothing going on. Nothing to install, nothing to sign up for, and it
-            costs nothing to run.
+            It turned out there was a lot for me to learn as an aspiring
+            software engineer, too. I wanted this one idea to cover every part
+            of building software I felt unsure about: UI/UX design, security and
+            bot protection, computer vision and content moderation, database
+            design, sign-in, live updates, automated testing, Docker, continuous
+            integration and deployment, and much more. It became a chance to
+            bring groups of people a good time, and to give myself a better
+            learning experience than I ever expected.
           </p>
+          <p>So have fun, and get drawing :)</p>
         </div>
       </section>
     </main>

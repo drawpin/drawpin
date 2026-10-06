@@ -1,7 +1,7 @@
 /**
  * One quote from each kind of group, for the home page's "What people say".
- * PLACEHOLDERS (2026-10-05): the owner is sending the real statements from
- * people using DrawPin (TODO.md); swap them in here.
+ * The statements are the owner's, from people using DrawPin (2026-10-05),
+ * lightly edited for grammar.
  */
 export type Quote = {
   place: "Restaurant" | "Office" | "Friends";
@@ -17,22 +17,22 @@ export type Quote = {
 export const QUOTES: Quote[] = [
   {
     place: "Restaurant",
-    who: "Owner, a neighbourhood café",
-    text: "Regulars check the board before they order now. The kids argue over who gets to draw while the food comes.",
+    who: "A local restaurant",
+    text: "A lot of our regulars scan the board while they wait for their food, and groups finally have something to do together!",
     drawing: "/examples/latte.webp",
     pin: "#ff821b",
   },
   {
     place: "Office",
-    who: "Team lead, a design studio",
-    text: "It became our Friday thing. Somebody always draws the boss, and somebody always votes for it.",
+    who: "An office team",
+    text: "DrawPin became the office's daily talk! We draw every day (sometimes each other), have a good laugh, and love seeing who wins.",
     drawing: "/examples/skyline.webp",
     pin: "#004aad",
   },
   {
     place: "Friends",
-    who: "A group chat of nine",
-    text: "Our chat was quiet for months. Now there's a new drawing every morning and a lot of arguing on Sundays.",
+    who: "A friend group",
+    text: "This became our friend group's Wordle! There's a new drawing every morning, and the competitive talk starts as the votes rack up.",
     drawing: "/examples/dog.webp",
     pin: "#ffca39",
   },
