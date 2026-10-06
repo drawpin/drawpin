@@ -177,19 +177,13 @@
 }
 
 /*
- * The board (UI pass, chosen 2026-10-02): the light blue tint behind it,
- * drawings pinned up on paper, and the motion that keeps it awake.
+ * The board (UI pass, chosen 2026-10-02): drawings pinned up on paper, and the motion that keeps it awake.
  *
  * Its motion is weighted Jakub, then Jhey (design-motion-principles): a
  * playful page people open every day, so loops spend most of their time at
  * rest. Only transform properties, opacity and shadows move; hover is for
  * real pointers only; and all of it is off for reduced motion.
  */
-
-/* The tint runs to the foot of the page, under the site footer too. */
-body:has([data-board]) {
-  background: var(--secondary);
-}
 
 /* A pin stuck into the top of an element (see src/components/pin.ts): its
    needle goes 5px into the top edge, centred. `pinned-lg` is the bigger pin

@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 import { BoardScreen } from "./board-screen";
 import { getBoard } from "./data";
 
@@ -27,9 +27,6 @@ export async function generateMetadata({
     },
   };
 }
-
-/** The phone's status bar matches the board's blue header. */
-export const viewport: Viewport = { themeColor: "#004aad" };
 
 export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
   const { slug } = await params;

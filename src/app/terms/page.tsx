@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PAPER } from "@/app/b/[slug]/board-look";
 import { CONTACT_EMAIL, POLICIES_UPDATED } from "@/lib/legal";
 
 export const metadata: Metadata = {
@@ -11,13 +10,11 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    // On paper over the tint, like the rest of the site (UI pass, 2026-10-05).
-    <div data-board className="flex flex-1 flex-col px-4 py-8">
-      <main
-        className={`mx-auto flex w-full max-w-lg flex-col gap-6 rounded-xl px-5 py-7 text-sm leading-relaxed ${PAPER}`}
-      >
+    // An inked card on the white page, like the home page (UI pass, 2026-10-05).
+    <div className="flex flex-1 flex-col px-4 py-8">
+      <main className="border-foreground mx-auto flex w-full max-w-2xl flex-col gap-6 rounded-xl border-2 bg-white px-5 py-7 text-base leading-relaxed shadow-[5px_5px_0_var(--primary)] md:px-8">
         <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-black tracking-tight">Terms</h1>
+          <h1 className="text-4xl font-black tracking-tight">Terms</h1>
           <p className="text-muted-foreground text-xs">
             Last updated {POLICIES_UPDATED}
           </p>
@@ -30,17 +27,17 @@ export default function TermsPage() {
         </p>
 
         <section className="flex flex-col gap-2">
-          <h2 className="font-medium">What you draw stays yours</h2>
+          <h2 className="text-lg font-black">What you draw stays yours</h2>
           <p>
             Your drawing is yours. By posting it you let us and the board&apos;s
-            owner show it on that board, and — if it wins a week — keep showing
-            it in that board&apos;s Hall of Fame, which is kept indefinitely.
+            owner show it on that board, and, if it wins a week, keep showing it
+            in that board&apos;s Hall of Fame, which is kept indefinitely.
             Boards are public: anyone with the link can see what&apos;s on them.
           </p>
         </section>
 
         <section className="flex flex-col gap-2">
-          <h2 className="font-medium">What not to post</h2>
+          <h2 className="text-lg font-black">What not to post</h2>
           <ul className="list-disc pl-5">
             <li>Anything illegal, hateful, sexual, or violent.</li>
             <li>Adverts, links, spam, or contact details.</li>
@@ -57,7 +54,7 @@ export default function TermsPage() {
         </section>
 
         <section className="flex flex-col gap-2">
-          <h2 className="font-medium">The limits</h2>
+          <h2 className="text-lg font-black">The limits</h2>
           <ul className="list-disc pl-5">
             <li>
               One drawing per device per day, and one per account per day.
@@ -75,18 +72,18 @@ export default function TermsPage() {
         </section>
 
         <section className="flex flex-col gap-2">
-          <h2 className="font-medium">When we step in</h2>
+          <h2 className="text-lg font-black">When we step in</h2>
           <p>
             We can remove anything that breaks these rules and stop serving
             someone who keeps breaking them, or who is trying to break the
             voting. A board&apos;s owner can remove any drawing from it,
-            including one that had already won — in which case that week is
+            including one that had already won, in which case that week is
             judged again without it.
           </p>
         </section>
 
         <section className="flex flex-col gap-2">
-          <h2 className="font-medium">Changes</h2>
+          <h2 className="text-lg font-black">Changes</h2>
           <p>
             If these terms change, the date at the top changes with them.
             Carrying on using DrawPin after that means the new ones apply.
@@ -94,7 +91,7 @@ export default function TermsPage() {
         </section>
 
         <section className="flex flex-col gap-2">
-          <h2 className="font-medium">Contact</h2>
+          <h2 className="text-lg font-black">Contact</h2>
           <p>
             <a
               className="underline underline-offset-4"

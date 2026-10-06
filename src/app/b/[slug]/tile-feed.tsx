@@ -131,7 +131,7 @@ export function TileFeed({
     <section className="flex flex-col gap-4">
       {/* A strip of yellow paper for a heading. Only drawings are pinned. */}
       <h2 className={`${YELLOW_STRIP} text-3xl`}>Pinned up this week</h2>
-      <ul className="grid grid-cols-2 gap-x-4 gap-y-12 pt-8">
+      <ul className="grid grid-cols-2 gap-x-4 gap-y-12 pt-8 md:grid-cols-3 md:gap-x-8 lg:grid-cols-4">
         {visibleTiles.map((tile, index) => {
           const lean = tiltFor(tile.id);
           const pinColor = pinColorFor(tile.id);

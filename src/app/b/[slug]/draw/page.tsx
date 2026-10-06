@@ -73,8 +73,8 @@ export default async function DrawPage({
       : null;
 
   return (
-    // The tint behind, as on the board, so the white canvas stands out.
-    <div data-board className="flex flex-1 flex-col">
+    // White, like every page; the canvas and tools carry the ink outline.
+    <div className="flex flex-1 flex-col">
       <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 px-4 py-6">
         {/* Back first, where a phone's back button is expected; it asks
           before leaving a drawing behind. */}

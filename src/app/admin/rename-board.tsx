@@ -52,7 +52,7 @@ export function RenameBoard({ name }: { name: string }) {
         {state.status === "renamed" && (
           <p role="status" className="text-muted-foreground text-xs">
             Your board is now called {state.name}. Links you&apos;ve already
-            shared in chats may show the old name for a while — that&apos;s the
+            shared in chats may show the old name for a while. That&apos;s the
             chat app&apos;s saved preview, not your board, and anyone who taps
             one still lands here. Printed cards showing the old name are worth
             reprinting; the QR code on them still works.

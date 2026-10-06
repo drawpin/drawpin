@@ -87,24 +87,29 @@ export async function BoardScreen({
 
   const header = (
     <>
-      {/* In the vote view, someone signed out finds the way in up here. */}
-      {view === "vote" && votingWeek && !customer && (
-        <div className="absolute top-7 right-4">
-          <GoogleSignIn next={`/b/${slug}/vote`} label="Sign in" size="sm" />
+      {/* In the vote view, someone signed out finds the way in up here,
+          beside the name rather than over it, so a long name wraps. */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          {stats ? (
+            <BoardTitle
+              name={board.name}
+              venueId={board.id}
+              weekId={week?.id ?? null}
+              initialStats={stats}
+            />
+          ) : (
+            <h1 className="text-4xl leading-[1.02] font-black tracking-tight break-words">
+              {board.name}
+            </h1>
+          )}
         </div>
-      )}
-      {stats ? (
-        <BoardTitle
-          name={board.name}
-          venueId={board.id}
-          weekId={week?.id ?? null}
-          initialStats={stats}
-        />
-      ) : (
-        <h1 className="text-4xl leading-[1.02] font-black tracking-tight break-words">
-          {board.name}
-        </h1>
-      )}
+        {view === "vote" && votingWeek && !customer && (
+          <div className="shrink-0">
+            <GoogleSignIn next={`/b/${slug}/vote`} label="Sign in" size="sm" />
+          </div>
+        )}
+      </div>
       <div className="flex items-center justify-between gap-3">
         {/* A button, not small print: winners are what the board is for.
             The trophy takes the yellow of winning. */}
@@ -307,7 +312,9 @@ async function VoteView({
 
   return (
     <>
-      <Podium leaders={leaders} />
+      <div className="mx-auto w-full max-w-2xl">
+        <Podium leaders={leaders} />
+      </div>
       {customerId ? (
         <VoteGrid
           slug={slug}

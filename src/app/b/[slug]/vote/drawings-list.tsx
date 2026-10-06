@@ -15,7 +15,7 @@ export function DrawingsHeading() {
  */
 export function DrawingsList({ children }: { children: ReactNode }) {
   return (
-    <ul className="grid grid-cols-2 gap-x-4 gap-y-12 pt-8">
+    <ul className="grid grid-cols-2 gap-x-4 gap-y-12 pt-8 md:grid-cols-3 md:gap-x-8 lg:grid-cols-4">
       {Children.map(children, (child, index) => (
         <li
           className="board-sway min-w-0"

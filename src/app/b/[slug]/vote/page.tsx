@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 import { BoardScreen } from "../board-screen";
 import { getBoard } from "../data";
 
@@ -11,9 +11,6 @@ export async function generateMetadata({
     title: board ? `Vote · ${board.name}` : "Board not found · DrawPin",
   };
 }
-
-/** The phone's status bar matches the blue header, as on the board. */
-export const viewport: Viewport = { themeColor: "#004aad" };
 
 /**
  * The board in its vote view: last week's drawings to vote on, under the

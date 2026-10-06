@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PAPER } from "@/app/b/[slug]/board-look";
 import { CONTACT_EMAIL, POLICIES_UPDATED } from "@/lib/legal";
 
 export const metadata: Metadata = {
@@ -10,27 +9,25 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    // On paper over the tint, like the rest of the site (UI pass, 2026-10-05).
-    <div data-board className="flex flex-1 flex-col px-4 py-8">
-      <main
-        className={`mx-auto flex w-full max-w-lg flex-col gap-6 rounded-xl px-5 py-7 text-sm leading-relaxed ${PAPER}`}
-      >
+    // An inked card on the white page, like the home page (UI pass, 2026-10-05).
+    <div className="flex flex-1 flex-col px-4 py-8">
+      <main className="border-foreground mx-auto flex w-full max-w-2xl flex-col gap-6 rounded-xl border-2 bg-white px-5 py-7 text-base leading-relaxed shadow-[5px_5px_0_var(--primary)] md:px-8">
         <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-black tracking-tight">Privacy</h1>
+          <h1 className="text-4xl font-black tracking-tight">Privacy</h1>
           <p className="text-muted-foreground text-xs">
             Last updated {POLICIES_UPDATED}
           </p>
         </div>
 
         <p>
-          DrawPin is a shared drawing board — for a restaurant, a classroom, a
+          DrawPin is a shared drawing board for a restaurant, a classroom, a
           group of friends, whatever it was set up for. You can draw on it for
           fun without an account. Signing in is needed to post a drawing to the
           board, to vote, and to report a drawing.
         </p>
 
         <section className="flex flex-col gap-2">
-          <h2 className="font-medium">
+          <h2 className="text-lg font-black">
             What we keep when you draw without signing in
           </h2>
           <p>
@@ -40,15 +37,15 @@ export default function PrivacyPage() {
         </section>
 
         <section className="flex flex-col gap-2">
-          <h2 className="font-medium">What we keep when you sign in</h2>
+          <h2 className="text-lg font-black">What we keep when you sign in</h2>
           <ul className="list-disc pl-5">
             <li>
-              The email address on your Google account, and the name on it — the
+              The email address on your Google account, and the name on it. The
               name is only used to suggest a username, which you can change.
             </li>
             <li>The username you choose, which is shown on your drawings.</li>
             <li>
-              Each drawing you post, and its caption. These are public — anyone
+              Each drawing you post, and its caption. These are public: anyone
               with the board&apos;s link can see them.
             </li>
             <li>
@@ -66,7 +63,7 @@ export default function PrivacyPage() {
         </section>
 
         <section className="flex flex-col gap-2">
-          <h2 className="font-medium">Who else sees it</h2>
+          <h2 className="text-lg font-black">Who else sees it</h2>
           <p>
             We don&apos;t sell anything to anyone, and there is no advertising
             or analytics on DrawPin. These companies handle parts of it for us:
@@ -97,7 +94,7 @@ export default function PrivacyPage() {
         </section>
 
         <section className="flex flex-col gap-2">
-          <h2 className="font-medium">How long we keep it</h2>
+          <h2 className="text-lg font-black">How long we keep it</h2>
           <ul className="list-disc pl-5">
             <li>
               A drawing that doesn&apos;t win its week is deleted 30 days after
@@ -118,7 +115,7 @@ export default function PrivacyPage() {
         </section>
 
         <section className="flex flex-col gap-2">
-          <h2 className="font-medium">Deleting your account</h2>
+          <h2 className="text-lg font-black">Deleting your account</h2>
           <p>
             Email us at{" "}
             <a
@@ -134,16 +131,16 @@ export default function PrivacyPage() {
         </section>
 
         <section className="flex flex-col gap-2">
-          <h2 className="font-medium">Cookies</h2>
+          <h2 className="text-lg font-black">Cookies</h2>
           <p>
             One cookie identifies your device so the daily limit works, and
             signing in adds the cookies that keep you signed in. That&apos;s all
-            of them — nothing for advertising or analytics.
+            of them, nothing for advertising or analytics.
           </p>
         </section>
 
         <section className="flex flex-col gap-2">
-          <h2 className="font-medium">Children</h2>
+          <h2 className="text-lg font-black">Children</h2>
           <p>
             Drawing for fun needs no account and we ask nothing about who you
             are. Posting, voting and reporting use a Google account, which has
@@ -152,7 +149,7 @@ export default function PrivacyPage() {
         </section>
 
         <section className="flex flex-col gap-2">
-          <h2 className="font-medium">Contact</h2>
+          <h2 className="text-lg font-black">Contact</h2>
           <p>
             Questions, corrections, or anything you&apos;d like removed:{" "}
             <a

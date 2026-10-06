@@ -1,4 +1,3 @@
-import type { Viewport } from "next";
 import { Feedback } from "./_home/feedback";
 import { PosterHero } from "./_home/poster-hero";
 import { ReviewStack } from "./_home/review-stack";
@@ -6,9 +5,6 @@ import { Ending } from "./_home/shared";
 import { TryItPlay } from "./_home/try-it";
 import { NOTE, SECTION_TITLE } from "./_home/type";
 import { WeekStory } from "./_home/week-story";
-
-/** The phone's status bar matches the blue hero, as on a board. */
-export const viewport: Viewport = { themeColor: "#004aad" };
 
 /**
  * The home page (UI pass, chosen from prototypes on 2026-10-05, "All

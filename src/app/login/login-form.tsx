@@ -26,7 +26,7 @@ export function LoginForm({ turnstileSiteKey }: { turnstileSiteKey: string }) {
           link. It expires in 15 minutes.
         </p>
         <p className="text-muted-foreground text-sm">
-          It works wherever you open it — this browser, your phone, or the one
+          It works wherever you open it: this browser, your phone, or the one
           inside your email app.
         </p>
       </div>

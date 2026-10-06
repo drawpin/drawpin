@@ -22,24 +22,33 @@ export const INKED_BUTTON =
   "border-foreground bg-winner text-foreground focus-visible:ring-highlight inline-flex h-12 items-center justify-center gap-2 rounded-xl border-2 px-5 font-extrabold shadow-[4px_4px_0_var(--foreground)] transition-[translate,box-shadow] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] outline-none hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_var(--foreground)] focus-visible:ring-3 active:translate-x-1 active:translate-y-1 active:shadow-none active:duration-75 disabled:pointer-events-none disabled:opacity-60 motion-reduce:transition-none";
 
 /**
- * A page in the board's look: the light blue tint behind everything (via
- * `data-board`, globals.css), a blue header, and the content under it.
+ * A page in the board's look, matching the home page (UI pass, 2026-10-05):
+ * white, with the blue header as an inked card on it like the home page's
+ * poster, and the content under it as wide as the home page's sections, so
+ * drawings use the room on a laptop. `narrow` keeps a page of forms and
+ * settings (the admin) to a reading width under the same header.
  */
 export function BoardLayout({
   header,
   children,
+  narrow = false,
 }: {
   header: ReactNode;
   children: ReactNode;
+  narrow?: boolean;
 }) {
   return (
-    <div data-board className="flex flex-1 flex-col">
-      <header className="bg-primary text-primary-foreground border-foreground border-b-2">
-        <div className="relative mx-auto flex w-full max-w-lg flex-col gap-4 px-4 pt-8 pb-8">
-          {header}
-        </div>
-      </header>
-      <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-8 px-4 pt-10 pb-6">
+    <div className="flex flex-1 flex-col">
+      <div className="mx-auto w-full max-w-7xl px-3 pt-3 md:px-6 md:pt-6">
+        <header className="bg-primary text-primary-foreground border-foreground rounded-2xl border-2 shadow-[6px_6px_0_var(--foreground)]">
+          <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-4 px-5 py-7 md:px-8 md:py-9">
+            {header}
+          </div>
+        </header>
+      </div>
+      <main
+        className={`mx-auto flex w-full flex-1 flex-col gap-8 px-5 pt-10 pb-6 ${narrow ? "max-w-2xl" : "max-w-6xl"}`}
+      >
         {children}
       </main>
     </div>
@@ -48,8 +57,8 @@ export function BoardLayout({
 
 /**
  * A small page in the boards' look, for a form or a message on its own
- * (sign-in, setup, picking a name, not found): the tint behind, and an inked
- * white card in the middle with a handwritten note over the title.
+ * (sign-in, setup, picking a name, not found): an inked white card in the
+ * middle of the white page, with a handwritten note over the title.
  */
 export function CardPage({
   note,
@@ -64,7 +73,7 @@ export function CardPage({
   children?: ReactNode;
 }) {
   return (
-    <div data-board className="flex flex-1 flex-col justify-center px-4 py-10">
+    <div className="flex flex-1 flex-col justify-center px-4 py-10">
       <main className="border-foreground mx-auto flex w-full max-w-sm flex-col gap-5 rounded-xl border-2 bg-white px-5 py-7 shadow-[5px_5px_0_var(--primary)]">
         <div className="flex flex-col items-center gap-3 text-center">
           <p

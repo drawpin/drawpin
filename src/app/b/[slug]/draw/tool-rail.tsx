@@ -63,7 +63,7 @@ export function ToolRail({
     <>
       <fieldset
         disabled={disabled}
-        className="flex flex-col items-center gap-1 rounded-[18px] border bg-white p-1"
+        className="border-foreground flex flex-col items-center gap-1 rounded-[18px] border-2 bg-white p-1 shadow-[3px_3px_0_var(--foreground)]"
       >
         <legend className="sr-only">Tool</legend>
         {tools.map((tool) => {

@@ -5,6 +5,6 @@ test("homepage loads and shows its headline", async ({ page }) => {
 
   expect(response?.ok()).toBe(true);
   await expect(
-    page.getByRole("heading", { level: 1, name: /shared drawing board/ }),
+    page.getByRole("heading", { level: 1, name: /Draw it. Pin it./ }),
   ).toBeVisible();
 });

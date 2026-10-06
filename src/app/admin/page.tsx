@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowSquareOutIcon,
@@ -25,9 +25,6 @@ import { ReportedTiles } from "./reported-tiles";
 import { listBoardTiles, listReportedTiles, requireOwnedVenue } from "./venue";
 
 export const metadata: Metadata = { title: "Your board · DrawPin" };
-
-/** The phone's status bar matches the blue header, as on a board. */
-export const viewport: Viewport = { themeColor: "#004aad" };
 
 /** A section of the owner's screen, on paper. */
 const CARD = `flex flex-col gap-3 rounded-xl p-5 ${PAPER}`;
@@ -59,6 +56,7 @@ export default async function AdminPage() {
 
   return (
     <BoardLayout
+      narrow
       header={
         <>
           <p

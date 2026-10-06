@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeftIcon, CrownSimpleIcon } from "@phosphor-icons/react/ssr";
 import { notFound } from "next/navigation";
@@ -33,9 +33,6 @@ export async function generateMetadata({
       : "Board not found · DrawPin",
   };
 }
-
-/** The phone's status bar matches the blue header, as on the board. */
-export const viewport: Viewport = { themeColor: "#004aad" };
 
 /** "September 2026", from the first day of the month being judged. */
 function monthLabel(month: string): string {

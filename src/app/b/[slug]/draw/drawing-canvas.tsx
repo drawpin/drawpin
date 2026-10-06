@@ -691,7 +691,7 @@ export const DrawingCanvas = forwardRef<
         aria-label="Drawing area"
         // Stops the page scrolling or zooming while a finger is on the tile;
         // pinching is handled here instead.
-        className="aspect-square w-full touch-none rounded-xl border bg-white"
+        className="border-foreground aspect-square w-full touch-none rounded-xl border-2 bg-white shadow-[4px_4px_0_var(--primary)]"
         style={{
           cursor: grabbing
             ? "grabbing"

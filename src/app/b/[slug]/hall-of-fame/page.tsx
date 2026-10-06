@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeftIcon, TrophyIcon } from "@phosphor-icons/react/ssr";
@@ -22,9 +22,6 @@ export async function generateMetadata({
     title: board ? `Hall of Fame · ${board.name}` : "Board not found · DrawPin",
   };
 }
-
-/** The phone's status bar matches the blue header, as on the board. */
-export const viewport: Viewport = { themeColor: "#004aad" };
 
 /** "September 2026", from the first day of the month judged. */
 function monthLabel(month: string): string {
@@ -126,7 +123,7 @@ export default async function HallOfFamePage({
       {superWinners.length > 0 && (
         <section className="flex flex-col gap-4">
           <h2 className={`${YELLOW_STRIP} text-3xl`}>Super winners</h2>
-          <ul className="flex flex-col gap-12 pt-8">
+          <ul className="grid gap-12 pt-8 sm:grid-cols-2 lg:grid-cols-3">
             {superWinners.map((winner, index) => (
               <li key={winner.month} className="board-sway flex flex-col gap-3">
                 <p className="text-primary text-sm font-bold">
@@ -140,7 +137,7 @@ export default async function HallOfFamePage({
                       : `${winner.voteCount} ${winner.voteCount === 1 ? "vote" : "votes"} in the final`}
                   </span>
                 </p>
-                <div className="mx-auto w-[88%]">
+                <div className="mx-auto w-[88%] sm:w-full">
                   <PinnedDrawing
                     tile={asTile(`super-${winner.month}`, winner)}
                     index={index}
