@@ -7,16 +7,16 @@ import {
   useRef,
   useState,
 } from "react";
-import { AllWhite } from "./all-white";
-import { Framed } from "./framed";
-import { ScrollFade } from "./scroll-fade";
+import { Flip } from "./flip";
+import { Scribble } from "./scribble";
+import { Slot } from "./slot";
 
-// Round one (2026-10-05): three ways for the home page to go from its logo
-// to the blue hero and on to the white page, without a bar and hard edges.
+// Round two (2026-10-05): the Framed poster, its headline a word swap from
+// "Draw it." to "Pin it." on a hover (looping on a phone), three ways.
 const VARIANTS = [
-  { name: "Framed", Component: Framed },
-  { name: "All white", Component: AllWhite },
-  { name: "Scroll fade", Component: ScrollFade },
+  { name: "Flip", Component: Flip },
+  { name: "Slot", Component: Slot },
+  { name: "Scribble", Component: Scribble },
 ];
 
 /** The picker's own look, verbatim from the prototype skill: harness chrome. */

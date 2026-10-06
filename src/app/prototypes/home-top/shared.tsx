@@ -34,15 +34,8 @@ export function Drawings() {
   );
 }
 
-/** The wordmark, linking home; `className` sizes it. */
-export function Wordmark({
-  className = "h-8 w-auto",
-  src = "/wordmark.webp",
-}: {
-  className?: string;
-  /** The transparent cut-out, for a page that isn't white behind it. */
-  src?: string;
-}) {
+/** The wordmark, linking home. */
+export function Wordmark() {
   return (
     <Link
       href="/"
@@ -50,12 +43,12 @@ export function Wordmark({
       className="focus-visible:ring-highlight rounded-lg outline-none focus-visible:ring-3"
     >
       <Image
-        src={src}
+        src="/wordmark.webp"
         alt="DrawPin"
         width={463}
         height={152}
         unoptimized
-        className={className}
+        className="h-8 w-auto"
       />
     </Link>
   );
