@@ -207,7 +207,7 @@ export function WeekStory() {
   return (
     <div
       ref={box}
-      className="mx-auto grid w-full max-w-5xl items-center gap-6 px-5 py-6 md:grid-cols-2"
+      className="mx-auto grid w-full max-w-6xl items-center gap-6 px-5 py-6 md:grid-cols-2"
     >
       <div className="border-foreground bg-secondary mx-auto h-[340px] w-full max-w-[280px] overflow-hidden rounded-[2rem] border-4 px-4 shadow-[6px_6px_0_var(--primary)] md:h-[400px]">
         <p className="text-primary pt-3 text-center text-xs font-black tracking-wide">

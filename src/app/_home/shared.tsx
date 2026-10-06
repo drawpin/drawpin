@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowRightIcon, PencilSimpleIcon } from "@phosphor-icons/react";
 import { INKED_BUTTON, PAPER } from "../b/[slug]/board-look";
 import type { Tile } from "../b/[slug]/tiles";
+import { hand } from "@/lib/fonts";
 import { JoinForm } from "../join/join-form";
 import { CARD_TITLE, OUTLINE_BUTTON, SECTION_TITLE } from "./type";
 
@@ -30,28 +31,20 @@ export const EXAMPLE: Tile[] = [
 
 /**
  * The home page's top line (chosen from prototypes on 2026-10-05,
- * "Framed"): no bar, just the wordmark in its own colours on the white page,
+ * "Framed"): no bar, just the name, handwritten, on the white page,
  * linking home, and on the right the way to try drawing, the one thing the
  * hero's buttons don't already offer. As wide as the framed hero under it.
  */
 export function Nav() {
   return (
-    <nav className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-5 py-2">
-      {/* Cut from the link card (public/og-v2.png), the only copy of the
-            wordmark there is. */}
+    <nav className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-5 py-2 md:px-6">
+      {/* The name in the same hand as the poster's headline, not the 3D
+          wordmark image, which looked pasted on next to it. */}
       <Link
         href="/"
-        aria-label="DrawPin home"
-        className="focus-visible:ring-highlight rounded-lg outline-none focus-visible:ring-3"
+        className={`${hand.className} focus-visible:ring-highlight rounded-lg text-3xl leading-none font-bold outline-none focus-visible:ring-3`}
       >
-        <Image
-          src="/wordmark.webp"
-          alt="DrawPin"
-          width={463}
-          height={152}
-          unoptimized
-          className="h-8 w-auto"
-        />
+        Draw<span className="text-primary">Pin</span>
       </Link>
       <a href="#try" className={`${OUTLINE_BUTTON} h-10 px-3 text-sm`}>
         <PencilSimpleIcon weight="bold" className="size-4" />
@@ -81,7 +74,7 @@ export function TrophyBadge({ size }: { size: number }) {
  */
 export function Ending() {
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-5 py-10">
+    <main className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-5 py-10">
       <div className="grid gap-6 md:grid-cols-2">
         <section
           id="join"

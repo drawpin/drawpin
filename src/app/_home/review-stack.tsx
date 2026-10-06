@@ -25,7 +25,7 @@ export function ReviewStack() {
   const next = () => setOrder(([first, ...rest]) => [...rest, first]);
 
   return (
-    <div className="mx-auto grid w-full max-w-5xl items-center gap-10 px-5 md:grid-cols-[1fr_1.1fr]">
+    <div className="mx-auto grid w-full max-w-6xl items-center gap-10 px-5 md:grid-cols-[1fr_1.1fr]">
       <ul className="relative mx-auto h-[24rem] w-full max-w-sm">
         {QUOTES.map((quote, index) => {
           const depth = order.indexOf(index);

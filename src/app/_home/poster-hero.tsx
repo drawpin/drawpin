@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { PencilSimpleIcon } from "@phosphor-icons/react";
+import { hand } from "@/lib/fonts";
 import { HEADER_BUTTON, INKED_BUTTON } from "../b/[slug]/board-look";
 import { PinnedDrawing } from "../b/[slug]/pinned-drawing";
 import { EXAMPLE, Nav, TrophyBadge } from "./shared";
@@ -28,10 +29,12 @@ export function PosterHero() {
   return (
     <>
       <Nav />
-      <div className="mx-auto w-full max-w-6xl px-3 md:px-5">
+      <div className="mx-auto w-full max-w-7xl px-3 md:px-6">
         <header className="bg-primary text-primary-foreground border-foreground overflow-hidden rounded-2xl border-2 shadow-[6px_6px_0_var(--foreground)]">
-          <div className="relative mx-auto flex w-full max-w-5xl flex-col gap-6 px-5 pt-8 pb-10 md:min-h-[28rem] md:justify-center">
-            <h1 className="relative z-10 text-[clamp(4rem,14vw,10rem)] leading-[0.86] font-black tracking-tighter">
+          <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-6 px-5 pt-8 pb-10 md:min-h-[28rem] md:justify-center">
+            <h1
+              className={`${hand.className} relative z-10 text-[clamp(5rem,17vw,12.5rem)] leading-[0.8] font-bold`}
+            >
               Draw it.
               <br />
               <span className="text-winner">Pin it.</span>

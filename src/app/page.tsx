@@ -29,14 +29,14 @@ export default function Home() {
         <TryItPlay />
       </section>
       <section className="flex flex-col gap-4 py-6">
-        <div className="mx-auto flex w-full max-w-5xl flex-col items-start gap-4 px-5">
+        <div className="mx-auto flex w-full max-w-6xl flex-col items-start gap-4 px-5">
           <p className={NOTE}>Then, every week</p>
           <h2 className={SECTION_TITLE}>A week on a board.</h2>
         </div>
         <WeekStory />
       </section>
       <section className="flex flex-col gap-6 py-10">
-        <div className="mx-auto flex w-full max-w-5xl flex-col items-start gap-4 px-5">
+        <div className="mx-auto flex w-full max-w-6xl flex-col items-start gap-4 px-5">
           <p className={NOTE}>From real boards</p>
           <h2 className={SECTION_TITLE}>What people say.</h2>
         </div>
