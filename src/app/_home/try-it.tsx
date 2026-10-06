@@ -90,7 +90,7 @@ export function TryItPlay() {
         <p className={LEAD}>
           {pinned
             ? "Everyone draws one a day and votes on the week. The best one gets the trophy."
-            : "That's how a board starts. No app, no sign-up."}
+            : "That's how a board starts."}
         </p>
         {pinned && (
           // Not the hero's buttons again: another go, since drawing is
