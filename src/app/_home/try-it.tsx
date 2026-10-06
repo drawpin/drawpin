@@ -114,7 +114,7 @@ export function TryItPlay() {
         <div className="mx-auto w-full max-w-md">
           <Podium
             heading="This week's winner"
-            leaders={[{ place: 1, tile: pinned, votes: 14 }]}
+            leaders={[{ place: 1, tile: pinned, votes: 67 }]}
           />
         </div>
       ) : (

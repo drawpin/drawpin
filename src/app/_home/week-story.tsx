@@ -76,6 +76,99 @@ function Screen({ beat }: { beat: number }) {
   );
 }
 
+/** How far apart the line's wiggles are, and how wide its loop is, in px. */
+const WIGGLE = 34;
+const CENTRE = 28;
+
+/**
+ * A wobbly pen line running `height` px down, with one loop curled at `loopY`:
+ * a gentle wave there and back across the centre, the loop drawn clockwise.
+ */
+function penPath(height: number, loopY: number): string {
+  const end = height - 6;
+  const wave = (index: number) =>
+    CENTRE + (index % 2 ? 1 : -1) * (5 + ((index * 37) % 4));
+  let path = `M ${CENTRE} 4`;
+  let y = 4;
+  let index = 0;
+  let looped = false;
+  while (y < end) {
+    const into = loopY - 16;
+    if (!looped && y + WIGGLE >= into) {
+      if (into > y) {
+        path += ` Q ${wave(index++)} ${(y + into) / 2} ${CENTRE} ${into}`;
+      }
+      path +=
+        ` C ${CENTRE + 26} ${loopY - 14}, ${CENTRE + 24} ${loopY + 16}, ${CENTRE + 2} ${loopY + 14}` +
+        ` C ${CENTRE - 20} ${loopY + 12}, ${CENTRE - 16} ${loopY - 14}, ${CENTRE + 6} ${loopY - 6}` +
+        ` C ${CENTRE + 18} ${loopY - 2}, ${CENTRE + 8} ${loopY + 12}, ${CENTRE} ${loopY + 22}`;
+      y = loopY + 22;
+      looped = true;
+      continue;
+    }
+    const next = Math.min(y + WIGGLE, end);
+    path += ` Q ${wave(index++)} ${(y + next) / 2} ${CENTRE} ${next}`;
+    y = next;
+  }
+  return path;
+}
+
+/**
+ * The pen line beside the beats, on wider screens: doodled down again each
+ * time the story moves on, curling into a loop beside the beat that's up.
+ * `list` is the beats' list, its rows measured for where the loop goes.
+ */
+function PenLine({
+  beat,
+  list,
+}: {
+  beat: number;
+  list: React.RefObject<HTMLOListElement | null>;
+}) {
+  const [size, setSize] = useState<{ height: number; centres: number[] }>();
+
+  useEffect(() => {
+    const element = list.current;
+    if (!element) return;
+    const measure = () =>
+      setSize({
+        height: element.offsetHeight,
+        centres: [...element.children].map(
+          (row) =>
+            (row as HTMLElement).offsetTop +
+            (row as HTMLElement).offsetHeight / 2,
+        ),
+      });
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [list]);
+
+  if (!size) return null;
+  return (
+    <svg
+      aria-hidden
+      width={CENTRE * 2}
+      height={size.height}
+      className="text-foreground pointer-events-none absolute top-0 left-0 hidden overflow-visible md:block"
+    >
+      <path
+        key={beat}
+        d={penPath(size.height, size.centres[beat])}
+        pathLength={1}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={4.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="scribble"
+        style={{ "--dur": "900ms" } as React.CSSProperties}
+      />
+    </svg>
+  );
+}
+
 /** How long each beat stays up before the next, in ms. */
 const BEAT_MS = 2800;
 
@@ -88,6 +181,7 @@ const BEAT_MS = 2800;
 export function WeekStory() {
   const [beat, setBeat] = useState(0);
   const box = useRef<HTMLDivElement>(null);
+  const list = useRef<HTMLOListElement>(null);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -121,27 +215,30 @@ export function WeekStory() {
         </p>
         <Screen key={beat} beat={beat} />
       </div>
-      <ol className="flex flex-col gap-1">
-        {BEATS.map((item, index) => (
-          <li key={item.day}>
-            <button
-              type="button"
-              onClick={() => setBeat(index)}
-              aria-current={beat === index ? "step" : undefined}
-              className={`focus-visible:ring-highlight flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-[background-color,opacity] duration-200 outline-none focus-visible:ring-3 ${beat === index ? "bg-secondary opacity-100" : "opacity-50 hover:opacity-80"}`}
-            >
-              <span
-                className={`${hand.className} text-primary w-24 shrink-0 pt-0.5 text-xl leading-tight font-bold`}
+      <div className="relative md:pl-16">
+        <PenLine beat={beat} list={list} />
+        <ol ref={list} className="relative flex flex-col gap-1">
+          {BEATS.map((item, index) => (
+            <li key={item.day}>
+              <button
+                type="button"
+                onClick={() => setBeat(index)}
+                aria-current={beat === index ? "step" : undefined}
+                className={`focus-visible:ring-highlight flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-[background-color,opacity] duration-200 outline-none focus-visible:ring-3 ${beat === index ? "bg-secondary opacity-100" : "opacity-50 hover:opacity-80"}`}
               >
-                {item.day}
-              </span>
-              <span className="text-lg leading-snug font-black tracking-tight">
-                {item.line}
-              </span>
-            </button>
-          </li>
-        ))}
-      </ol>
+                <span
+                  className={`${hand.className} text-primary w-24 shrink-0 pt-0.5 text-xl leading-tight font-bold`}
+                >
+                  {item.day}
+                </span>
+                <span className="text-lg leading-snug font-black tracking-tight">
+                  {item.line}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ol>
+      </div>
     </div>
   );
 }
