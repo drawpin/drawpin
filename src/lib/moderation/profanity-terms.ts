@@ -8,7 +8,7 @@
  *
  * Every category in the source list is kept here, not just slurs (see
  * {@link MIN_SEVERITY}), each tagged with its category. A board's moderation
- * level then decides which categories apply (policy.ts, ADR-013): All Ages
+ * level then decides which categories apply (policy.ts, ADR-012): All Ages
  * blocks them all, Standard only slurs and sexual terms, Late Night none.
  *
  * Terms come from `@dsojevic/profanity-list` (MIT-licensed,

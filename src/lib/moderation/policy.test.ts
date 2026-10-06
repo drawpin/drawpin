@@ -11,7 +11,7 @@ import {
 const LEVELS: ModerationLevel[] = ["all_ages", "standard", "late_night"];
 
 describe("policyFor", () => {
-  // ADR-013's table, one row per kind of content.
+  // ADR-012's table, one row per kind of content.
   it.each([
     ["language", true, false, false],
     ["violent", true, false, false],

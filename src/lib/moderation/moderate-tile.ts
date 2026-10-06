@@ -64,7 +64,7 @@ const ALL_AGES = policyFor("all_ages");
  * username or board name on its own, where there's no drawing to check.
  *
  * The board's moderation level decides which findings block (policy.ts,
- * ADR-013). Late Night skips the nudity check and the vision model, but still
+ * ADR-012). Late Night skips the nudity check and the vision model, but still
  * asks OpenAI, for the legal floor. Usernames and board names show beyond any
  * one board, so they're always checked at All Ages: callers checking one leave
  * `level` at its default, and the blocklist checks the name on a post at All
