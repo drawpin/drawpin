@@ -2,12 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRightIcon, PencilSimpleIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon } from "@phosphor-icons/react";
 import { INKED_BUTTON, PAPER } from "../b/[slug]/board-look";
 import type { Tile } from "../b/[slug]/tiles";
-import { hand } from "@/lib/fonts";
 import { JoinForm } from "../join/join-form";
-import { CARD_TITLE, OUTLINE_BUTTON, SECTION_TITLE } from "./type";
+import { CARD_TITLE, SECTION_TITLE } from "./type";
 
 /**
  * Example drawings (made in Canva, public/examples), each showing a tool
@@ -28,31 +27,6 @@ export const EXAMPLE: Tile[] = [
   imageUrl: `/examples/${file}.webp`,
   createdAt: "",
 }));
-
-/**
- * The home page's top line (chosen from prototypes on 2026-10-05,
- * "Framed"): no bar, just the name, handwritten, on the white page,
- * linking home, and on the right the way to try drawing, the one thing the
- * hero's buttons don't already offer. As wide as the framed hero under it.
- */
-export function Nav() {
-  return (
-    <nav className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-5 py-2 md:px-6">
-      {/* The name in the same hand as the poster's headline, not the 3D
-          wordmark image, which looked pasted on next to it. */}
-      <Link
-        href="/"
-        className={`${hand.className} focus-visible:ring-highlight rounded-lg text-3xl leading-none font-bold outline-none focus-visible:ring-3`}
-      >
-        Draw<span className="text-primary">Pin</span>
-      </Link>
-      <a href="#try" className={`${OUTLINE_BUTTON} h-10 px-3 text-sm`}>
-        <PencilSimpleIcon weight="bold" className="size-4" />
-        Try it
-      </a>
-    </nav>
-  );
-}
 
 /** The gold trophy, on a drawing's corner. */
 export function TrophyBadge({ size }: { size: number }) {

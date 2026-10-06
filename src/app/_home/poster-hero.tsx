@@ -5,7 +5,7 @@ import { PencilSimpleIcon } from "@phosphor-icons/react";
 import { hand } from "@/lib/fonts";
 import { HEADER_BUTTON, INKED_BUTTON } from "../b/[slug]/board-look";
 import { PinnedDrawing } from "../b/[slug]/pinned-drawing";
-import { EXAMPLE, Nav, TrophyBadge } from "./shared";
+import { EXAMPLE, TrophyBadge } from "./shared";
 
 /**
  * Where each drawing is pinned on the poster, desktop only: overlapping the
@@ -23,13 +23,13 @@ const SPOTS = [
  * from prototypes on 2026-10-05, "Framed"). The page stays white from top to
  * bottom and the blue is a poster on it: an inked card with rounded corners
  * and the same offset shadow as the "Start a board" card at the end, rather
- * than a band of colour starting and stopping across the page.
+ * than a band of colour starting and stopping across the page. No bar
+ * above it: the poster is the top of the page.
  */
 export function PosterHero() {
   return (
     <>
-      <Nav />
-      <div className="mx-auto w-full max-w-7xl px-3 md:px-6">
+      <div className="mx-auto w-full max-w-7xl px-3 pt-3 md:px-6 md:pt-6">
         <header className="bg-primary text-primary-foreground border-foreground overflow-hidden rounded-2xl border-2 shadow-[6px_6px_0_var(--foreground)]">
           <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-6 px-5 pt-8 pb-10 md:min-h-[28rem] md:justify-center">
             <h1
