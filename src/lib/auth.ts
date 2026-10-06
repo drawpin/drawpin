@@ -3,6 +3,31 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 /**
+ * The signed-in account's id, read from its session token, or `null` if
+ * nobody is signed in or the token doesn't check out.
+ *
+ * Quicker than {@link getOwner}: the project signs tokens with a key pair
+ * (ES256), so `getClaims` checks the signature here against the published
+ * public key instead of asking the auth server on every request. The cost is
+ * that a session signed out elsewhere still reads as signed in until its
+ * token expires (an hour at most), so this is for showing pages only. Anything
+ * that changes data goes through {@link getOwner}.
+ */
+export async function getSignedInUserId(): Promise<string | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.getClaims();
+  if (error) {
+    // An expired or tampered token is just "signed out"; anything else is
+    // worth knowing about, but a page still shows as for a guest.
+    if (!isAuthSessionMissingError(error)) {
+      console.error("Could not check the session token", error.message);
+    }
+    return null;
+  }
+  return data?.claims.sub ?? null;
+}
+
+/**
  * Returns the signed-in owner, or `null` if nobody is signed in.
  *
  * @throws {Error} If Supabase couldn't be reached, so an outage surfaces as an

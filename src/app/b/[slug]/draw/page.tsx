@@ -64,7 +64,7 @@ export default async function DrawPage({
   const { slug } = await params;
   const board = await requireBoard(slug, "/draw");
 
-  const customer = await getCustomer(createAdminClient());
+  const customer = await getCustomer(createAdminClient(), { check: "token" });
   // A guest never posts, so today's limits don't stop them drawing for fun.
   const blocked = board.isPaused
     ? "This board is paused, so posting is off right now."

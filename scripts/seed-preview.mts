@@ -224,9 +224,11 @@ async function main() {
     const id = randomUUID();
     const imagePath = `${venue.id}/${week.id}/${id}.webp`;
     const image = images[imageIndex++ % images.length];
-    const upload = await admin.storage
-      .from(BUCKET)
-      .upload(imagePath, image, { contentType: "image/webp" });
+    const upload = await admin.storage.from(BUCKET).upload(imagePath, image, {
+      contentType: "image/webp",
+      // As the app uploads them: a tile's path is never reused.
+      cacheControl: "31536000",
+    });
     if (upload.error) throw new Error(`uploading: ${upload.error.message}`);
 
     const account = person === null ? null : accounts[person];
