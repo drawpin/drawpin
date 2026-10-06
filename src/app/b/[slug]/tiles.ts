@@ -122,3 +122,16 @@ export function olderThanCursorFilter(cursor: TileCursor): string {
   const createdAt = `"${cursor.createdAt}"`;
   return `created_at.lt.${createdAt},and(created_at.eq.${createdAt},id.lt.${cursor.id})`;
 }
+
+/** How far each tile leans, in degrees: a touch off-square, like a pinned drawing. */
+const TILTS = [-1.2, 0.9, 0.6, -0.8];
+
+/**
+ * The tilt for a tile, worked out from its id so it's the same on every
+ * render and every device, and doesn't shuffle when a new tile arrives.
+ */
+export function tiltFor(tileId: string): number {
+  let sum = 0;
+  for (const char of tileId) sum += char.charCodeAt(0);
+  return TILTS[sum % TILTS.length];
+}

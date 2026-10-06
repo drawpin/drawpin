@@ -190,7 +190,7 @@ export function WinnersReveal({
   return (
     <section
       aria-labelledby={`reveal-${reveal.id}`}
-      className="reveal relative overflow-hidden rounded-xl border bg-[#edf5ff] px-3 pt-4 pb-0"
+      className="reveal border-foreground relative mx-auto w-full max-w-2xl overflow-hidden rounded-xl border-2 bg-white px-4 pt-5 pb-0 shadow-[5px_5px_0_var(--primary)]"
       data-phase={phase}
       // A new key restarts the animation from the top.
       key={replays}
@@ -215,13 +215,16 @@ export function WinnersReveal({
 
       <div className="flex items-start justify-between gap-2">
         <div>
-          <h2 id={`reveal-${reveal.id}`} className="text-base font-bold">
+          <h2
+            id={`reveal-${reveal.id}`}
+            className="text-xl font-black tracking-tight"
+          >
             {heading(reveal)}
           </h2>
           {/* Names the winner, so it waits for the crown like the rest. */}
           {winner && (
             <p
-              className="reveal-step text-muted-foreground text-xs"
+              className="reveal-step text-muted-foreground text-sm"
               style={{ "--delay": `${CROWN_AT}s` } as React.CSSProperties}
             >
               {winner.author ?? "A former member"} takes the crown
@@ -247,7 +250,7 @@ export function WinnersReveal({
 
       <Link
         href={hallOfFameHref}
-        className="text-muted-foreground block py-2 text-center text-xs underline underline-offset-4"
+        className="text-muted-foreground block py-3 text-center text-sm underline underline-offset-4"
       >
         See the Hall of Fame
       </Link>

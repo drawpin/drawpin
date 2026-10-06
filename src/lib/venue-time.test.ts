@@ -13,6 +13,7 @@ import {
   weekBoundsAt,
   weekBoundsFor,
   zoneAt,
+  weekdayFor,
 } from "./venue-time";
 
 const at = (iso: string) => new Date(iso);
@@ -441,6 +442,19 @@ describe("formatBoundary", () => {
   it("reads in the zone the boundary falls in", () => {
     expect(formatBoundary(at("2026-10-05T09:00:00Z"), CHICAGO)).toBe(
       "Monday 5 October, 4:00 AM",
+    );
+  });
+});
+
+describe("weekdayFor", () => {
+  it("names the day in the venue's time zone, not UTC's", () => {
+    // 4:00 AM Monday in Chicago is already Monday there; 3:00 AM UTC Monday
+    // is still Sunday evening.
+    expect(weekdayFor(at("2026-10-05T09:00:00Z"), "America/Chicago")).toBe(
+      "Monday",
+    );
+    expect(weekdayFor(at("2026-10-05T03:00:00Z"), "America/Chicago")).toBe(
+      "Sunday",
     );
   });
 });

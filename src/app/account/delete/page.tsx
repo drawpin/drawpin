@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { CardPage } from "@/app/b/[slug]/board-look";
 import { connection } from "next/server";
 import { getCustomer } from "@/lib/customer";
 import { safeNextPath } from "@/lib/next-path";
@@ -29,18 +30,19 @@ export default async function DeleteAccountPage({
   if (!customer) redirect(back);
 
   return (
-    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-6 py-10">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Delete your account?
-        </h1>
-        <p className="text-muted-foreground text-sm">
+    <CardPage
+      note="Your account"
+      title="Delete your account?"
+      intro={
+        <p>
           You&apos;re signed in as{" "}
-          <span className="font-medium">{customer.username}</span>. This
-          can&apos;t be undone.
+          <span className="text-foreground font-medium">
+            {customer.username}
+          </span>
+          . This can&apos;t be undone.
         </p>
-      </div>
-
+      }
+    >
       <ul className="flex list-disc flex-col gap-2 pl-5 text-sm">
         <li>Your drawings are deleted from every board.</li>
         <li>
@@ -68,6 +70,6 @@ export default async function DeleteAccountPage({
       </ul>
 
       <DeleteAccountForm back={back} />
-    </main>
+    </CardPage>
   );
 }

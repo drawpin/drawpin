@@ -63,10 +63,8 @@ export default async function PrintPage({
   const href = (change: Partial<Record<"look" | "format" | "paper", string>>) =>
     `/admin/print?${new URLSearchParams({ look, format, paper, ...change })}`;
   const chip = (active: boolean) =>
-    `rounded-full border px-3 py-1.5 text-sm transition-colors ${
-      active
-        ? "border-primary bg-primary text-primary-foreground"
-        : "hover:bg-muted"
+    `border-foreground inline-flex h-10 items-center rounded-full border-2 px-3.5 text-sm font-bold transition-colors duration-150 ease-out ${
+      active ? "bg-foreground text-white" : "hover:bg-secondary bg-white"
     }`;
 
   return (
@@ -91,7 +89,7 @@ export default async function PrintPage({
         >
           ← Your board
         </Link>
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <h1 className="text-4xl leading-tight font-black tracking-tight">
           Print your QR code
         </h1>
         <p className="text-muted-foreground text-sm">
@@ -102,7 +100,7 @@ export default async function PrintPage({
 
       <section className="flex flex-col gap-4 print:hidden">
         <div className="flex flex-col gap-2">
-          <h2 className="text-sm font-medium">Look</h2>
+          <h2 className="font-black tracking-tight">Look</h2>
           <div className="flex flex-wrap gap-2">
             {LOOKS.map((each) => (
               <Link
@@ -119,7 +117,7 @@ export default async function PrintPage({
         </div>
 
         <div className="flex flex-col gap-2">
-          <h2 className="text-sm font-medium">Shape</h2>
+          <h2 className="font-black tracking-tight">Shape</h2>
           <div className="flex flex-wrap gap-2">
             {FORMATS.map((each) => (
               <Link

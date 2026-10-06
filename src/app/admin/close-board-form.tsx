@@ -22,9 +22,9 @@ export function CloseBoardForm({ name }: { name: string }) {
   const [typed, setTyped] = useState("");
 
   return (
-    <section className="flex flex-col gap-2 border-t pt-6">
-      <h2 className="text-sm font-medium">Close board</h2>
-      <p className="text-muted-foreground text-xs">
+    <section className="flex flex-col gap-2">
+      <h2 className="font-black tracking-tight">Close board</h2>
+      <p className="text-muted-foreground text-sm">
         Deletes your board and everything on it, for good.
       </p>
 

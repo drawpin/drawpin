@@ -1,22 +1,36 @@
 import { describe, expect, it } from "vitest";
-import { boardStatsSummary, toBoardStats } from "./stats";
+import { boardStatsSummary, newThisWeek, toBoardStats } from "./stats";
 
 describe("boardStatsSummary", () => {
-  it("lists people, total drawings and this week's count", () => {
+  it("lists people and total drawings", () => {
     expect(
       boardStatsSummary({ people: 24, totalDrawings: 58, weekDrawings: 12 }),
-    ).toBe("24 artists · 58 drawings · 12 this week");
+    ).toBe("24 artists · 58 drawings");
   });
 
   it("uses singular nouns for a count of one", () => {
     expect(
       boardStatsSummary({ people: 1, totalDrawings: 1, weekDrawings: 1 }),
-    ).toBe("1 artist · 1 drawing · 1 this week");
+    ).toBe("1 artist · 1 drawing");
   });
 
   it("is null for a board nobody has drawn on", () => {
     expect(
       boardStatsSummary({ people: 0, totalDrawings: 0, weekDrawings: 0 }),
+    ).toBeNull();
+  });
+});
+
+describe("newThisWeek", () => {
+  it("counts this week's drawings", () => {
+    expect(
+      newThisWeek({ people: 24, totalDrawings: 58, weekDrawings: 12 }),
+    ).toBe("12 new this week!");
+  });
+
+  it("is null for a week with nothing new yet", () => {
+    expect(
+      newThisWeek({ people: 24, totalDrawings: 58, weekDrawings: 0 }),
     ).toBeNull();
   });
 });

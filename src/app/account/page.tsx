@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { buttonVariants } from "@/components/ui/button";
+import { hand } from "@/lib/fonts";
 import { getCustomer } from "@/lib/customer";
 import { KEPT_FOR_DAYS } from "@/lib/my-drawings";
 import { safeNextPath } from "@/lib/next-path";
@@ -41,15 +42,22 @@ export default async function AccountPage({
   const drawings = await listMyDrawings(admin, customer.id);
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-6 px-4 py-8">
-      <header className="flex flex-col gap-1">
+    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 px-5 py-10">
+      <header className="flex flex-col items-start gap-3">
         <Link
           href={back}
           className="text-muted-foreground text-sm underline-offset-4 hover:underline"
         >
           ← Back
         </Link>
-        <h1 className="text-2xl font-semibold tracking-tight">Your drawings</h1>
+        <p
+          className={`${hand.className} bg-winner text-foreground w-fit -rotate-2 rounded-sm px-2.5 py-0.5 text-xl leading-tight font-bold`}
+        >
+          Your account
+        </p>
+        <h1 className="text-4xl leading-tight font-black tracking-tight">
+          Your drawings
+        </h1>
         <p className="text-muted-foreground text-sm">
           Signed in as <span className="font-medium">{customer.username}</span>.
           Drawings that don&apos;t win are deleted {KEPT_FOR_DAYS} days after
@@ -58,11 +66,11 @@ export default async function AccountPage({
       </header>
 
       {drawings.length === 0 ? (
-        <p className="text-muted-foreground rounded-lg border px-3 py-6 text-center text-sm">
+        <p className="border-foreground text-muted-foreground rounded-xl border-2 bg-white px-4 py-8 text-center shadow-[4px_4px_0_var(--primary)]">
           Nothing here yet. Drawings you post show up here.
         </p>
       ) : (
-        <ul className="grid grid-cols-2 gap-4">
+        <ul className="grid grid-cols-2 gap-5 sm:grid-cols-3">
           {drawings.map((drawing) => (
             <li key={drawing.id} className="flex min-w-0 flex-col gap-1">
               <Image
@@ -71,7 +79,7 @@ export default async function AccountPage({
                 width={512}
                 height={512}
                 unoptimized
-                className="aspect-square w-full rounded-lg border bg-white object-cover"
+                className="border-foreground aspect-square w-full rounded-lg border-2 bg-white object-cover"
               />
               <p className="truncate text-sm font-medium">
                 {drawing.boardName}
@@ -102,9 +110,9 @@ export default async function AccountPage({
         </ul>
       )}
 
-      <section className="flex flex-col gap-1 border-t pt-6">
-        <h2 className="text-sm font-medium">Your account</h2>
-        <p className="text-muted-foreground text-xs">
+      <section className="border-foreground flex flex-col gap-2 rounded-xl border-2 bg-white p-5 shadow-[4px_4px_0_var(--destructive)]">
+        <h2 className="font-black tracking-tight">Your account</h2>
+        <p className="text-muted-foreground text-sm">
           Deleting your account deletes your drawings and votes. Winners stay in
           their board&apos;s Hall of Fame, without your name.
         </p>

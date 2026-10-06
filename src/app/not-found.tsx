@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
+import { CardPage, INKED_BUTTON } from "@/app/b/[slug]/board-look";
 import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
 
 export const metadata: Metadata = { title: "Page not found · DrawPin" };
 
@@ -11,18 +11,14 @@ export const metadata: Metadata = { title: "Page not found · DrawPin" };
  */
 export default function NotFound() {
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Page not found
-        </h1>
-        <p className="text-muted-foreground max-w-sm">
-          That link doesn&apos;t go anywhere on DrawPin.
-        </p>
-      </div>
-      <Link href="/" className={buttonVariants()}>
+    <CardPage
+      note="Wrong link"
+      title="Page not found"
+      intro={<p>That link doesn&apos;t go anywhere on DrawPin.</p>}
+    >
+      <Link href="/" className={`${INKED_BUTTON} w-full`}>
         Go to the home page
       </Link>
-    </main>
+    </CardPage>
   );
 }

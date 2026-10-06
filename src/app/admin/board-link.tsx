@@ -34,17 +34,17 @@ export function BoardLink({
 
   return (
     <section className="flex flex-col gap-2">
-      <h2 className="text-sm font-medium">Board link</h2>
+      <h2 className="font-black tracking-tight">Board link</h2>
       <p className="bg-muted rounded-lg px-3 py-2 font-mono text-sm break-all">
         {url}
       </p>
-      <p className="text-muted-foreground text-xs">
+      <p className="text-muted-foreground text-sm">
         People open this link by scanning the QR code. It doesn&apos;t change
         when you rename your board.
       </p>
 
       {state.status === "changed" && (
-        <p role="status" className="text-muted-foreground text-xs">
+        <p role="status" className="text-muted-foreground text-sm">
           Done. The QR code above is the new one: download it and print it when
           you can. Old QR codes and links still work and bring people here.
         </p>
@@ -77,7 +77,7 @@ export function BoardLink({
             Your link becomes{" "}
             <span className="font-mono break-all">{nextUrl}</span>
           </p>
-          <ul className="text-muted-foreground list-disc pl-4 text-xs">
+          <ul className="text-muted-foreground list-disc pl-4 text-sm">
             <li>
               Your QR code changes too. Old ones and links already shared still
               work: they bring people to the new link.

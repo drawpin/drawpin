@@ -1,29 +1,36 @@
 /**
  * The colours everyone starts from.
  *
- * Six, so the row fits a phone without scrolling: the colours most drawings
- * are made of, white included for drawing over colour. A short curated row is
+ * Eight, so the row fits a phone without scrolling and reaches as far as the
+ * canvas: the colours most drawings are made of, in rainbow order after black
+ * and white, white included for drawing over colour. A short curated row is
  * what stops amateur drawings looking muddy (issue #39); anything else is one
- * tap away through the hex field or the colour wheel, and stays in Recent.
+ * tap away through the colour creator, and stays in Your colours.
  * Black comes first because it is the default brush colour.
  */
 export const BASE_COLORS = [
   { name: "Black", value: "#111827" },
   { name: "White", value: "#ffffff" },
   { name: "Red", value: "#ef4444" },
+  { name: "Orange", value: "#f97316" },
   { name: "Yellow", value: "#eab308" },
   { name: "Green", value: "#22c55e" },
   { name: "Blue", value: "#3b82f6" },
+  { name: "Purple", value: "#a855f7" },
 ] as const;
 
 /**
- * How many recent colours to keep within reach.
+ * How many of your own colours to keep within reach.
  *
- * Five, on one line beside its label at phone width. The row is there to get
- * back to a colour you just used, and a longer one stops being that — it
- * becomes a second palette to read, next to the curated one above it.
+ * Six, so with the colour creator and the colour picker beside them they fill
+ * the same eight-wide row as the defaults. The row is there to get back to a colour you mixed,
+ * and a longer one stops being that: it becomes a second palette to read.
  */
-export const RECENT_LIMIT = 5;
+export const RECENT_LIMIT = 6;
+
+function isBaseColor(color: string): boolean {
+  return BASE_COLORS.some((option) => option.value === color);
+}
 
 /**
  * Reads what someone typed into the hex field.
@@ -45,21 +52,26 @@ export function parseHexInput(raw: string): {
 }
 
 /**
- * Puts a colour at the front of the recent list.
+ * Puts a colour at the front of "Your colours".
  *
- * Choosing a colour already in the list moves it to the front rather than
- * adding it twice, so the row stays the last few distinct colours used. Once
- * it is full the colour that drops off the end is the one used longest ago —
- * re-picking a colour keeps it alive.
+ * Only colours you mixed yourself belong there: a default is already one tap
+ * away in its own row, so picking one leaves the list as it is. Choosing a
+ * colour already in the list moves it to the front rather than adding it
+ * twice. Once it's full, the colour that drops off the end is the one used
+ * longest ago, so re-picking a colour keeps it.
  */
 export function withRecent(recents: string[], color: string): string[] {
+  if (isBaseColor(color)) return recents;
   return [color, ...recents.filter((recent) => recent !== color)].slice(
     0,
     RECENT_LIMIT,
   );
 }
 
-/** Reads the stored recents, ignoring anything that isn't a colour. */
+/**
+ * Reads the stored list, ignoring anything that isn't a colour, and any
+ * default saved before the list held only mixed colours.
+ */
 export function parseRecents(stored: string | null): string[] {
   if (!stored) return [];
 
@@ -69,7 +81,9 @@ export function parseRecents(stored: string | null): string[] {
     return parsed
       .filter(
         (value): value is string =>
-          typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value),
+          typeof value === "string" &&
+          /^#[0-9a-f]{6}$/i.test(value) &&
+          !isBaseColor(value),
       )
       .slice(0, RECENT_LIMIT);
   } catch {

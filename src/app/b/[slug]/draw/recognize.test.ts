@@ -117,6 +117,28 @@ describe("recognizeShape: lines", () => {
     // 30° isn't near level, upright or diagonal, so it isn't moved.
     expect(line.to[1]).toBeCloseTo(330, -1);
   });
+
+  it("straightens a diagonal a touch screen reports in whole-pixel steps", () => {
+    // A finger moving at 45° comes in as a staircase — one step across, one
+    // down — which measured point to point is 1.41 times the line's length.
+    const stairs: StrokePoint[] = [];
+    for (let step = 0; step <= 300; step++) {
+      stairs.push([100 + step, 100 + step, 0.5]);
+      stairs.push([101 + step, 100 + step, 0.5]);
+    }
+    const line = expectShape(recognizeShape(stairs), "line");
+    expect(line.to[0] - line.from[0]).toBeCloseTo(line.to[1] - line.from[1], 6);
+  });
+
+  it("straightens a diagonal sampled densely, with a shake on every sample", () => {
+    const shake = wobble(3);
+    const dense: StrokePoint[] = Array.from({ length: 400 }, (_, index) => [
+      100 + index + shake(1.5),
+      100 + index * 0.8 + shake(1.5),
+      0.5,
+    ]);
+    expectShape(recognizeShape(dense), "line");
+  });
 });
 
 describe("recognizeShape: closed shapes", () => {

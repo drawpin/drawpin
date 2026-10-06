@@ -58,7 +58,7 @@ function ReportedCard({ tile }: { tile: ReportedAdminTile }) {
         className="aspect-square w-full rounded bg-white object-cover"
       />
       {tile.caption && <p className="text-sm break-words">{tile.caption}</p>}
-      <p className="text-muted-foreground text-xs">
+      <p className="text-muted-foreground text-sm">
         {tile.author ?? "Guest"} · {tile.reportCount}{" "}
         {tile.reportCount === 1 ? "report" : "reports"}:{" "}
         {tile.reasons
@@ -105,7 +105,7 @@ function ReportedCard({ tile }: { tile: ReportedAdminTile }) {
                 size="sm"
                 disabled={dismissing}
               >
-                {dismissing ? "Dismissing…" : "It's fine"}
+                {dismissing ? "Dismissing…" : "Keep it"}
               </Button>
             </form>
           </>
@@ -129,10 +129,10 @@ export function ReportedTiles({ tiles }: { tiles: ReportedAdminTile[] }) {
 
   return (
     <section className="flex flex-col gap-2">
-      <h2 className="text-sm font-medium">
+      <h2 className="font-black tracking-tight">
         Reported drawings ({tiles.length})
       </h2>
-      <p className="text-muted-foreground text-xs">
+      <p className="text-muted-foreground text-sm">
         Nothing is hidden automatically. Take a look and decide.
       </p>
       <ul className="flex flex-col gap-4">

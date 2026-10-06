@@ -38,7 +38,7 @@ export function TimeZone({
 
   return (
     <section className="flex flex-col gap-2">
-      <h2 className="text-sm font-medium">Time zone</h2>
+      <h2 className="font-black tracking-tight">Time zone</h2>
       <form action={formAction} className="flex flex-col gap-2">
         <Label htmlFor="board-timezone" className="sr-only">
           Time zone
@@ -61,19 +61,19 @@ export function TimeZone({
         </select>
 
         {scheduled ? (
-          <p className="text-muted-foreground text-xs">
+          <p className="text-muted-foreground text-sm">
             Your board is on {timeZone.replaceAll("_", " ")} time until{" "}
             {scheduled.from}, then changes to{" "}
             {scheduled.timeZone.replaceAll("_", " ")}. To keep{" "}
             {timeZone.replaceAll("_", " ")}, pick it again and save.
           </p>
         ) : settlingUntil ? (
-          <p className="text-muted-foreground text-xs">
+          <p className="text-muted-foreground text-sm">
             Your board has just changed time zone. You can change it again from{" "}
             {settlingUntil}.
           </p>
         ) : (
-          <p className="text-muted-foreground text-xs">
+          <p className="text-muted-foreground text-sm">
             Your board&apos;s day resets at 4:00 AM in this time zone. A change
             starts when this week&apos;s posting closes, {nextChangeFrom}, so
             the week under way isn&apos;t cut short.

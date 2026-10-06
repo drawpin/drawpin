@@ -1,20 +1,26 @@
 "use client";
 
-import Image from "next/image";
+import { CheckIcon } from "@phosphor-icons/react";
 import { useActionState, useState } from "react";
 import { Turnstile } from "@/components/turnstile";
-import { Button } from "@/components/ui/button";
 import { TURNSTILE_FIELD } from "@/lib/turnstile/field";
+import { INKED_BUTTON, YELLOW_STRIP } from "../board-look";
+import { CornerLabel, PinnedDrawing } from "../pinned-drawing";
+import { DrawingsList } from "../vote/drawings-list";
 import { castFinalVoteAction } from "./actions";
-import { FinalistWall } from "./finalist-wall";
 import type { Finalist } from "./data";
+import { FinalistWall } from "./finalist-wall";
+import { finalistTile, WonItsWeek } from "./finalists";
 import type { FinalVoteState } from "./schema";
 
 const initialState: FinalVoteState = { status: "idle" };
 
 /**
  * The month's finalists, with the one vote each account gets
- * (docs/PLAN.md, Monthly super winner).
+ * (docs/PLAN.md, Monthly super winner). In the board's look (UI pass,
+ * 2026-10-05), like weekly voting: pinned polaroids, a tap picks one (it
+ * lifts, straightens and gets a yellow check), and the Cast button stays in
+ * reach at the foot of the screen. Picking another moves the pick.
  */
 export function FinalGrid({
   slug,
@@ -35,8 +41,8 @@ export function FinalGrid({
   if (state.status === "cast") {
     return (
       <>
-        <p role="status" className="bg-muted rounded-lg px-3 py-2 text-sm">
-          Vote cast. That&apos;s your one for this month&apos;s final — the
+        <p role="status" className={`${YELLOW_STRIP} text-2xl leading-tight`}>
+          Vote cast. That&apos;s your one for this month&apos;s final, and the
           super winner is crowned when it closes.
         </p>
         <FinalistWall finalists={finalists} />
@@ -45,53 +51,45 @@ export function FinalGrid({
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <form action={formAction} className="flex flex-col gap-6">
       <input type="hidden" name="slug" value={slug} />
       {picked && <input type="hidden" name="tileId" value={picked} />}
       <input type="hidden" name={TURNSTILE_FIELD} value={token ?? ""} />
 
-      <p role="status" className="text-sm">
-        One vote, and it&apos;s final.
+      <p role="status" className="text-muted-foreground text-sm font-semibold">
+        Tap a drawing to pick it. One vote, and it&apos;s final.
       </p>
 
-      <ul className="flex flex-col gap-4">
-        {finalists.map((finalist, index) => (
-          <li key={finalist.tileId}>
-            <button
-              type="button"
-              onClick={() => setPicked(finalist.tileId)}
-              disabled={finalist.isOwn || pending}
-              aria-pressed={picked === finalist.tileId}
-              className={`flex w-full flex-col gap-1 rounded-lg border p-2 text-left ${
-                picked === finalist.tileId ? "border-primary border-2" : ""
-              } ${finalist.isOwn ? "opacity-60" : ""}`}
-            >
-              <Image
-                src={finalist.imageUrl}
-                loading={index === 0 ? "eager" : "lazy"}
-                alt={
-                  finalist.caption ??
-                  `Drawing by ${finalist.author ?? "a former member"}`
+      <DrawingsList>
+        {finalists.map((finalist, index) => {
+          const isPicked = picked === finalist.tileId;
+          return (
+            <div key={finalist.tileId} className="flex flex-col gap-2">
+              <PinnedDrawing
+                tile={finalistTile(finalist)}
+                index={index}
+                picked={isPicked}
+                disabled={finalist.isOwn || pending}
+                dim={finalist.isOwn}
+                onPick={() => setPicked(isPicked ? null : finalist.tileId)}
+                badge={
+                  finalist.isOwn ? (
+                    <CornerLabel>Yours</CornerLabel>
+                  ) : isPicked ? (
+                    <span
+                      aria-hidden
+                      className="vote-check border-foreground bg-winner text-foreground absolute -right-3 -bottom-3 grid size-10 place-items-center rounded-full border-2"
+                    >
+                      <CheckIcon weight="bold" className="size-5" />
+                    </span>
+                  ) : null
                 }
-                width={768}
-                height={768}
-                unoptimized
-                className="aspect-square w-full rounded bg-white object-cover"
               />
-              {finalist.caption && (
-                <span className="text-sm break-words">{finalist.caption}</span>
-              )}
-              <span className="text-muted-foreground text-xs">
-                {finalist.author ?? "A former member"} · won its week with{" "}
-                {finalist.weekVotes}{" "}
-                {finalist.weekVotes === 1 ? "vote" : "votes"}
-                {finalist.isOwn && " · Yours"}
-                {picked === finalist.tileId && " · picked"}
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
+              <WonItsWeek finalist={finalist} />
+            </div>
+          );
+        })}
+      </DrawingsList>
 
       {state.status === "error" && (
         <p role="alert" className="text-destructive text-sm">
@@ -101,15 +99,22 @@ export function FinalGrid({
 
       <Turnstile siteKey={turnstileSiteKey} onToken={setToken} />
 
-      <Button type="submit" size="lg" disabled={pending || !picked || !token}>
-        {pending
-          ? "Casting…"
-          : !token
-            ? "Checking your browser…"
-            : picked
-              ? "Cast my vote"
-              : "Pick a drawing"}
-      </Button>
+      {/* Stays in reach while scrolling through the finalists. */}
+      <div className="sticky bottom-4 z-20">
+        <button
+          type="submit"
+          disabled={pending || !picked || !token}
+          className={`${INKED_BUTTON} h-14 w-full text-lg`}
+        >
+          {pending
+            ? "Casting…"
+            : !token
+              ? "Checking your browser…"
+              : picked
+                ? "Cast my vote"
+                : "Pick a drawing"}
+        </button>
+      </div>
     </form>
   );
 }

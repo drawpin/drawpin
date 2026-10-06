@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -47,6 +47,17 @@ export const metadata: Metadata = {
     images: [{ url: "/og-v2.png", width: 1200, height: 630, alt: "DrawPin" }],
   },
   twitter: { card: "summary_large_image" },
+};
+
+/**
+ * Edge to edge on a phone, with the Android keyboard shrinking the layout the
+ * way iOS already does. Zoom stays allowed: inputs are 16px on touch screens
+ * (globals.css), which is what stops iOS zooming in on them.
+ */
+export const viewport: Viewport = {
+  viewportFit: "cover",
+  interactiveWidget: "resizes-content",
+  themeColor: "#ffffff",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
