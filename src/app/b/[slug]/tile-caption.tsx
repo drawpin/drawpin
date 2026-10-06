@@ -29,8 +29,14 @@ export function TileCaption({
         className={`text-foreground block leading-snug font-bold break-words ${large ? "text-base" : "text-sm"}`}
       >
         {name}
+        {/* On a narrow drawing the tag drops to the next line whole, rather
+            than splitting mid-number ("#20" / "41"): the line may break
+            only here, and the tag itself can't be broken. */}
+        <wbr />
         {tag && (
-          <span className="text-muted-foreground font-medium">#{tag}</span>
+          <span className="text-muted-foreground inline-block font-medium">
+            #{tag}
+          </span>
         )}
         {tile.isGuest && tile.author && (
           <span className="text-muted-foreground font-medium"> · guest</span>
