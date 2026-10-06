@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -78,6 +79,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             Terms
           </Link>
         </footer>
+        {/* Real visitors' load times, by page and device, in the Vercel
+            dashboard (performance pass, 2026-10-06). It records timings
+            only, no personal data, and reports nothing outside Vercel. */}
+        <SpeedInsights />
       </body>
     </html>
   );
