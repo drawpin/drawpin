@@ -2482,3 +2482,25 @@ describe("a crowned week", () => {
     expect(await crowned(weekId)).toBe(runnerUp);
   });
 });
+
+describe("foreign key indexes", () => {
+  it("indexes every foreign key the advisor flagged", async () => {
+    const { rows } = await db.query<{ indexname: string }>(
+      `select indexname from pg_indexes where schemaname = 'public'`,
+    );
+    const names = rows.map((row) => row.indexname);
+    for (const index of [
+      "account_posts_user_id_idx",
+      "final_votes_user_id_idx",
+      "monthly_finals_winner_tile_id_idx",
+      "post_attempts_device_id_idx",
+      "tile_reports_user_id_idx",
+      "tiles_device_id_idx",
+      "venue_artists_user_id_idx",
+      "venue_blocks_user_id_idx",
+      "votes_user_id_idx",
+    ]) {
+      expect(names).toContain(index);
+    }
+  });
+});
