@@ -11,6 +11,7 @@ type TurnstileApi = {
     element: HTMLElement,
     options: {
       sitekey: string;
+      appearance: "always" | "execute" | "interaction-only";
       callback: (token: string) => void;
       "expired-callback": () => void;
       "error-callback": () => void;
@@ -30,9 +31,12 @@ declare global {
  * Cloudflare Turnstile, proving a submission came from a browser rather than a
  * script (docs/PLAN.md, Device limiting).
  *
- * Usually invisible: Managed mode only shows a challenge when a visitor looks
- * suspicious. The token is single-use and expires, so the widget refreshes
- * itself and the form should submit the value it last reported.
+ * Invisible unless Cloudflare needs the visitor to do something: with
+ * `interaction-only`, a Managed widget stays hidden while it checks, and
+ * only shows its checkbox when a visitor looks suspicious. (Without it, the
+ * widget always draws its box, "Success!" and all.) The token is single-use
+ * and expires, so the widget refreshes itself and the form should submit the
+ * value it last reported.
  */
 export function Turnstile({
   siteKey,
@@ -57,6 +61,7 @@ export function Turnstile({
 
     widgetIdRef.current = api.render(container, {
       sitekey: siteKey,
+      appearance: "interaction-only",
       callback: (token) => onTokenRef.current(token),
       // A token lasts a few minutes; clear it so a stale one is never sent.
       "expired-callback": () => onTokenRef.current(null),
