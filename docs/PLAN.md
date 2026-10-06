@@ -1,4 +1,4 @@
-# DrawPin — Product Plan (v13, locked)
+# DrawPin — Product Plan (v14, locked)
 
 > Source of truth for v1 scope. Changes require an ADR in `docs/adr/` and a version bump here.
 
@@ -26,15 +26,17 @@ Drawing for fun needs no account. **Posting and competing do.**
 | Vote | no | yes, from any device |
 | Report a tile | no | yes |
 
-- Customers sign in **with Google, or with a code emailed to any address** (Supabase Auth, ADR-010). Owners keep their email magic link.
+- Customers sign in **with Google, or with a code emailed to any address** (Supabase Auth, ADR-010). Owners sign in by email too, with a code or a link (see Owner admin).
 - A customer picks a username on first sign-in; usernames aren't unique, so a tile shows the same 4-digit tag as before, e.g. `Ahmad#4821`, derived from the account instead of the device.
 - Deleting an account deletes that person's tiles and votes. Hall of Fame entries stay, shown without a name.
+- A signed-in customer can save their own drawings that are still on a board as PNGs, from their account page (#57), before the 30-day clean-up removes them.
 
 ### Tiles (default mode)
 - Each tile = a drawing + optional typed caption (max 80 chars).
 - Drawing tools: pen, marker, spray, eraser, paint bucket, and shapes (line, circle, square — the line doubles as a ruler; circles and squares come out perfect, and Shift stretches them on a keyboard). Six base colours plus a colour wheel and hex field. A Snap toggle (hold still at the end of a stroke to straighten it into a line or shape) and a lasso (circle part of the drawing to move or resize it) were added with the shapes, all from the first test round's feedback. The pen draws an even line on every device by default; a Pressure switch makes its width follow a stylus's pressure, or the speed of a finger or mouse.
-- Posting needs a Google sign-in (ADR-007). A tile shows that account's username. A guest can draw as much as they like, but nothing they draw goes on the board.
+- Posting needs a sign-in (ADR-007), with Google or an emailed code (ADR-010). A tile shows that account's username. A guest can draw as much as they like, but nothing they draw goes on the board.
 - **1 post per account per day and 1 per device per day** (day resets 4:00 AM venue time), so a second device doesn't buy a second post.
+- A board shows how many artists and drawings it has had, all time. The counts are kept as tiles are posted, so they don't drop when the 30-day clean-up deletes old tiles.
 
 ### Moderation (automatic only)
 - Every username, caption, and drawing is checked by a blocklist + OpenAI moderation (text + image). Every drawing is also read by a vision model (`gpt-4.1-mini`) for written words, hate symbols and sexual content, and the words it reads go through the blocklist too (ADR-006).
@@ -68,10 +70,10 @@ Drawing for fun needs no account. **Posting and competing do.**
 Account + signed device ID cookie + browser fingerprint (hashed) + IP rate limit (hashed) + Cloudflare Turnstile on post and vote. The device layers add to the account limit.
 
 ### Owner admin (bare minimum)
-- Owners sign in by email magic link (Supabase Auth), single-use, short expiry, rate-limited, Turnstile on login. Customers sign in with Google; the two are separate roles on one auth system.
+- Owners sign in by email (Supabase Auth): one email carries a code to type and a link to tap, both single-use with a short expiry, rate-limited, Turnstile on login. Customers sign in with Google or an emailed code; the two are separate roles on one auth system, and an owner's address can't be used as a customer's.
 - **One board per owner.**
-- Setup: email → link → venue name + time zone → done.
-- One screen: (1) QR + today's code (download/print), (2) Pause board toggle, (3) Remove a tile, (4) reported tiles, surfaced first, (5) rename the board, (6) change the board link, (7) change the time zone, (8) block an account (ADR-008), (9) close the board (ADR-009).
+- Setup: email → code or link → venue name + time zone → done.
+- One screen: (1) QR + today's code (download, or print a table tent or poster in one of five looks), (2) Pause board toggle, (3) Remove a tile, (4) reported tiles, surfaced first, (5) rename the board, (6) change the board link, (7) change the time zone, (8) block an account (ADR-008), (9) close the board (ADR-009).
 - Renaming changes the display name only. The slug is generated once at setup, the QR encodes `/b/<slug>`, and the daily code is keyed by venue and time window — so a rename reprints nothing.
 - Changing the link builds a new slug from the current name, offered once a rename has left the old one behind. Every former slug redirects to the board for good and is never given to another board, so printed codes keep working.
 - Changing the time zone takes effect from the next week; the current week keeps its boundaries.
@@ -90,12 +92,13 @@ No charges for venues or users in v1.
 
 ## Tech stack
 - Next.js (App Router) on Vercel: customer pages, admin page, API route handlers, cron endpoints
-- Supabase: Postgres, Storage (tile images, WebP), Realtime (new/removed tiles), Auth (owners by magic link, customers by Google)
-- OpenAI moderation endpoint (text + image), custom blocklist
+- Supabase: Postgres, Storage (tile images, WebP), Realtime (new/removed tiles), Auth (owners by emailed code or link, customers by Google or emailed code)
+- OpenAI moderation endpoint (text + image), a vision model reading every drawing (ADR-006), a drawing-aware nudity check (NSFWJS, ADR-005), custom blocklist
+- Email through custom SMTP (Resend), from `hello@drawpin.io`: sign-in emails and health alerts
 - Cloudflare Turnstile; FingerprintJS (open source)
 - Canvas drawing: `perfect-freehand`
 - Venue-time transitions happen on demand, when first needed (ADR-003): daily join code, week status, weekly winner, monthly final and super winner
-- Scheduled jobs: Vercel Cron (daily) → 30-day cleanup
+- Scheduled jobs: Vercel Cron (daily) → 30-day cleanup, and a daily health check of the database, storage, the OpenAI key and the Turnstile secret, which emails when one fails
 
 ## Back pocket (not v1)
 Weekly prompt mode ("challenges"), live jam mode, location checks, Google
@@ -115,32 +118,28 @@ and more ways to sign in — Facebook, Apple, passkeys (#50). Google and
 emailed codes (ADR-010) are the ways in for v1; anyone who'd rather not can
 still draw as a guest. None of these are v1.
 
-**Downloading your own drawings** (#57) is the one worth pulling forward
-soonest: everything but a winner is deleted 30 days after voting, image and
-all, so today a screenshot is the only way anyone keeps what they drew.
-Since v9 every new tile belongs to an account, so downloading is a matter of
-listing an account's own tiles. Not v1 as it stands.
-
 ## Phases
 1. Owner signs in → creates board → customers open QR → username → draw tile → live feed on phones *(done)*
 2. Safety, before sharing the board publicly: moderation pipeline, owner Pause board + Remove tile, Turnstile, device limits, rotating daily join code
 3. Accounts and the weekly cycle: Google sign-in and profiles, then week status from timestamps, voting, weekly winner, Hall of Fame, monthly final and super winner, reporting, cleanup job
 4. **Fully functional first** (issue #67), then the UI pass (#40, with #39) — including showing a real board on the home page rather than describing one
-5. Back-pocket features, starting with downloading your own drawings (#57)
+5. Back-pocket features. Downloading your own drawings (#57) came first and is in v1 as of v14.
 
 ### Fully functional before the UI pass
 The product is feature-complete and not yet usable by anyone but us. These come
 before any styling, so the UI pass has a finished product to dress rather than a
 moving target. Tracked in issue #67:
 
-- **It runs by itself**: the cleanup job has its secret (#60), and a quiet
-  Supabase project doesn't pause and take the boards with it (#62).
-- **We stop testing against live data**: preview deployments point at their own
-  database, not production (#61).
-- **Customers can sign in**: a domain and custom SMTP (#41), and the Google app
-  published (#63) — until then only listed test users can vote, win or report.
-- **We find out when it breaks**: every failure path is deliberately quiet, so
-  an outage looks like a slow evening (#64).
+- **It runs by itself** *(done)*: the cleanup job has its secret (#60), and a
+  quiet Supabase project doesn't pause and take the boards with it (#62).
+- **We stop testing against live data** *(done)*: preview deployments point at
+  their own database, `drawpin-preview`, not production (#61).
+- **Customers can sign in** *(done)*: drawpin.io with custom SMTP (#41), and
+  the Google app published (#63).
+- **We find out when it breaks** *(partly)*: every failure path is deliberately
+  quiet, so an outage looks like a slow evening (#64). The daily health check
+  now emails when a dependency stops answering; error tracking and an uptime
+  monitor are still to do.
 - **It is proven in production**: the whole cycle run on a real phone (#65),
   including the devices a QR scan actually lands on (#66).
 
@@ -159,6 +158,8 @@ v11 changes: an owner can close their board (ADR-009), deleting everything on it
 v12 changes: when voting closes, the board reveals the top three with their vote counts, and a closed final reveals its super winner; counts are still hidden while voting is open.
 
 v13 changes: customers can sign in with a code emailed to any address as well as with Google (ADR-010).
+
+v14 changes: records what shipped alongside v12 and v13. Downloading your own drawings (#57) moves from the back pocket into v1; a board's artist and drawing counts are all-time; the owner's QR can be printed as a table tent or poster; owners can type the code from their sign-in email as well as tap its link.
 
 ## Diagrams
 
