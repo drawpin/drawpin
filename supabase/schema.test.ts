@@ -1436,6 +1436,8 @@ describe("data API grants", () => {
     "final_votes",
     "tile_reports",
     "venue_blocks",
+    "venue_tallies",
+    "venue_artists",
   ];
   const allTables = [...allPublicTables, ...ownerTables, ...privateTables];
 
@@ -1577,12 +1579,14 @@ describe("board_stats", () => {
     };
   }
 
-  it("counts distinct people and every live drawing on the board", async () => {
+  it("counts every drawing posted, and only accounts as artists", async () => {
     const { venueId } = await seedBoard();
 
-    // seedBoard: five tiles from two devices, all in one (past) week.
+    // seedBoard: five guest tiles. Guests stopped posting with ADR-007, so a
+    // guest tile posted now is a drawing but not an artist; the ones left
+    // from before were counted by device when the tally was backfilled.
     const stats = await callStats(venueId);
-    expect(stats.people).toBe(2);
+    expect(stats.people).toBe(0);
     expect(stats.total).toBe(5);
   });
 
@@ -1608,11 +1612,32 @@ describe("board_stats", () => {
     expect(after.total).toBe(before.total + 2);
   });
 
-  it("counts old guest tiles by the device that posted them", async () => {
-    const { venueId } = await seedBoard();
+  it("keeps counting drawings the 30-day clean-up has deleted", async () => {
+    const { venueId, weekId } = await seedBoard();
 
-    // seedBoard's tiles have no account: two devices, two artists.
-    expect((await callStats(venueId)).people).toBe(2);
+    await db.query(`delete from tiles where week_id = $1`, [weekId]);
+
+    expect((await callStats(venueId)).total).toBe(5);
+  });
+
+  it("keeps counting an artist whose account is deleted", async () => {
+    const { venueId, weekId, artistDeviceId } = await seedBoard();
+    const accountId = crypto.randomUUID();
+    await db.exec(
+      `insert into auth.users (id, email) values ('${accountId}', '${accountId}@example.com');
+       insert into profiles (id, username) values ('${accountId}', 'Leaving');`,
+    );
+    await db.query(
+      `insert into tiles (week_id, device_id, user_id, image_path) values ($1, $2, $3, 'tiles/x.webp')`,
+      [weekId, artistDeviceId, accountId],
+    );
+
+    await db.query(`select delete_account_tiles($1)`, [accountId]);
+    await db.query(`delete from auth.users where id = $1`, [accountId]);
+
+    const stats = await callStats(venueId);
+    expect(stats.people).toBe(1);
+    expect(stats.total).toBe(6);
   });
 
   it("counts this week only against the week taking posts now", async () => {
@@ -1647,11 +1672,11 @@ describe("board_stats", () => {
 
     await db.exec("set role anon");
     try {
-      const result = await db.query<{ people: number }>(
-        `select people from board_stats($1)`,
+      const result = await db.query<{ total_drawings: number }>(
+        `select total_drawings from board_stats($1)`,
         [venueId],
       );
-      expect(Number(result.rows[0].people)).toBe(2);
+      expect(Number(result.rows[0].total_drawings)).toBe(5);
 
       // The same count by hand is refused: device_id is not the visitor's to read.
       await expect(
