@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { CopyValue } from "@/components/copy-value";
 import { Button } from "@/components/ui/button";
 import { changeBoardLinkAction, type ChangeLinkState } from "./actions";
 
@@ -35,9 +36,11 @@ export function BoardLink({
   return (
     <section className="flex flex-col gap-2">
       <h2 className="font-black tracking-tight">Board link</h2>
-      <p className="bg-muted rounded-lg px-3 py-2 font-mono text-sm break-all">
-        {url}
-      </p>
+      <CopyValue
+        value={url}
+        name="board link"
+        className="bg-muted rounded-lg px-3 py-2 font-mono text-sm break-all"
+      />
       <p className="text-muted-foreground text-sm">
         People open this link by scanning the QR code. It doesn&apos;t change
         when you rename your board.

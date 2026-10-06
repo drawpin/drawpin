@@ -9,6 +9,7 @@ import {
 import { Turnstile } from "@/components/turnstile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CodeInput } from "@/components/code-input";
 import { Label } from "@/components/ui/label";
 import {
   clearPendingEmail,
@@ -91,17 +92,7 @@ export function EmailSignIn({ next }: { next: string }) {
         <Label htmlFor="email-code" className="text-sm">
           Enter the code we sent to {email}
         </Label>
-        <Input
-          id="email-code"
-          name="code"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          pattern="[0-9 ]*"
-          maxLength={13}
-          required
-          autoFocus
-          className="text-center font-mono text-lg tracking-[0.4em]"
-        />
+        <CodeInput id="email-code" name="code" autoFocus />
         {checked.status === "error" && (
           <p role="alert" className="text-destructive text-sm">
             {checked.message}

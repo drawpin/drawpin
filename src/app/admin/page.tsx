@@ -6,6 +6,7 @@ import {
   PrinterIcon,
 } from "@phosphor-icons/react/ssr";
 import { connection } from "next/server";
+import { CopyValue } from "@/components/copy-value";
 import { boardUrl, createBoardQrCode } from "@/lib/board";
 import { ensureDailyCode } from "@/lib/daily-code/ensure";
 import { hand } from "@/lib/fonts";
@@ -131,9 +132,11 @@ export default async function AdminPage() {
 
       <section className={CARD}>
         <h2 className="font-black tracking-tight">Today&apos;s code</h2>
-        <p className="border-foreground rounded-xl border-2 bg-white px-3 py-2 text-center font-mono text-3xl font-bold tracking-[0.3em]">
-          {code}
-        </p>
+        <CopyValue
+          value={code.replace(/\s/g, "")}
+          name="code"
+          className="border-foreground rounded-xl border-2 bg-white px-3 py-2 text-center font-mono text-3xl font-bold tracking-[0.3em]"
+        />
         <p className="text-muted-foreground text-sm">
           Anyone who can&apos;t scan can type this on the DrawPin home page. It
           changes every morning at 4:00 AM, so it isn&apos;t on the card.
