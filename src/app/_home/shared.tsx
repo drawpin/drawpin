@@ -29,38 +29,35 @@ export const EXAMPLE: Tile[] = [
 }));
 
 /**
- * The home page's top bar (chosen from prototypes on 2026-10-05, "White
- * bar"): a slim white strip above the blue hero, with the wordmark in its
- * own colours on the left, linking home, and on the right the way to try
- * drawing, the one thing the hero's buttons don't already offer. No rule
- * under it: the hero fades in from the white instead of starting on a line.
+ * The home page's top line (chosen from prototypes on 2026-10-05,
+ * "Framed"): no bar, just the wordmark in its own colours on the white page,
+ * linking home, and on the right the way to try drawing, the one thing the
+ * hero's buttons don't already offer. As wide as the framed hero under it.
  */
 export function Nav() {
   return (
-    <div className="bg-white">
-      <nav className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-1.5">
-        {/* Cut from the link card (public/og-v2.png), the only copy of the
+    <nav className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-5 py-2">
+      {/* Cut from the link card (public/og-v2.png), the only copy of the
             wordmark there is. */}
-        <Link
-          href="/"
-          aria-label="DrawPin home"
-          className="focus-visible:ring-highlight rounded-lg outline-none focus-visible:ring-3"
-        >
-          <Image
-            src="/wordmark.webp"
-            alt="DrawPin"
-            width={463}
-            height={152}
-            unoptimized
-            className="h-8 w-auto"
-          />
-        </Link>
-        <a href="#try" className={`${OUTLINE_BUTTON} h-10 px-3 text-sm`}>
-          <PencilSimpleIcon weight="bold" className="size-4" />
-          Try it
-        </a>
-      </nav>
-    </div>
+      <Link
+        href="/"
+        aria-label="DrawPin home"
+        className="focus-visible:ring-highlight rounded-lg outline-none focus-visible:ring-3"
+      >
+        <Image
+          src="/wordmark.webp"
+          alt="DrawPin"
+          width={463}
+          height={152}
+          unoptimized
+          className="h-8 w-auto"
+        />
+      </Link>
+      <a href="#try" className={`${OUTLINE_BUTTON} h-10 px-3 text-sm`}>
+        <PencilSimpleIcon weight="bold" className="size-4" />
+        Try it
+      </a>
+    </nav>
   );
 }
 
