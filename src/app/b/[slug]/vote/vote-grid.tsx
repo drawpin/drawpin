@@ -9,21 +9,11 @@ import type { Tile } from "../tiles";
 import { castVotesAction } from "./actions";
 import type { VoteState } from "./schema";
 import { TileWall } from "./tile-wall";
+import { notVotableBecause } from "./votable";
 
 const initialState: VoteState = { status: "idle" };
 
 const ABOVE_THE_FOLD_TILES = 4;
-
-/** Why a tile can't be picked, or `null` when it can. */
-function notVotableBecause(
-  tile: Tile,
-  alreadyVoted: ReadonlySet<string>,
-): string | null {
-  if (alreadyVoted.has(tile.id)) return "Voted";
-  if (tile.isOwn) return "Yours";
-  if (tile.isGuest) return "Guest";
-  return null;
-}
 
 /**
  * Last week's board, with up to three picks cast in one go
