@@ -21,16 +21,13 @@ export function isShapeTool(tool: Tool): tool is ShapeKind {
 }
 
 /**
- * The mouse cursor over the canvas for each tool, as a CSS `cursor` value.
- *
- * Built-in cursors for now; a tool can switch to its own picture later
- * (`url(...) x y, crosshair`) without anything else changing. The eraser has
- * none because the canvas draws its outline instead, at the size it erases.
+ * The mark the canvas draws in place of the cursor for each tool (issue
+ * #157). A brush shows a ring the size of what it paints, so its size is
+ * seen before it's used. The bucket, the shapes and the lasso act at a point
+ * whatever the size, so a ring would only mislead; they get a crosshair.
  */
-export function cursorFor(tool: Tool): string {
-  if (tool === "eraser") return "none";
-  if (tool === "fill") return "cell";
-  return "crosshair";
+export function markFor(tool: Tool): "ring" | "cross" {
+  return BRUSHES.some((brush) => brush.value === tool) ? "ring" : "cross";
 }
 
 /** What a tool is called on its button, for showing which one is in hand. */

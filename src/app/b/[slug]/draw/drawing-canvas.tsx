@@ -41,8 +41,9 @@ import {
   resizeFromCorner,
   sameRect,
 } from "./selection";
+import { pointerRole, pressedByLift } from "./pointers";
 import { isTooSmall, keepsPerfect, type Point, shapeEnd } from "./shapes";
-import { cursorFor, isShapeTool, type Tool, toolName } from "./tools";
+import { isShapeTool, markFor, type Tool, toolName } from "./tools";
 
 export type { DrawOp } from "./render";
 
@@ -111,6 +112,23 @@ type Finger = { x: number; y: number };
 /** What a two-finger gesture started from, so it can be measured against. */
 type Gesture = { distance: number; midpoint: Finger; view: View };
 
+/** The pointer the cursor mark follows, where the browser last saw it. */
+type Hover = {
+  pointerId: number;
+  touch: boolean;
+  clientX: number;
+  clientY: number;
+};
+
+/**
+ * The smallest the brush ring is drawn, in CSS pixels: a fine brush zoomed
+ * out is narrower than a pixel, and the mark is the only cursor there is.
+ */
+const MIN_RING = 4;
+
+/** How wide the crosshair is, in CSS pixels. */
+const CROSS_SIZE = 17;
+
 function distanceBetween(a: Finger, b: Finger): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
@@ -147,6 +165,12 @@ export const DrawingCanvas = forwardRef<
   // being moved around rather than drawn on.
   const fingers = useRef(new Map<number, Finger>());
   const gesture = useRef<Gesture | null>(null);
+  // The pointer whose stroke, shape, lasso loop or drag is in progress, so a
+  // hand resting on the screen can't add its points to a stylus's stroke.
+  const owner = useRef<number | null>(null);
+  // A stylus touching the canvas. While it is, touches are the hand holding
+  // it, and are ignored.
+  const stylus = useRef<number | null>(null);
   // The snap assist's timer, and where the finger was when it last started:
   // moving further than HOLD_SLOP from there starts it again.
   const holdTimer = useRef<number | null>(null);
@@ -173,11 +197,11 @@ export const DrawingCanvas = forwardRef<
   // started and the view then. In state as well as a ref for the cursor.
   const panning = useRef<{ origin: Finger; view: View } | null>(null);
   const [grabbing, setGrabbing] = useState(false);
-  // Where a mouse or stylus is hovering, for the eraser's outline. Moved by
-  // writing to the element directly: a re-render per mouse move would redraw
-  // the whole drawing.
-  const hover = useRef<Finger | null>(null);
-  const outlineRef = useRef<HTMLDivElement>(null);
+  // Where a mouse or stylus is, for the mark that stands in for the cursor
+  // (see placeMark). Moved by writing to the element directly: a re-render
+  // per pointer move would redraw the whole drawing.
+  const hover = useRef<Hover | null>(null);
+  const markRef = useRef<HTMLDivElement>(null);
 
   // The finished steps, painted once at the current size and zoom and kept.
   // A new step is added to it on its own, so each frame paints this layer
@@ -332,54 +356,92 @@ export const DrawingCanvas = forwardRef<
     });
   }
 
-  /** Puts the eraser's outline under the pointer, at the size it erases. */
-  const placeOutline = useCallback(() => {
-    const outline = outlineRef.current;
+  /**
+   * Puts the mark that stands in for the cursor under the pointer (issue
+   * #157): a ring the size of the brush for the tools that paint, the same
+   * one the eraser has always had, or a crosshair for the ones that act at a
+   * point. A finger gets the eraser's ring alone, which shows past the
+   * fingertip over the spot being erased; anything else would sit under it.
+   */
+  const placeMark = useCallback(() => {
+    const mark = markRef.current;
     const canvas = canvasRef.current;
-    if (!outline || !canvas) return;
+    if (!mark || !canvas) return;
 
     const at = hover.current;
-    if (!at || tool !== "eraser" || disabled || grabbing) {
-      outline.style.display = "none";
+    const kind = pickingColor ? "cross" : markFor(tool);
+    if (!at || disabled || grabbing || (at.touch && tool !== "eraser")) {
+      if (mark.style.display !== "none") mark.style.display = "none";
       return;
     }
-    const width = brushWidthOnScreen(
-      size,
-      view,
-      canvas.getBoundingClientRect().width,
-    );
-    outline.style.display = "block";
-    outline.style.width = `${width}px`;
-    outline.style.height = `${width}px`;
-    outline.style.transform = `translate(${at.x - width / 2}px, ${at.y - width / 2}px)`;
-  }, [tool, size, view, disabled, grabbing]);
+    // One layout read per frame at most: this runs from requestAnimationFrame
+    // while the pointer moves, never per event.
+    const rect = canvas.getBoundingClientRect();
+    const width =
+      kind === "ring"
+        ? Math.max(brushWidthOnScreen(size, view, rect.width), MIN_RING)
+        : CROSS_SIZE;
+    const x = at.clientX - rect.left - width / 2;
+    const y = at.clientY - rect.top - width / 2;
+    mark.dataset.mark = kind;
+    mark.style.display = "block";
+    mark.style.width = `${width}px`;
+    mark.style.height = `${width}px`;
+    mark.style.transform = `translate(${x}px, ${y}px)`;
+  }, [tool, pickingColor, size, view, disabled, grabbing]);
 
-  // A new size, zoom or tool changes the outline without the pointer moving.
-  useEffect(placeOutline, [placeOutline]);
+  // A new size, zoom or tool changes the mark without the pointer moving.
+  useEffect(placeMark, [placeMark]);
+
+  // The mark moves at most once a frame, however fast the pointer reports:
+  // a stylus can send hundreds of moves a second.
+  const markFrame = useRef<number | null>(null);
+  const latestPlaceMark = useRef(placeMark);
+  useEffect(() => {
+    latestPlaceMark.current = placeMark;
+  }, [placeMark]);
+  useEffect(
+    () => () => {
+      if (markFrame.current !== null) cancelAnimationFrame(markFrame.current);
+    },
+    [],
+  );
 
   /**
-   * Follows a mouse or stylus as it hovers, and a finger while it's down: the
-   * ring shows past the fingertip, which hides the spot it's erasing. Two
-   * fingers are moving the view, so there's nothing to show.
+   * Follows a mouse or stylus, hovering or down, and a finger while it's the
+   * only one down. Two fingers are moving the view, so there's nothing to
+   * show; a touch that isn't being followed (a palm under a stylus) leaves
+   * the mark where it is.
    */
   function trackHover(event: PointerEvent<HTMLCanvasElement>) {
+    const touch = event.pointerType === "touch";
     if (
-      event.pointerType === "touch" &&
+      touch &&
       (!fingers.current.has(event.pointerId) || fingers.current.size > 1)
     ) {
-      endHover();
+      if (hover.current?.touch) endHover();
       return;
     }
-    hover.current = fingerAt(
-      event,
-      event.currentTarget.getBoundingClientRect(),
-    );
-    placeOutline();
+    hover.current = {
+      pointerId: event.pointerId,
+      touch,
+      clientX: event.clientX,
+      clientY: event.clientY,
+    };
+    if (markFrame.current !== null) return;
+    markFrame.current = requestAnimationFrame(() => {
+      markFrame.current = null;
+      latestPlaceMark.current();
+    });
   }
 
-  function endHover() {
+  /** Hides the mark, if it was following `pointerId` (or whatever it was). */
+  function endHover(pointerId?: number) {
+    if (pointerId !== undefined && hover.current?.pointerId !== pointerId) {
+      return;
+    }
     hover.current = null;
-    placeOutline();
+    placeMark();
   }
 
   // A snap due after the canvas is gone has nothing to snap.
@@ -484,8 +546,32 @@ export const DrawingCanvas = forwardRef<
     return [x, y, event.pressure || 0.5];
   }
 
+  /** Throws away whatever was being drawn, looped or dragged. */
+  function dropInProgress() {
+    active.current = null;
+    lassoLoop.current = null;
+    dragging.current = null;
+    owner.current = null;
+    cancelHold();
+    holdAnchor.current = null;
+  }
+
   function handlePointerDown(event: PointerEvent<HTMLCanvasElement>) {
     if (disabled) return;
+    const role = pointerRole(event, stylus.current !== null);
+    if (role === "ignore") return;
+    if (role === "stylus" || role === "fresh") {
+      // Anything still remembered is a palm that landed first, or a finger
+      // whose lift was never reported: neither should draw or pinch with
+      // this one.
+      if (fingers.current.size > 0) {
+        fingers.current.clear();
+        gesture.current = null;
+        dropInProgress();
+        redrawSoon();
+      }
+      if (role === "stylus") stylus.current = event.pointerId;
+    }
     const rect = event.currentTarget.getBoundingClientRect();
     try {
       event.currentTarget.setPointerCapture(event.pointerId);
@@ -515,15 +601,15 @@ export const DrawingCanvas = forwardRef<
     cancelHold();
     holdAnchor.current = null;
     snapped.current = null;
+    // Only the pointer that starts something moves it on and finishes it.
+    owner.current = event.pointerId;
 
     if (fingers.current.size >= 2) {
       // A second finger means they're moving the drawing, not drawing on it.
       // Whatever the first one had started is thrown away rather than left as
       // an accidental dot. A half-drawn lasso loop or a drag goes the same way;
       // a selection already lifted stays lifted.
-      active.current = null;
-      lassoLoop.current = null;
-      dragging.current = null;
+      dropInProgress();
       const [first, second] = [...fingers.current.values()];
       gesture.current = {
         distance: distanceBetween(first, second),
@@ -640,6 +726,7 @@ export const DrawingCanvas = forwardRef<
       );
       return;
     }
+    if (owner.current !== event.pointerId) return;
 
     const drag = dragging.current;
     if (drag) {
@@ -700,15 +787,21 @@ export const DrawingCanvas = forwardRef<
   }
 
   function handlePointerUp(event: PointerEvent<HTMLCanvasElement>) {
-    if (event.pointerType === "touch") endHover();
+    if (event.pointerType === "touch") endHover(event.pointerId);
     if (panning.current) {
       panning.current = null;
       setGrabbing(false);
       return;
     }
 
-    fingers.current.delete(event.pointerId);
+    // A palm that was ignored, or the colour picker's tap, has nothing to end.
+    if (!fingers.current.delete(event.pointerId)) return;
+    if (stylus.current === event.pointerId) stylus.current = null;
     if (fingers.current.size < 2) gesture.current = null;
+    // A second finger already threw away what the first one started, so only
+    // the pointer that started something finishes it.
+    if (owner.current !== event.pointerId) return;
+    owner.current = null;
     cancelHold();
     holdAnchor.current = null;
 
@@ -719,7 +812,6 @@ export const DrawingCanvas = forwardRef<
 
     const loop = lassoLoop.current;
     if (loop) {
-      if (fingers.current.size > 0) return;
       lassoLoop.current = null;
       const lifted = liftSelection(ops, loop);
       if (lifted) setFloating({ ...lifted, source: lifted.target });
@@ -728,9 +820,7 @@ export const DrawingCanvas = forwardRef<
     }
 
     const drawing = active.current;
-    // A stroke or shape only counts when the finger that drew it was the only
-    // one down; anything else was a gesture.
-    if (!drawing || fingers.current.size > 0) return;
+    if (!drawing) return;
     active.current = null;
 
     // A tap with the shape tool isn't a shape; drop it rather than leave a dot.
@@ -744,6 +834,48 @@ export const DrawingCanvas = forwardRef<
     }
     onDraw(drawing);
   }
+
+  /**
+   * Back to the whole tile. Whatever pinch or drag was moving the view is
+   * forgotten too, so a finger still on the canvas can't carry on from the
+   * zoom it started at.
+   */
+  function fitWholeTile() {
+    gesture.current = null;
+    if (panning.current) {
+      panning.current = null;
+      setGrabbing(false);
+    }
+    setView(WHOLE_TILE);
+  }
+
+  // Safari on an iPad can act on a stylus's touches whatever `touch-action`
+  // says: two quick taps zoom the page, and a press held still can start a
+  // text selection, either of which stalls the stroke under way. The pointer
+  // events the drawing uses have been sent by then, so cancelling the
+  // touches costs it nothing. Fingers are left to `touch-action`.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    function handleTouch(event: TouchEvent) {
+      const fromStylus = Array.from(event.changedTouches).some(
+        (touch) =>
+          (touch as Touch & { touchType?: string }).touchType === "stylus",
+      );
+      if (fromStylus && event.cancelable) event.preventDefault();
+    }
+
+    const options = { passive: false };
+    for (const type of ["touchstart", "touchmove", "touchend"] as const) {
+      canvas.addEventListener(type, handleTouch, options);
+    }
+    return () => {
+      for (const type of ["touchstart", "touchmove", "touchend"] as const) {
+        canvas.removeEventListener(type, handleTouch);
+      }
+    };
+  }, []);
 
   // Zooming with a wheel, for anyone drawing with a mouse or trackpad. React
   // listens for wheel events passively, so its onWheel can't stop the page
@@ -780,32 +912,26 @@ export const DrawingCanvas = forwardRef<
         height={backingSize}
         aria-label="Drawing area"
         // Stops the page scrolling or zooming while a finger is on the tile;
-        // pinching is handled here instead.
-        className="border-foreground aspect-square w-full touch-none rounded-xl border-2 bg-white shadow-[4px_4px_0_var(--primary)]"
+        // pinching is handled here instead. A long press selects nothing and
+        // brings up no menu.
+        className="border-foreground aspect-square w-full touch-none rounded-xl border-2 bg-white shadow-[4px_4px_0_var(--primary)] select-none [-webkit-touch-callout:none]"
+        // The mark below is the cursor while drawing.
         style={{
-          cursor: grabbing
-            ? "grabbing"
-            : pickingColor
-              ? "crosshair"
-              : cursorFor(tool),
+          cursor: grabbing ? "grabbing" : disabled ? "default" : "none",
         }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
-        onPointerLeave={endHover}
+        onPointerLeave={(event) => endHover(event.pointerId)}
         // The right button moves the view, so its menu would only get in the way.
         onContextMenu={(event) => event.preventDefault()}
       />
 
-      {/* The eraser's size and position, since it leaves nothing to see
-          until it's used. A dark ring inside a light one shows on any
-          colour. */}
-      <div
-        ref={outlineRef}
-        aria-hidden
-        className="pointer-events-none absolute top-0 left-0 hidden rounded-full border border-black/70 shadow-[0_0_0_1px_rgba(255,255,255,0.9)]"
-      />
+      {/* Where the pointer is and, for a brush, how much it covers: the
+          cursor over the drawing (see placeMark, and .draw-mark in
+          globals.css). */}
+      <div ref={markRef} aria-hidden className="draw-mark" />
 
       {previewSize && cssWidth > 0 && (
         <div
@@ -838,8 +964,16 @@ export const DrawingCanvas = forwardRef<
           type="button"
           variant="secondary"
           size="sm"
-          className="absolute right-2 bottom-2 shadow-md"
-          onClick={() => setView(WHOLE_TILE)}
+          // No double-tap zoom: tapping it twice should not zoom the page.
+          className="absolute right-2 bottom-2 touch-manipulation shadow-md"
+          onClick={fitWholeTile}
+          onPointerUp={(event) => {
+            if (
+              pressedByLift(event, event.currentTarget.getBoundingClientRect())
+            ) {
+              fitWholeTile();
+            }
+          }}
         >
           {view.scale.toFixed(1)}× · Fit
         </Button>
