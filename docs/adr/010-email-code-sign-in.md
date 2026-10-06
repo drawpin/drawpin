@@ -29,7 +29,10 @@ isn't. The owner login lives with that; a customer mid-drawing shouldn't.
   New addresses create the account, and `/welcome` asks for a username as it
   does after Google.
 - **One email template for both.** It shows the code first and keeps the
-  owner's link beneath it ("Running a board? Tap the link instead").
+  owner's link beneath it ("Running a board? Tap the link instead"). Since
+  the email leads with a code, the owner's sign-in page takes it too, and a
+  mail app folding the link away (Gmail does, for repeat emails) doesn't
+  strand anyone.
 - **Any code length Supabase is set to** (6 to 10 digits): hosted projects
   default to 8, the local stack to 6.
 - **An owner's address is refused** for customer sign-in, with a pointer to

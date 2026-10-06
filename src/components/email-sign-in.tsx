@@ -43,7 +43,7 @@ export function EmailSignIn({ next }: { next: string }) {
   const emailInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const pending = readPendingEmail();
+    const pending = readPendingEmail("customer");
     if (pending) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- storage is only readable after hydration
       setEarlier(pending);
@@ -52,12 +52,12 @@ export function EmailSignIn({ next }: { next: string }) {
   }, []);
 
   useEffect(() => {
-    if (sent.status === "sent") savePendingEmail(sent.email);
+    if (sent.status === "sent") savePendingEmail(sent.email, "customer");
   }, [sent]);
 
   useEffect(() => {
     if (checked.status === "error" && checked.email) {
-      savePendingEmail(checked.email);
+      savePendingEmail(checked.email, "customer");
     }
   }, [checked]);
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
@@ -81,7 +81,7 @@ export function EmailSignIn({ next }: { next: string }) {
       <form
         action={(formData) => {
           // Signing in redirects away; a wrong code puts the address back.
-          clearPendingEmail();
+          clearPendingEmail("customer");
           check(formData);
         }}
         className="flex flex-col gap-2"
@@ -113,7 +113,7 @@ export function EmailSignIn({ next }: { next: string }) {
         <button
           type="button"
           onClick={() => {
-            clearPendingEmail();
+            clearPendingEmail("customer");
             setEarlier(null);
             setRestart((count) => count + 1);
           }}

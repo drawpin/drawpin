@@ -51,6 +51,9 @@ function Pin({ color, mono }: { color: string; mono?: boolean }) {
   return (
     <svg
       viewBox="0 0 24 30"
+      // Tilted, the pin's lower cap reaches just past the box's left edge,
+      // which an SVG would otherwise clip.
+      overflow="visible"
       aria-hidden
       className="absolute left-1/2 z-10 -translate-x-1/2"
       style={{
