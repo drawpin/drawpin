@@ -114,14 +114,15 @@ const PRESSED =
 
 /**
  * A colour swatch: a circle as wide as its grid column, about 39px on a
- * phone, where eight of them share a row. An invisible 3px band around it
- * (`after:`) takes the tap area past 44px without making the circle bigger;
+ * phone, where eight of them share a row. An invisible 4px band around it
+ * (`after:`) takes the tap area to about 46px without making the circle
+ * bigger (measured: the row below trims a pixel off the bottom edge);
  * the bands overlap their neighbours' by a pixel or two, which a thumb never
  * notices. The ring shows which colour is in hand. Picked constantly, so it
  * only answers the tap: a small squeeze, and a grow under a mouse.
  */
 const SWATCH =
-  "relative after:absolute after:-inset-[3px] after:rounded-full after:content-[''] border-border focus-visible:ring-highlight aria-pressed:ring-primary aspect-square w-full max-w-12 cursor-pointer justify-self-center rounded-full border outline-none transition-transform duration-150 ease-out hover:scale-110 focus-visible:ring-3 active:scale-90 aria-pressed:ring-2 aria-pressed:ring-offset-2 motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100";
+  "relative after:absolute after:-inset-[4px] after:rounded-full after:content-[''] border-border focus-visible:ring-highlight aria-pressed:ring-primary aspect-square w-full max-w-12 cursor-pointer justify-self-center rounded-full border outline-none transition-transform duration-150 ease-out hover:scale-110 focus-visible:ring-3 active:scale-90 aria-pressed:ring-2 aria-pressed:ring-offset-2 motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100";
 
 /** What a tap on Post with nothing drawn says: an invitation, not a scolding. */
 const BLANK_NUDGE = "Nothing drawn yet. Draw something, then post it.";
