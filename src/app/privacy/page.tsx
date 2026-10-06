@@ -66,8 +66,9 @@ export default function PrivacyPage() {
         <section className="flex flex-col gap-2">
           <h2 className="text-lg font-black">Who else sees it</h2>
           <p>
-            We don&apos;t sell anything to anyone, and there is no advertising
-            or analytics on DrawPin. These companies handle parts of it for us:
+            We don&apos;t sell anything to anyone, there is no advertising on
+            DrawPin, and nothing tracks you across the site. These companies
+            handle parts of it for us:
           </p>
           <ul className="list-disc pl-5">
             <li>
@@ -75,8 +76,10 @@ export default function PrivacyPage() {
               sign-in sessions.
             </li>
             <li>
-              <strong>Vercel</strong> runs the site and keeps short-lived
-              request logs.
+              <strong>Vercel</strong> runs the site, keeps short-lived request
+              logs, and measures how quickly pages load (Speed Insights). That
+              measurement uses no cookies and nothing that identifies you: just
+              timings, the page, and the kind of device and connection.
             </li>
             <li>
               <strong>OpenAI</strong> checks every name, caption and drawing
