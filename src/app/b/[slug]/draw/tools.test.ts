@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { cursorFor, toolName } from "./tools";
+import { markFor, toolName } from "./tools";
 
 describe("toolName", () => {
   it.each([
@@ -14,13 +14,18 @@ describe("toolName", () => {
   });
 });
 
-describe("cursorFor", () => {
-  it("hides the cursor for the eraser, which draws its own outline", () => {
-    expect(cursorFor("eraser")).toBe("none");
-  });
+describe("markFor", () => {
+  it.each(["pen", "marker", "spray", "eraser"] as const)(
+    "rings %s at its size",
+    (tool) => {
+      expect(markFor(tool)).toBe("ring");
+    },
+  );
 
-  it("gives the drawing tools a crosshair", () => {
-    expect(cursorFor("pen")).toBe("crosshair");
-    expect(cursorFor("rectangle")).toBe("crosshair");
-  });
+  it.each(["fill", "lasso", "line", "rectangle", "ellipse"] as const)(
+    "gives %s a crosshair",
+    (tool) => {
+      expect(markFor(tool)).toBe("cross");
+    },
+  );
 });

@@ -206,6 +206,41 @@
   --pin-scale: 1.5;
 }
 
+/* The cursor over the drawing (drawing-canvas.tsx): a ring the size of the
+   brush, or a crosshair with an open middle for the tools that work at a
+   point. Ink with a white edge, so it shows on any colour. Placed and sized
+   from script; hidden until there's a pointer to follow. */
+.draw-mark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: none;
+  pointer-events: none;
+}
+.draw-mark[data-mark="ring"] {
+  border: 1px solid rgb(15 27 45 / 0.75);
+  border-radius: 9999px;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.9);
+}
+.draw-mark[data-mark="cross"] {
+  background:
+    linear-gradient(
+        to right,
+        var(--foreground) 0 38%,
+        transparent 38% 62%,
+        var(--foreground) 62%
+      )
+      center / 100% 1.5px no-repeat,
+    linear-gradient(
+        to bottom,
+        var(--foreground) 0 38%,
+        transparent 38% 62%,
+        var(--foreground) 62%
+      )
+      center / 1.5px 100% no-repeat;
+  filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 0.5px #fff);
+}
+
 /* pin-pop: a pin pushed into the paper on load, about its needle's tip.
    board-sway: a drawing swinging into place on its pin as it scrolls in.
    pencil-scribble: the Draw button's pencil, every few seconds.
