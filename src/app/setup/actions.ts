@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { isOwnerAccount, requireOwner } from "@/lib/auth";
+import { canSetUpBoard, getAccount, requireOwner } from "@/lib/auth";
 import { serverEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { moderateVenueName } from "@/lib/venue-name";
@@ -15,8 +15,10 @@ export async function createVenueAction(
   formData: FormData,
 ): Promise<SetupState> {
   const owner = await requireOwner();
-  // A customer's Google account can reach this action as easily as the page.
-  if (!isOwnerAccount(owner)) redirect("/");
+  // A customer's account can reach this action as easily as the page.
+  const admin = createAdminClient();
+  const account = await getAccount(owner, admin);
+  if (!canSetUpBoard(account.kind)) redirect("/login");
 
   const parsed = setupSchema.safeParse({
     name: formData.get("name"),
@@ -36,8 +38,6 @@ export async function createVenueAction(
 
   // Venues have no insert policy; writes go through the service role after
   // the owner check above (docs/ERD.md, Row level security).
-  const admin = createAdminClient();
-
   try {
     // `venues.owner_id` references it, and signing in no longer creates one.
     await ensureOwnerRow(owner, async (row) =>
