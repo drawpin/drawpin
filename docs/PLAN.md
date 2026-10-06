@@ -54,7 +54,7 @@ Drawing for fun needs no account. **Posting and competing do.**
 - Voting flow: pick up to 3 tiles, then cast them in one confirmation. Votes not cast yet stay available for the rest of the voting week.
 - Guest tiles posted before v9 appear on the voting screen but can't be selected: only tiles posted by an account are votable and eligible to win.
 - End of week N+1: the tile with the most votes is **week N's winner** and goes into the venue's Hall of Fame. Ties are broken by the earlier post. A tile needs **at least 1 vote** to win; a week with no votes has no winner.
-- Live vote counts stay hidden until voting closes.
+- Live vote counts stay hidden until voting closes. Then, for a week, the board reveals the result: the top three rise onto a podium, third to first, with their vote counts, and the winner is crowned. It plays once per device and can be replayed. The Hall of Fame still keeps the winner alone.
 - Accepted risk: someone determined can make a second Google account. Out of scope to chase at this scale; Turnstile still applies to voting.
 
 ### Monthly super winner
@@ -62,7 +62,7 @@ Drawing for fun needs no account. **Posting and competing do.**
 - **Finalists:** that month's weekly winners, up to **4** — if there are more, the 4 with the most votes in their own weeks (ties to the earlier post).
 - **Monthly final:** opens once every week of the month has finished voting (about 2 weeks into the next month) and runs one week, Monday 4:00 AM to Monday 4:00 AM. **1 vote per account**, same rules otherwise (not your own tile, final).
 - The finalist with the most final votes is the month's **super winner** (ties to the earlier post). A month with a single finalist crowns it without a vote; a final with no votes, or a month with no weekly winners, has no super winner.
-- Opening the app during a final shows a "Vote for this month's super winner" prompt.
+- Opening the app during a final shows a "Vote for this month's super winner" prompt. When a final closes, the board reveals its finalists and crowns the super winner the same way as a week's result.
 
 ### Abuse limiting (layered)
 Account + signed device ID cookie + browser fingerprint (hashed) + IP rate limit (hashed) + Cloudflare Turnstile on post and vote. The device layers add to the account limit.
@@ -155,6 +155,8 @@ v9 changes: guests draw for fun only (ADR-007). Posting needs a Google sign-in, 
 v10 changes: the owner screen gains three settings (ADR-008): change the board link, with every former link redirecting; change the time zone from the next week; and block an account from the board, which also removes its tiles there.
 
 v11 changes: an owner can close their board (ADR-009), deleting everything on it, the Hall of Fame included, and their sign-in.
+
+v12 changes: when voting closes, the board reveals the top three with their vote counts, and a closed final reveals its super winner; counts are still hidden while voting is open.
 
 v13 changes: customers can sign in with a code emailed to any address as well as with Google (ADR-010).
 

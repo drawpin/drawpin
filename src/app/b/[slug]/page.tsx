@@ -18,6 +18,8 @@ import { BoardStatsLine } from "./board-stats";
 import { listWeekTimings } from "./final/data";
 import { VOTES_PER_WEEK } from "./vote/cast-votes";
 import { SupabaseVoteStore } from "./vote/supabase-vote-store";
+import { listReveals, type Reveal } from "./reveal/data";
+import { WinnersReveal } from "./reveal/winners-reveal";
 import { TileFeed } from "./tile-feed";
 
 export async function generateMetadata({
@@ -63,6 +65,15 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
     : null;
   const votingWeek = await getVotingWeek(board.id);
   const stats = await getBoardStats(board.id);
+  // Decoration: a board must still load if the results can't be read.
+  const reveals: Reveal[] = await listReveals(
+    admin,
+    board.id,
+    board.timezone,
+  ).catch((error: unknown) => {
+    console.error("Could not load the winners reveal", error);
+    return [];
+  });
   const monthlyFinal = openFinal(
     await listWeekTimings(admin, board.id),
     board.timezone,
@@ -112,6 +123,14 @@ export default async function BoardPage({ params }: PageProps<"/b/[slug]">) {
           now.
         </p>
       )}
+
+      {reveals.map((reveal) => (
+        <WinnersReveal
+          key={reveal.id}
+          reveal={reveal}
+          hallOfFameHref={`/b/${slug}/hall-of-fame`}
+        />
+      ))}
 
       {votingWeek && votesLeft > 0 && (
         <Link

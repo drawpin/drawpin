@@ -222,6 +222,11 @@ the most final votes wins, ties to the earlier post, a lone finalist wins
 without a vote, and a real contest nobody voted in crowns nobody. It takes an
 advisory lock and is safe to call again, like the weekly equivalent.
 
+`week_podium(week_id)` and `final_podium(final_id)` return the top three of a
+closed week or final with their vote counts, for the board's winners reveal.
+They return nothing while voting is open, rank exactly as the crowning
+functions do, and are `service_role` only.
+
 ### `final_votes`
 One vote per account per final.
 
@@ -330,6 +335,11 @@ crown it once, and it is safe to call again — which is what makes removals
 work: a week whose winning tile the owner has removed is **re-crowned from
 what's left**, and a week with nothing else voted for loses its entry
 entirely. Leaving a removed drawing enshrined would contradict the removal.
+
+Once crowned, a week keeps its winner while that tile is still live, so
+nothing but removing the winning tile itself changes a declared result: not
+re-judging after another removal, and not deleted accounts taking their votes
+(or their own winning tile's account) with them.
 
 `finalize_venue_winners(venue_id)` does the same for every closed week of a
 venue that has no entry yet, or whose winner is no longer live.
