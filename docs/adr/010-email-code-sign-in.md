@@ -21,6 +21,10 @@ isn't. The owner login lives with that; a customer mid-drawing shouldn't.
   Google" button sits "No Google account? Get a code by email". They enter an
   address, pass Turnstile, get a code, type it, and are signed in on that
   device, so it works in any in-app browser.
+- **The code step survives a reload.** A phone often reloads the tab while
+  its person reads the email, so the browser remembers the address (never
+  the code) for 15 minutes and reopens the code step; "Already have a code?"
+  reaches it from the email step too.
 - **The same Supabase OTP as the owner link**, verified as `type: "email"`.
   New addresses create the account, and `/welcome` asks for a username as it
   does after Google.
