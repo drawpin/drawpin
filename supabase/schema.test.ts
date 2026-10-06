@@ -152,6 +152,58 @@ describe("venues", () => {
                values ('${ownerId}', 'Bad', 'Not A Slug', 'UTC');`),
     ).rejects.toThrow();
   });
+
+  it("starts a board on the all_ages moderation level", async () => {
+    const { venueId } = await seedBoard();
+
+    const result = await db.query<{ moderation_level: string }>(
+      `select moderation_level from venues where id = $1`,
+      [venueId],
+    );
+    expect(result.rows[0]?.moderation_level).toBe("all_ages");
+  });
+
+  it.each(["standard", "late_night"])(
+    "accepts the %s moderation level",
+    async (level) => {
+      const { venueId } = await seedBoard();
+
+      await db.query(`update venues set moderation_level = $2 where id = $1`, [
+        venueId,
+        level,
+      ]);
+
+      const result = await db.query<{ moderation_level: string }>(
+        `select moderation_level from venues where id = $1`,
+        [venueId],
+      );
+      expect(result.rows[0]?.moderation_level).toBe(level);
+    },
+  );
+
+  it.each(["off", "All Ages", ""])(
+    "refuses %j as a moderation level",
+    async (level) => {
+      const { venueId } = await seedBoard();
+
+      await expect(
+        db.query(`update venues set moderation_level = $2 where id = $1`, [
+          venueId,
+          level,
+        ]),
+      ).rejects.toThrow(/venues_moderation_level_check/);
+    },
+  );
+
+  it("refuses a missing moderation level", async () => {
+    const { venueId } = await seedBoard();
+
+    await expect(
+      db.query(`update venues set moderation_level = null where id = $1`, [
+        venueId,
+      ]),
+    ).rejects.toThrow(/moderation_level/);
+  });
 });
 
 describe("tiles", () => {
@@ -1403,6 +1455,7 @@ describe("data API grants", () => {
         "is_paused",
         "next_timezone",
         "timezone_changes_at",
+        "moderation_level",
       ],
       hidden: ["owner_id"],
     },
@@ -1479,6 +1532,17 @@ describe("data API grants", () => {
       });
     },
   );
+
+  it("lets only the server change a board's moderation level", async () => {
+    // Owners change it through a server action (ADR-012), never the API.
+    for (const role of ["anon", "authenticated"]) {
+      const result = await db.query<{ allowed: boolean }>(
+        `select has_column_privilege($1, 'public.venues', 'moderation_level', 'UPDATE') as allowed`,
+        [role],
+      );
+      expect(result.rows[0]?.allowed).toBe(false);
+    }
+  });
 
   it.each(ownerTables)("lets only owners read %s", async (table) => {
     expect(await privileges("anon", table)).toEqual([]);
