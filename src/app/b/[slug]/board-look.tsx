@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
+import { ArrowLeftIcon } from "@phosphor-icons/react/ssr";
 import { hand } from "@/lib/fonts";
 
 /**
@@ -27,6 +29,10 @@ export const INKED_BUTTON =
  * poster, and the content under it as wide as the home page's sections, so
  * drawings use the room on a laptop. `narrow` keeps a page of forms and
  * settings (the admin) to a reading width under the same header.
+ *
+ * Every page in it gets a quiet way home at the top of the header (#168),
+ * above the page's own content, so it never sits beside the vote view's
+ * Sign in or crowds a page's own "Back to the board".
  */
 export function BoardLayout({
   header,
@@ -42,6 +48,16 @@ export function BoardLayout({
       <div className="mx-auto w-full max-w-7xl px-3 pt-3 md:px-6 md:pt-6">
         <header className="bg-primary text-primary-foreground border-foreground rounded-2xl border-2 shadow-[6px_6px_0_var(--foreground)]">
           <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-4 px-5 py-7 md:px-8 md:py-9">
+            {/* Pulled up and in, so its tap area rather than its text takes
+                the header's padding. */}
+            <Link
+              href="/"
+              aria-label="DrawPin home"
+              className="focus-visible:ring-highlight -mt-3 -ml-2 inline-flex h-11 w-fit items-center gap-1.5 rounded-lg px-2 text-sm font-bold text-white/85 transition-colors duration-150 ease-out outline-none hover:bg-white/10 hover:text-white focus-visible:ring-3 motion-reduce:transition-none md:-mt-4"
+            >
+              <ArrowLeftIcon weight="bold" className="size-4" />
+              DrawPin
+            </Link>
             {header}
           </div>
         </header>
