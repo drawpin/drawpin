@@ -320,6 +320,11 @@ work: a week whose winning tile the owner has removed is **re-crowned from
 what's left**, and a week with nothing else voted for loses its entry
 entirely. Leaving a removed drawing enshrined would contradict the removal.
 
+Once crowned, a week keeps its winner while that tile is still live, so
+nothing but removing the winning tile itself changes a declared result: not
+re-judging after another removal, and not deleted accounts taking their votes
+(or their own winning tile's account) with them.
+
 `finalize_venue_winners(venue_id)` does the same for every closed week of a
 venue that has no entry yet, or whose winner is no longer live.
 
