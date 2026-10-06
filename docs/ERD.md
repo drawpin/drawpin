@@ -43,6 +43,7 @@ One drawing board per owner, addressed publicly by `slug`.
 | `next_timezone` | `text` | nullable; the zone a scheduled change switches to |
 | `timezone_changes_at` | `timestamptz` | nullable, set with `next_timezone`; when it takes over |
 | `is_paused` | `boolean` | owner's pause toggle |
+| `moderation_level` | `text` | `all_ages` (default), `standard` or `late_night`; check constraint `venues_moderation_level_check` |
 | `created_at` | `timestamptz` | |
 
 A time zone change (ADR-008) takes over when the posting week it was made in
@@ -52,6 +53,10 @@ votes until the first new-zone week stops taking posts, and that first week
 runs from the change to the new zone's Monday 4:00 AM nearest a week later.
 `set_venue_clock(...)` stores a change, or cancels one, and moves that week's
 `voting_ends_at` to match in the same transaction; `service_role` only.
+
+`moderation_level` is what the board's drawings and captions are checked
+against (ADR-012). The owner picks it at setup and can change it; a change
+applies to new posts only, and the app decides what each level blocks.
 
 ### `former_slugs`
 Slugs a board used to have (ADR-008). Every printed QR code encodes a slug, so
@@ -398,7 +403,11 @@ counts included (ADR-011); monthly final tallies stay hidden until it closes.
 Tables get **no** privileges for the API roles by default: the hosted project
 has "Automatically expose new tables" turned off, and a migration turns the
 local stack's grant-everything default off to match. Each table's privileges
-are granted explicitly, and RLS then narrows the rows:
+are granted explicitly, and RLS then narrows the rows. `venues` and `tiles`
+are granted to the API roles column by column, not as whole tables, so a new
+column on either is unreadable to them until a migration grants it.
+`venues.owner_id` and `tiles.device_id` are never granted. `venues.moderation_level`
+is readable, and only the server can change it (ADR-012):
 
 | Role | Tables | Privileges |
 |---|---|---|
