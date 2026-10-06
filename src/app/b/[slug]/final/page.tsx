@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ArrowLeftIcon, CrownSimpleIcon } from "@phosphor-icons/react/ssr";
 import { connection } from "next/server";
 import { GoogleSignIn } from "@/components/google-sign-in";
 import { getCustomer } from "@/lib/customer";
 import { serverEnv } from "@/lib/env";
 import { openFinal } from "@/lib/monthly-final";
+import { hand } from "@/lib/fonts";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { BoardLayout, HEADER_BUTTON, YELLOW_STRIP } from "../board-look";
 import { getBoard, requireBoard } from "../data";
 import { sharePreview } from "../share-preview";
+import { SignInToVote } from "../vote/sign-in-to-vote";
 import {
   ensureFinal,
   hasVotedInFinal,
@@ -16,6 +20,7 @@ import {
 } from "./data";
 import { FinalGrid } from "./final-grid";
 import { FinalistWall } from "./finalist-wall";
+import { finalistTile, wonItsWeekNotes } from "./finalists";
 
 export async function generateMetadata({
   params,
@@ -38,6 +43,11 @@ function monthLabel(month: string): string {
   });
 }
 
+/**
+ * The monthly final, in the board's look (UI pass, 2026-10-05): the blue
+ * header, the month's weekly winners pinned up as polaroids, and one vote
+ * each. Its counts stay hidden until it closes (ADR-011).
+ */
 export default async function FinalPage({
   params,
 }: PageProps<"/b/[slug]/final">) {
@@ -51,76 +61,102 @@ export default async function FinalPage({
   const window = openFinal(weeks, board.timezone, new Date());
   const customer = await getCustomer(admin);
 
-  const heading = (
-    <div className="flex items-baseline justify-between gap-4">
-      <h1 className="text-2xl font-semibold tracking-tight">Monthly final</h1>
-      <Link
-        href={`/b/${slug}`}
-        className="text-sm underline underline-offset-4"
-      >
+  const finalId = window ? await ensureFinal(admin, board.id, window) : null;
+  const finalists = finalId
+    ? await listFinalists(admin, finalId, customer?.id ?? null)
+    : [];
+  const alreadyVoted =
+    finalId && customer
+      ? await hasVotedInFinal(admin, finalId, customer.id)
+      : false;
+
+  // The note above the title: what this visitor can do in the final.
+  const note =
+    finalists.length === 0
+      ? null
+      : !customer
+        ? "Sign in to vote!"
+        : alreadyVoted
+          ? "Your vote is in!"
+          : "One vote each!";
+
+  const header = (
+    <>
+      {/* For anyone signed out, the way in, in the corner. */}
+      {finalists.length > 0 && !customer && (
+        <div className="absolute top-7 right-4">
+          <GoogleSignIn next={`/b/${slug}/final`} label="Sign in" size="sm" />
+        </div>
+      )}
+      {note && (
+        <p
+          className={`${hand.className} bg-winner text-foreground w-fit -rotate-2 rounded-sm px-2.5 py-0.5 text-xl leading-tight font-bold`}
+        >
+          {note}
+        </p>
+      )}
+      <div className="flex flex-col gap-1">
+        <h1 className="flex items-center gap-2 text-4xl leading-[1.02] font-black tracking-tight">
+          <CrownSimpleIcon weight="fill" className="text-winner size-9" />
+          Monthly final
+        </h1>
+        <p className="text-sm text-white/80">
+          {board.name}
+          {window && ` · ${monthLabel(window.month)}`}
+        </p>
+      </div>
+      <Link href={`/b/${slug}`} className={`${HEADER_BUTTON} w-fit`}>
+        <ArrowLeftIcon weight="bold" className="size-5" />
         Back to the board
       </Link>
-    </div>
+    </>
   );
 
-  if (!window) {
-    return (
-      <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 px-4 py-6">
-        {heading}
-        <p className="text-muted-foreground text-sm">{board.name}</p>
-        <p role="status" className="bg-muted rounded-lg px-3 py-2 text-sm">
+  const heading = window && (
+    <h2 className={`${YELLOW_STRIP} text-3xl`}>
+      {monthLabel(window.month)}&apos;s winners
+    </h2>
+  );
+
+  return (
+    <BoardLayout header={header}>
+      {!window ? (
+        <p role="status" className={`${YELLOW_STRIP} text-2xl leading-tight`}>
           No final is running right now. Each month&apos;s winners meet about
           two weeks after the month ends.
         </p>
-      </main>
-    );
-  }
-
-  const finalId = await ensureFinal(admin, board.id, window);
-  const finalists = await listFinalists(admin, finalId, customer?.id ?? null);
-  const alreadyVoted = customer
-    ? await hasVotedInFinal(admin, finalId, customer.id)
-    : false;
-
-  return (
-    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 px-4 py-6">
-      {heading}
-      <p className="text-muted-foreground text-sm">
-        {board.name} · {monthLabel(window.month)}
-      </p>
-
-      {finalists.length === 0 ? (
-        <p role="status" className="bg-muted rounded-lg px-3 py-2 text-sm">
+      ) : finalists.length === 0 ? (
+        <p role="status" className={`${YELLOW_STRIP} text-2xl leading-tight`}>
           Nothing won a week that month, so there&apos;s no final to hold.
         </p>
       ) : alreadyVoted ? (
-        <>
-          <p role="status" className="bg-muted rounded-lg px-3 py-2 text-sm">
+        <section className="flex flex-col gap-4">
+          <p className="text-muted-foreground text-sm font-semibold">
             You&apos;ve voted in this month&apos;s final. The super winner is
             crowned when it closes.
           </p>
+          {heading}
           <FinalistWall finalists={finalists} />
-        </>
+        </section>
       ) : customer ? (
-        <FinalGrid
-          slug={slug}
-          finalists={finalists}
-          turnstileSiteKey={serverEnv().NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-        />
+        <section className="flex flex-col gap-4">
+          {heading}
+          <FinalGrid
+            slug={slug}
+            finalists={finalists}
+            turnstileSiteKey={serverEnv().NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+          />
+        </section>
       ) : (
-        <>
-          {/* The drawings stay on the page: they are the argument for
-              signing in. */}
-          <div className="flex flex-col gap-3 rounded-lg border px-3 py-3">
-            <p className="text-sm font-medium">Sign in to vote</p>
-            <p className="text-muted-foreground text-xs">
-              One vote per person in the final, so it needs an account.
-            </p>
-            <GoogleSignIn next={`/b/${slug}/final`} size="sm" />
-          </div>
-          <FinalistWall finalists={finalists} />
-        </>
+        // Signed out: tapping a finalist to vote asks them to sign in.
+        <SignInToVote
+          tiles={finalists.map(finalistTile)}
+          next={`/b/${slug}/final`}
+          heading={heading}
+          notes={wonItsWeekNotes(finalists)}
+          ask="Sign in to vote. One vote each in the final!"
+        />
       )}
-    </main>
+    </BoardLayout>
   );
 }

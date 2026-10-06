@@ -7,6 +7,7 @@ import {
   drawShape,
   MAX_ZOOM,
   panBy,
+  pixelToHex,
   type Shape,
   screenToTile,
   sprayDots,
@@ -135,6 +136,17 @@ describe("strokeOptions", () => {
 
   it("keeps the marker even whatever the pen is set to", () => {
     expect(strokeOptions({ ...pen, brush: "marker" }).thinning).toBe(0);
+  });
+});
+
+describe("pixelToHex", () => {
+  it("writes a pixel as a #rrggbb colour", () => {
+    expect(pixelToHex([239, 68, 68, 255])).toBe("#ef4444");
+    expect(pixelToHex([0, 5, 16, 255])).toBe("#000510");
+  });
+
+  it("reads bare paper as white", () => {
+    expect(pixelToHex([0, 0, 0, 0])).toBe("#ffffff");
   });
 });
 

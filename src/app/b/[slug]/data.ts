@@ -16,6 +16,7 @@ import {
   TILES_BUCKET,
   type TileCursor,
   type TilePage,
+  type Tile,
   type TileRow,
   toTile,
 } from "./tiles";
@@ -220,4 +221,67 @@ export async function listLiveTiles(
       : null;
 
   return { tiles, nextCursor };
+}
+
+/**
+ * Loads particular live tiles by id, in no set order; ids that aren't live
+ * tiles are left out.
+ */
+export async function getLiveTiles(
+  ids: string[],
+  supabase: SupabaseClient = createPublicClient(),
+  viewerId: string | null = null,
+): Promise<Tile[]> {
+  if (ids.length === 0) return [];
+  const { data, error } = await supabase
+    .from("tiles")
+    .select(
+      "id, user_id, display_name, name_tag, caption, image_path, created_at",
+    )
+    .in("id", ids)
+    .eq("status", "live")
+    .returns<TileRow[]>();
+  if (error) throw new Error(`Could not load tiles: ${error.message}`);
+
+  const storage = supabase.storage.from(TILES_BUCKET);
+  return data.map((row) =>
+    toTile(row, (path) => storage.getPublicUrl(path).data.publicUrl, viewerId),
+  );
+}
+
+/** A glimpse of a week's drawings: the newest few, and how many there are. */
+export type WeekPeek = { imageUrls: string[]; total: number };
+
+/**
+ * The newest few live drawings of a week and the week's total, for the board's
+ * "up for a vote" card: enough to show what you'd be voting on without
+ * loading the whole week.
+ */
+export async function peekAtWeek(
+  weekId: string,
+  count: number,
+  supabase: SupabaseClient = createPublicClient(),
+): Promise<WeekPeek> {
+  const {
+    data,
+    error,
+    count: total,
+  } = await supabase
+    .from("tiles")
+    .select("image_path", { count: "exact" })
+    .eq("week_id", weekId)
+    .eq("status", "live")
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(count)
+    .returns<{ image_path: string }[]>();
+  if (error) throw new Error(`Could not peek at week: ${error.message}`);
+
+  const storage = supabase.storage.from(TILES_BUCKET);
+  return {
+    imageUrls: data.map(
+      (row) => storage.getPublicUrl(row.image_path).data.publicUrl,
+    ),
+    total: total ?? data.length,
+  };
 }

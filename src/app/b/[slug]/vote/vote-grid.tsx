@@ -1,19 +1,19 @@
 "use client";
 
-import Image from "next/image";
+import { CheckIcon } from "@phosphor-icons/react";
 import { useActionState, useState } from "react";
 import { Turnstile } from "@/components/turnstile";
-import { Button } from "@/components/ui/button";
 import { TURNSTILE_FIELD } from "@/lib/turnstile/field";
+import { INKED_BUTTON, YELLOW_STRIP } from "../board-look";
+import { CornerLabel, PinnedDrawing } from "../pinned-drawing";
 import type { Tile } from "../tiles";
 import { castVotesAction } from "./actions";
+import { DrawingsHeading, DrawingsList } from "./drawings-list";
 import type { VoteState } from "./schema";
 import { TileWall } from "./tile-wall";
 import { notVotableBecause } from "./votable";
 
 const initialState: VoteState = { status: "idle" };
-
-const ABOVE_THE_FOLD_TILES = 4;
 
 /**
  * Last week's board, with up to three picks cast in one go
@@ -21,6 +21,10 @@ const ABOVE_THE_FOLD_TILES = 4;
  *
  * Guest tiles and your own are shown but can't be picked — the board is
  * everyone's, the competition is between accounts.
+ *
+ * In the board's look (UI pass, 2026-10-03): the drawings are pinned
+ * polaroids, a tap picks one (it lifts, straightens and gets a yellow
+ * check), and the Cast button stays in reach at the foot of the screen.
  */
 export function VoteGrid({
   slug,
@@ -73,9 +77,9 @@ export function VoteGrid({
     // Out of votes, but the board is still worth looking at.
     return (
       <>
-        <p role="status" className="bg-muted rounded-lg px-3 py-2 text-sm">
+        <p role="status" className={`${YELLOW_STRIP} text-2xl leading-tight`}>
           {state.status === "cast"
-            ? "Votes cast. That's all three for this week — they're final."
+            ? "Votes cast. That's all three for this week, and they're final."
             : "You've used all three of your votes this week."}
         </p>
         <TileWall tiles={tiles} />
@@ -84,58 +88,53 @@ export function VoteGrid({
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <form action={formAction} className="flex flex-col gap-6">
       <input type="hidden" name="slug" value={slug} />
       {[...picked].map((tileId) => (
         <input key={tileId} type="hidden" name="tileIds" value={tileId} />
       ))}
       <input type="hidden" name={TURNSTILE_FIELD} value={token ?? ""} />
 
-      <p role="status" className="text-sm">
+      <p role="status" className="text-muted-foreground text-sm font-semibold">
         {state.status === "cast" && "Votes cast. "}
-        {left} {left === 1 ? "vote" : "votes"} left this week. Votes are final.
+        Tap a drawing to pick it. {left} {left === 1 ? "vote" : "votes"} left
+        this week, and votes are final.
       </p>
 
-      <ul className="grid grid-cols-2 gap-3">
-        {tiles.map((tile, index) => {
-          const blocked = notVotableBecause(tile, alreadyVoted);
-          const isPicked = picked.has(tile.id);
-
-          return (
-            <li key={tile.id}>
-              <button
-                type="button"
-                onClick={() => toggle(tile.id)}
+      <section className="flex flex-col gap-4">
+        <DrawingsHeading />
+        <DrawingsList>
+          {tiles.map((tile, index) => {
+            const blocked = notVotableBecause(tile, alreadyVoted);
+            const isPicked = picked.has(tile.id);
+            return (
+              <PinnedDrawing
+                key={tile.id}
+                tile={tile}
+                index={index}
+                picked={isPicked}
                 disabled={blocked !== null || pending}
-                aria-pressed={isPicked}
-                className={`flex h-full w-full flex-col gap-1 rounded-lg border p-1 text-left ${
-                  isPicked ? "border-primary border-2" : ""
-                } ${blocked ? "opacity-60" : ""}`}
-              >
-                <Image
-                  src={tile.imageUrl}
-                  loading={index < ABOVE_THE_FOLD_TILES ? "eager" : "lazy"}
-                  alt={tile.caption ?? `Drawing by ${tile.author ?? "a guest"}`}
-                  width={512}
-                  height={512}
-                  unoptimized
-                  className="aspect-square w-full rounded bg-white object-cover"
-                />
-                {tile.caption && (
-                  <span className="line-clamp-2 text-sm break-words">
-                    {tile.caption}
-                  </span>
-                )}
-                <span className="text-muted-foreground truncate text-xs">
-                  {tile.author ?? "Guest"}
-                  {blocked && ` · ${blocked}`}
-                  {isPicked && " · picked"}
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+                dim={blocked === "Yours" || blocked === "Guest"}
+                onPick={() => toggle(tile.id)}
+                badge={
+                  blocked === "Voted" ? (
+                    <CornerLabel tone="voted">Voted</CornerLabel>
+                  ) : blocked ? (
+                    <CornerLabel>{blocked}</CornerLabel>
+                  ) : isPicked ? (
+                    <span
+                      aria-hidden
+                      className="vote-check border-foreground bg-winner text-foreground absolute -right-3 -bottom-3 grid size-10 place-items-center rounded-full border-2"
+                    >
+                      <CheckIcon weight="bold" className="size-5" />
+                    </span>
+                  ) : null
+                }
+              />
+            );
+          })}
+        </DrawingsList>
+      </section>
 
       {state.status === "error" && (
         <p role="alert" className="text-destructive text-sm">
@@ -145,19 +144,22 @@ export function VoteGrid({
 
       <Turnstile siteKey={turnstileSiteKey} onToken={setToken} />
 
-      <Button
-        type="submit"
-        size="lg"
-        disabled={pending || picked.size === 0 || !token}
-      >
-        {pending
-          ? "Casting…"
-          : !token
-            ? "Checking your browser…"
-            : picked.size === 0
-              ? "Pick a drawing"
-              : `Cast ${picked.size} ${picked.size === 1 ? "vote" : "votes"}`}
-      </Button>
+      {/* Stays in reach while scrolling through the drawings. */}
+      <div className="sticky bottom-4 z-20">
+        <button
+          type="submit"
+          disabled={pending || picked.size === 0 || !token}
+          className={`${INKED_BUTTON} h-14 w-full text-lg`}
+        >
+          {pending
+            ? "Casting…"
+            : !token
+              ? "Checking your browser…"
+              : picked.size === 0
+                ? "Pick a drawing"
+                : `Cast ${picked.size} ${picked.size === 1 ? "vote" : "votes"}`}
+        </button>
+      </div>
     </form>
   );
 }

@@ -40,8 +40,8 @@ export function BlockedAccounts({ accounts }: { accounts: BlockedAccount[] }) {
 
   return (
     <section className="flex flex-col gap-2">
-      <h2 className="text-sm font-medium">Blocked accounts</h2>
-      <p className="text-muted-foreground text-xs">
+      <h2 className="font-black tracking-tight">Blocked accounts</h2>
+      <p className="text-muted-foreground text-sm">
         These accounts can&apos;t post, vote or report on your board. Unblocking
         lets them back in; drawings that were removed stay removed.
       </p>

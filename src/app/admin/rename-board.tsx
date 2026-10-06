@@ -23,7 +23,7 @@ export function RenameBoard({ name }: { name: string }) {
 
   return (
     <section className="flex flex-col gap-2">
-      <h2 className="text-sm font-medium">Board name</h2>
+      <h2 className="font-black tracking-tight">Board name</h2>
       <form action={formAction} className="flex flex-col gap-2">
         <Label htmlFor="venue-name" className="sr-only">
           Board name
@@ -35,7 +35,7 @@ export function RenameBoard({ name }: { name: string }) {
           required
           defaultValue={name}
         />
-        <p className="text-muted-foreground text-xs">
+        <p className="text-muted-foreground text-sm">
           This is the name everyone sees on your board. Your board link and QR
           code stay the same, so anything you&apos;ve already printed keeps
           working.
@@ -50,9 +50,9 @@ export function RenameBoard({ name }: { name: string }) {
         {/* Said afterwards, not in the form: it's a consequence to know about,
             not a reason to decide differently. */}
         {state.status === "renamed" && (
-          <p role="status" className="text-muted-foreground text-xs">
+          <p role="status" className="text-muted-foreground text-sm">
             Your board is now called {state.name}. Links you&apos;ve already
-            shared in chats may show the old name for a while — that&apos;s the
+            shared in chats may show the old name for a while. That&apos;s the
             chat app&apos;s saved preview, not your board, and anyone who taps
             one still lands here. Printed cards showing the old name are worth
             reprinting; the QR code on them still works.

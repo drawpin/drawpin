@@ -5,7 +5,7 @@ import { blockedMessage } from "./blocked-message";
 describe("blockedMessage", () => {
   it("says what kind of problem, that the post isn't used, and the tries left", () => {
     expect(blockedMessage("hateful", 2)).toBe(
-      "This one can't go up — it looks like it has hateful words or symbols. Your post for today isn't used. 2 tries left before 4:00 AM.",
+      "This one can't go up: it looks like it has hateful words or symbols. Your post for today isn't used. 2 tries left before 4:00 AM.",
     );
   });
 

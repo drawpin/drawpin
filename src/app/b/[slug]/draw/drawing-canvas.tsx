@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import {
   backingSizeFor,
   brushWidthOnScreen,
+  colorAt,
   type DrawOp,
   drawSelectionFrame,
   fillAt,
@@ -88,6 +89,12 @@ type DrawingCanvasProps = {
    * the canvas, since on a phone there's no pointer to show it on.
    */
   previewSize?: boolean;
+  /**
+   * The colour picker is armed: the next tap reads the colour under it and
+   * hands it to `onPickColor` instead of drawing.
+   */
+  pickingColor?: boolean;
+  onPickColor?: (color: string) => void;
   onDraw: (op: DrawOp) => void;
 };
 
@@ -125,6 +132,8 @@ export const DrawingCanvas = forwardRef<
     pressure,
     disabled,
     previewSize,
+    pickingColor,
+    onPickColor,
     onDraw,
   },
   ref,
@@ -405,6 +414,12 @@ export const DrawingCanvas = forwardRef<
       return;
     }
 
+    if (pickingColor && onPickColor) {
+      const [x, y] = toTilePoint(event, rect);
+      onPickColor(colorAt(ops, x, y));
+      return;
+    }
+
     fingers.current.set(event.pointerId, finger);
     trackHover(event);
     cancelHold();
@@ -676,8 +691,14 @@ export const DrawingCanvas = forwardRef<
         aria-label="Drawing area"
         // Stops the page scrolling or zooming while a finger is on the tile;
         // pinching is handled here instead.
-        className="aspect-square w-full touch-none rounded-lg border bg-white"
-        style={{ cursor: grabbing ? "grabbing" : cursorFor(tool) }}
+        className="border-foreground aspect-square w-full touch-none rounded-xl border-2 bg-white shadow-[4px_4px_0_var(--primary)]"
+        style={{
+          cursor: grabbing
+            ? "grabbing"
+            : pickingColor
+              ? "crosshair"
+              : cursorFor(tool),
+        }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -711,13 +732,13 @@ export const DrawingCanvas = forwardRef<
 
       {/* Which tool is in hand, on touch screens, where the toolbar can be
           scrolled out of sight; a mouse shows it with the cursor. */}
-      <p className="bg-background/80 text-muted-foreground pointer-events-none absolute top-2 right-2 hidden rounded px-2 py-1 text-xs shadow pointer-coarse:block">
+      <p className="bg-secondary text-primary pointer-events-none absolute top-2 right-2 hidden rounded-full px-2.5 py-1 text-xs font-semibold pointer-coarse:block">
         {toolName(tool)}
       </p>
 
       {view.scale > 1 && !floating && (
         // Only where there's a mouse: on a touch screen two fingers move it.
-        <p className="bg-background/80 text-muted-foreground pointer-events-none absolute top-2 left-2 hidden rounded px-2 py-1 text-xs shadow pointer-fine:block">
+        <p className="bg-secondary text-primary pointer-events-none absolute top-2 left-2 hidden rounded-full px-2.5 py-1 text-xs font-semibold pointer-fine:block">
           Right-click and drag to move
         </p>
       )}
@@ -727,7 +748,7 @@ export const DrawingCanvas = forwardRef<
           type="button"
           variant="secondary"
           size="sm"
-          className="absolute right-2 bottom-2 shadow"
+          className="absolute right-2 bottom-2 shadow-md"
           onClick={() => setView(WHOLE_TILE)}
         >
           {view.scale.toFixed(1)}× · Fit
@@ -736,14 +757,19 @@ export const DrawingCanvas = forwardRef<
 
       {floating && (
         <div className="absolute bottom-2 left-2 flex gap-2">
-          <Button type="button" size="sm" className="shadow" onClick={putDown}>
+          <Button
+            type="button"
+            size="sm"
+            className="shadow-md"
+            onClick={putDown}
+          >
             Done
           </Button>
           <Button
             type="button"
             variant="secondary"
             size="sm"
-            className="shadow"
+            className="shadow-md"
             onClick={dropSelection}
           >
             Cancel

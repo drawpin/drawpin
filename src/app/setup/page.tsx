@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { CardPage } from "@/app/b/[slug]/board-look";
 import { redirect } from "next/navigation";
 import { signOut } from "@/app/admin/actions";
 import { Button } from "@/components/ui/button";
@@ -25,15 +26,11 @@ export default async function SetupPage() {
   if (venue) redirect("/admin");
 
   return (
-    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-6">
-      <div className="flex flex-col gap-2 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Set up your board
-        </h1>
-        <p className="text-muted-foreground text-sm">
-          Everyone sees this name when they scan your code.
-        </p>
-      </div>
+    <CardPage
+      note="Nearly there!"
+      title="Set up your board"
+      intro={<p>Everyone sees this name when they scan your code.</p>}
+    >
       <SetupForm timeZones={listTimeZones()} />
       {/* Signed in as the wrong address, this page is otherwise a dead end:
           every other route sends an owner without a board back to it. */}
@@ -45,6 +42,6 @@ export default async function SetupPage() {
           </Button>
         </form>
       </div>
-    </main>
+    </CardPage>
   );
 }

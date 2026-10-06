@@ -348,3 +348,14 @@ export function clockStatus(now: Date, clock: VenueClock): ClockStatus {
       .postingEndsAt,
   };
 }
+
+/**
+ * The weekday a venue-time moment falls on, e.g. "Monday", for saying when
+ * something closes. Weeks end at 4:00 AM, so a week's end is the morning of
+ * the day this names.
+ */
+export function weekdayFor(moment: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone }).format(
+    moment,
+  );
+}

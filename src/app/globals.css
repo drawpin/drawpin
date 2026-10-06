@@ -13,19 +13,10 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-geist-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
+  --color-highlight: var(--highlight);
+  --color-winner: var(--winner);
+  --color-attention: var(--attention);
+  --color-success: var(--success);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -51,83 +42,431 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-:root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+/*
+ * Depth and motion shared across screens (UI pass).
+ *
+ * Shadows are tinted with the primary blue, never black.
+ *
+ * Motion follows how often it's seen (design-motion-principles): things that
+ * appear now and then materialise with opacity, a small rise and blur to
+ * sharp, on an ease-out; tools tapped hundreds of times get press feedback
+ * only. Every animation here is used through motion-safe:, so it's skipped
+ * for anyone who asks for reduced motion.
+ *
+ * - drop-in: a drawing arriving live on the board.
+ * - fade-up: something appearing: the board's drawings on load (staggered),
+ *   a panel opening.
+ */
+@theme {
+  --shadow-lift:
+    0 1px 2px rgb(0 74 173 / 0.06), 0 6px 16px rgb(0 74 173 / 0.08);
+  --animate-drop-in: drop-in 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-fade-up: fade-up 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+
+  @keyframes drop-in {
+    from {
+      opacity: 0;
+      transform: translateY(-12px) scale(0.96);
+      filter: blur(4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+      filter: none;
+    }
+  }
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+      filter: blur(2px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+      filter: none;
+    }
+  }
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+/*
+ * DrawPin's palette (UI pass, 2026-09-28). Light only: there is no dark mode.
+ *
+ * Five brand colours: deep blue #004AAD, light blue #6BADFA, yellow #FFCA39,
+ * orange #FF821B and white. Only the deep blue carries white text; light
+ * blue, yellow and orange are fills with ink text on top, never text colours
+ * of their own. Text is ink #0F1B2D, and everything supporting is one neutral
+ * grey #525252. Every text colour here is at least 4.5:1 on white and on the
+ * tint.
+ *
+ * The drawing canvas stays white whatever this says: it's the paper.
+ */
+:root {
+  --background: #ffffff;
+  --foreground: #0f1b2d;
+  --card: #ffffff;
+  --card-foreground: #0f1b2d;
+  --popover: #ffffff;
+  --popover-foreground: #0f1b2d;
+  /* Main buttons, links, the selected tool, focus rings. */
+  --primary: #004aad;
+  --primary-foreground: #ffffff;
+  /* Soft light-blue surfaces: secondary buttons, info cards. */
+  --secondary: #edf5ff;
+  --secondary-foreground: #0f1b2d;
+  --muted: #f5f5f5;
+  --muted-foreground: #525252;
+  /* Hover and selected backgrounds on quiet controls. */
+  --accent: #edf5ff;
+  --accent-foreground: #0f1b2d;
+  /* Clear, Remove and errors: clearly apart from the orange. */
+  --destructive: #c81e1e;
+  --border: #e5e5e5;
+  --input: #e5e5e5;
+  --ring: #004aad;
+  --radius: 0.625rem;
+
+  /* Brand colours with a job of their own. Fills only, with ink text. */
+  --highlight: #6badfa;
+  --winner: #ffca39;
+  --attention: #ff821b;
+  /* Confirmations: "your votes are in". 5.0:1 on white. */
+  --success: #15803d;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+  /* Feeling like an app on a phone, not a page in a browser (mobile-native):
+     no grey flash over whatever was tapped (every control has its own press
+     state instead), and no text inflation when the phone turns sideways. */
+  html {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+  /* Controls fire on the tap, not 300ms later waiting for a double tap, and
+     holding a finger on one doesn't select its label. Content text stays
+     selectable. */
+  button,
+  a,
+  [role="button"],
+  summary {
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+  }
   body {
     @apply bg-background text-foreground;
   }
   html {
     @apply font-sans;
+  }
+}
+
+/* iOS Safari zooms into any field whose text is under 16px, and doesn't zoom
+   back out. Outside @layer so it wins over a smaller text-* class; only on
+   touch screens, where the zoom happens. */
+@media (pointer: coarse) {
+  input,
+  select,
+  textarea {
+    font-size: max(16px, 1em);
+  }
+}
+
+/*
+ * The board (UI pass, chosen 2026-10-02): drawings pinned up on paper, and the motion that keeps it awake.
+ *
+ * Its motion is weighted Jakub, then Jhey (design-motion-principles): a
+ * playful page people open every day, so loops spend most of their time at
+ * rest. Only transform properties, opacity and shadows move; hover is for
+ * real pointers only; and all of it is off for reduced motion.
+ */
+
+/* A pin stuck into the top of an element (see src/components/pin.ts): its
+   needle goes 5px into the top edge, centred. `pinned-lg` is the bigger pin
+   on a drawing opened up close. */
+.pinned::before {
+  content: "";
+  position: absolute;
+  z-index: 10;
+  width: calc(24px * var(--pin-scale, 1));
+  height: calc(30px * var(--pin-scale, 1));
+  top: calc((5px - 29px) * var(--pin-scale, 1));
+  left: calc(50% - 12px * var(--pin-scale, 1));
+  background: var(--pin) center / contain no-repeat;
+  filter: drop-shadow(2px 2px 0 rgb(15 27 45 / 0.28));
+  transform-origin: 12.5% 97%;
+  pointer-events: none;
+}
+.pinned-lg {
+  --pin-scale: 1.5;
+}
+
+/* pin-pop: a pin pushed into the paper on load, about its needle's tip.
+   board-sway: a drawing swinging into place on its pin as it scrolls in.
+   pencil-scribble: the Draw button's pencil, every few seconds.
+   peek-hop and arrow-nudge: the vote card's drawings hopping in turn, and
+   its arrow. */
+@keyframes pin-pop {
+  from {
+    scale: 1.45;
+    translate: 6px -12px;
+    opacity: 0;
+  }
+  55% {
+    opacity: 1;
+  }
+  to {
+    scale: 1;
+    translate: 0 0;
+    opacity: 1;
+  }
+}
+@keyframes board-sway {
+  from {
+    rotate: var(--swing);
+    translate: 0 16px;
+    opacity: 0.35;
+  }
+  to {
+    rotate: 0deg;
+    translate: 0 0;
+    opacity: 1;
+  }
+}
+@keyframes pencil-scribble {
+  0%,
+  16%,
+  100% {
+    rotate: 0deg;
+    translate: 0 0;
+  }
+  3% {
+    rotate: -16deg;
+    translate: -1px 1px;
+  }
+  6% {
+    rotate: 12deg;
+    translate: 1px 0;
+  }
+  9% {
+    rotate: -9deg;
+    translate: -1px 1px;
+  }
+  12% {
+    rotate: 5deg;
+    translate: 0 0;
+  }
+}
+@keyframes peek-hop {
+  0%,
+  9%,
+  100% {
+    translate: 0 0;
+  }
+  3% {
+    translate: 0 -7px;
+  }
+  6% {
+    translate: 0 1px;
+  }
+}
+@keyframes arrow-nudge {
+  0%,
+  12%,
+  100% {
+    translate: 0 0;
+  }
+  4% {
+    translate: 5px 0;
+  }
+  8% {
+    translate: -1px 0;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pin-pop::before {
+    animation: pin-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1)
+      var(--pin-delay, 0ms) both;
+  }
+  @supports (animation-timeline: view()) {
+    .board-sway {
+      transform-origin: 50% 0;
+      animation: board-sway linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 30%;
+    }
+  }
+  .draw-awake svg {
+    transform-origin: 15% 85%;
+    animation: pencil-scribble 6s cubic-bezier(0.37, 0, 0.63, 1) 1.4s infinite;
+  }
+  .vote-awake .peek {
+    animation: peek-hop 7s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+  }
+  .vote-awake .arrow {
+    animation: arrow-nudge 7s cubic-bezier(0.34, 1.56, 0.64, 1) 2.9s infinite;
+  }
+  /* Hovered, a drawing lifts and swings a little on its pin. */
+  .tile-frame {
+    transition:
+      rotate 380ms cubic-bezier(0.34, 1.56, 0.64, 1),
+      translate 380ms cubic-bezier(0.34, 1.56, 0.64, 1),
+      scale 380ms cubic-bezier(0.34, 1.56, 0.64, 1),
+      box-shadow 380ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .tile-frame:hover {
+      rotate: var(--hover-swing);
+      translate: 0 -6px;
+      scale: 1.05;
+      box-shadow:
+        0 4px 6px rgb(0 74 173 / 0.12),
+        0 22px 36px rgb(0 74 173 / 0.2);
+    }
+  }
+}
+
+/* A drawing opened up close: the dim behind it, and its caption coming in
+   after it. Both fade out with the drawing on close. */
+.close-up::backdrop {
+  background: rgb(15 27 45 / 0.78);
+  transition: opacity 280ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.close-up[data-closing]::backdrop {
+  opacity: 0;
+}
+.close-up[data-closing] .close-up-controls {
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+}
+@keyframes close-up-dim {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes close-up-controls {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+    filter: blur(2px);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .close-up[open]::backdrop {
+    animation: close-up-dim 320ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .close-up-controls {
+    animation: close-up-controls 320ms cubic-bezier(0.23, 1, 0.32, 1) 180ms both;
+  }
+}
+
+/* The draw screen's note for a blank Post: a strip of yellow paper popping
+   in, again on each try. Seen only when someone tries to post nothing, so
+   it can have a little bounce. */
+@keyframes nudge-note {
+  from {
+    opacity: 0;
+    scale: 0.92;
+    translate: 0 6px;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .nudge-note {
+    transform-origin: 20% 100%;
+    animation: nudge-note 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+}
+
+/* The vote page's podium: each step rises out of the floor, 3rd, then 2nd,
+   then 1st (delays set inline), with a little overshoot. Seen once a visit,
+   so it's allowed to be an event. */
+@keyframes podium-rise {
+  from {
+    translate: 0 100%;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .podium-rise {
+    animation: podium-rise 560ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
+  }
+}
+
+/* A drawing on the vote page: it leans on its pin like on the board, lifts
+   a little under a mouse, and when picked lifts, straightens and grows, so
+   a pick reads at a glance. A spring, since picking is a deliberate, rare
+   tap; off for reduced motion, where the check alone shows the pick. */
+.vote-paper {
+  transform: rotate(var(--lean, 0deg));
+}
+.vote-paper[aria-pressed="true"] {
+  transform: translateY(-6px) rotate(0deg) scale(1.03);
+  box-shadow:
+    0 0 0 3px var(--primary),
+    0 4px 6px rgb(0 74 173 / 0.12),
+    0 22px 36px rgb(0 74 173 / 0.2);
+}
+@keyframes vote-check {
+  from {
+    scale: 0.5;
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .vote-paper {
+    transition:
+      transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1),
+      box-shadow 200ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    button.vote-paper:not(:disabled):not([aria-pressed="true"]):hover {
+      transform: translateY(-4px) rotate(var(--lean, 0deg));
+    }
+  }
+  .vote-check {
+    animation: vote-check 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+}
+
+/* scribble: a path drawn on from start to end, as if being doodled; for
+   the podium's trophies and doodles. The path needs `pathLength="1"`.
+   `--delay` and `--dur` time each stroke. With reduced motion the
+   drawing is just there. */
+.scribble {
+  stroke-dasharray: 1;
+}
+@keyframes scribble {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .scribble {
+    animation: scribble var(--dur, 420ms) cubic-bezier(0.65, 0, 0.35, 1)
+      var(--delay, 0ms) both;
+  }
+}
+
+/* Printing the admin page prints only the board's QR card, centred near the
+   top of the page, at a size that scans from across a table. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-card,
+  .print-card * {
+    visibility: visible;
+  }
+  .print-card {
+    position: absolute;
+    top: 2cm;
+    left: 50%;
+    translate: -50% 0;
+    width: 9cm;
+    max-width: none;
+    box-shadow: none;
   }
 }

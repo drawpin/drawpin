@@ -97,7 +97,7 @@ export function BoardTiles({ tiles }: { tiles: AdminTile[] }) {
   }
 
   return (
-    <ul className="grid grid-cols-2 gap-3">
+    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
       {tiles.map((tile) => (
         <TileCard key={tile.id} tile={tile} />
       ))}

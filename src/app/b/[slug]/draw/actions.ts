@@ -28,13 +28,13 @@ const FAILURE_MESSAGES: Record<Exclude<PostTileFailure, "blocked">, string> = {
   paused: "This board is paused, so posting is off right now.",
   "account-blocked": "You can't post to this board.",
   "invalid-image": "We couldn't read your drawing. Try again.",
-  blank: "Draw something first.",
+  blank: "Nothing drawn yet. Draw something, then post it.",
   locked:
     "Too many posts couldn't be posted today. You can try again after 4:00 AM.",
   burst:
-    "This network has posted a lot in the last few minutes. Try again shortly — this didn't use up your post.",
+    "This network has posted a lot in the last few minutes. Try again shortly. This didn't use up your post.",
   "moderation-unavailable":
-    "We couldn't check your drawing right now. Try again in a minute — this didn't use up your post.",
+    "We couldn't check your drawing right now. Try again in a minute. This didn't use up your post.",
   "week-closed": "Posting is closed for this week.",
   "already-posted":
     "You've already posted today. You can post again after 4:00 AM.",

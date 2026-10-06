@@ -1,9 +1,9 @@
 "use client";
 
 import { useActionState } from "react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { INKED_BUTTON } from "../b/[slug]/board-look";
 import { joinBoard } from "./actions";
 import type { JoinState } from "./schema";
 
@@ -30,6 +30,8 @@ export function JoinForm() {
         maxLength={11}
         placeholder="8-digit code"
         required
+        // Big and spaced out, like the code on the card it's copied from.
+        className="border-foreground h-14 rounded-xl border-2 bg-white text-center text-2xl font-bold tracking-[0.2em] placeholder:text-base placeholder:font-semibold placeholder:tracking-normal"
         aria-invalid={state.status === "error"}
         aria-describedby={state.status === "error" ? "code-error" : undefined}
       />
@@ -38,9 +40,13 @@ export function JoinForm() {
           {state.message}
         </p>
       )}
-      <Button type="submit" size="lg" disabled={pending}>
+      <button
+        type="submit"
+        disabled={pending}
+        className={`${INKED_BUTTON} h-14 text-lg`}
+      >
         {pending ? "Opening…" : "Open the board"}
-      </Button>
+      </button>
     </form>
   );
 }

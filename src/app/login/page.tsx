@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { CardPage } from "@/app/b/[slug]/board-look";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getOwner } from "@/lib/auth";
@@ -13,16 +14,16 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const { error } = await searchParams;
 
   return (
-    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-6">
-      <div className="flex flex-col gap-2 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Sign in to DrawPin
-        </h1>
-        <p className="text-muted-foreground text-sm">
-          For whoever&apos;s setting up a board. We&apos;ll email you a code and
-          a link — no password needed.
+    <CardPage
+      note="For board owners"
+      title="Sign in to DrawPin"
+      intro={
+        <p>
+          Start a new board, or manage the one you have. We&apos;ll email you a
+          code and a link, no password needed.
         </p>
-      </div>
+      }
+    >
       {error === "link" && (
         <p role="alert" className="text-destructive text-center text-sm">
           That sign-in link didn&apos;t work. Links expire after 15 minutes and
@@ -35,12 +36,12 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       {/* Customers sign in with Google from the board itself, so anyone who
           lands here looking for that needs pointing back. */}
       <p className="text-muted-foreground text-center text-sm">
-        Here to draw? You don&apos;t need this — join a board from the{" "}
+        Here to draw? You don&apos;t need this. Join a board from the{" "}
         <Link href="/" className="underline underline-offset-4">
           home page
         </Link>
         .
       </p>
-    </main>
+    </CardPage>
   );
 }

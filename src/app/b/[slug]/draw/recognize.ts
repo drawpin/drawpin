@@ -22,6 +22,16 @@ const LINE_WOBBLE = 0.06;
 /** A line that doubles back on itself isn't a line, even if it's straight. */
 const LINE_DETOUR = 1.15;
 
+/**
+ * How far apart, relative to a line's length, the points are that its detour
+ * is measured along. A touch screen reports a finger in whole-pixel steps many
+ * times a second, so a diagonal arrives as a staircase that is up to 1.41
+ * times its length point to point; measured across steps this size, the
+ * staircase and the shake of each sample cancel out, and only a stroke that
+ * really wanders or doubles back comes out long.
+ */
+const DETOUR_STEP = 0.05;
+
 /** How closely a closed shape has to fit, on average, relative to its size. */
 const FIT_TOLERANCE = 0.05;
 
@@ -61,16 +71,17 @@ export function recognizeShape(
   const gap = distance(points[0], points[points.length - 1]);
 
   return gap > CLOSED_GAP * size
-    ? straightLine(points, length)
+    ? straightLine(points)
     : closedShape(points, size);
 }
 
-function straightLine(points: Point[], length: number): ShapeGeometry | null {
+function straightLine(points: Point[]): ShapeGeometry | null {
   const from = points[0];
   const to = points[points.length - 1];
   const span = distance(from, to);
 
-  if (length > span * LINE_DETOUR) return null;
+  const travelled = pathLength(spacedOut(points, span * DETOUR_STEP));
+  if (travelled > span * LINE_DETOUR) return null;
   for (const point of points) {
     if (distanceToSegment(point, from, to) > span * LINE_WOBBLE) return null;
   }
@@ -339,6 +350,20 @@ function pathLength(points: Point[]): number {
     total += distance(points[index - 1], points[index]);
   }
   return total;
+}
+
+/**
+ * The stroke with points closer than `step` to the last one kept left out, so
+ * its length is measured along its course rather than through every tremor.
+ * The last point always stays, so the course still ends where the stroke did.
+ */
+function spacedOut(points: Point[], step: number): Point[] {
+  const kept: Point[] = [points[0]];
+  for (const point of points.slice(1, -1)) {
+    if (distance(kept[kept.length - 1], point) >= step) kept.push(point);
+  }
+  kept.push(points[points.length - 1]);
+  return kept;
 }
 
 function boundsOf(points: Point[]) {

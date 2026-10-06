@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { connection } from "next/server";
 import { getCustomer } from "@/lib/customer";
 import { readDeviceId } from "@/lib/device";
@@ -8,9 +7,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { localDayFor } from "@/lib/venue-time";
 import { getBoard, requireBoard } from "../data";
 import { sharePreview } from "../share-preview";
+import { BackToBoard } from "./back-to-board";
 import { DrawTileForm } from "./draw-tile-form";
 import { BLOCKED_ATTEMPT_LIMIT } from "./post-tile";
-import { SignInFirst } from "./sign-in-first";
 
 export async function generateMetadata({
   params,
@@ -65,12 +64,6 @@ export default async function DrawPage({
   const { slug } = await params;
   const board = await requireBoard(slug, "/draw");
 
-  const backLink = (
-    <Link href={`/b/${slug}`} className="text-sm underline underline-offset-4">
-      Back to the board
-    </Link>
-  );
-
   const customer = await getCustomer(createAdminClient());
   // A guest never posts, so today's limits don't stop them drawing for fun.
   const blocked = board.isPaused
@@ -80,27 +73,40 @@ export default async function DrawPage({
       : null;
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 px-4 py-6">
-      <div className="flex items-baseline justify-between gap-4">
-        <h1 className="text-2xl font-semibold tracking-tight">Draw a tile</h1>
-        {backLink}
-      </div>
-      <p className="text-muted-foreground text-sm">{board.name}</p>
+    // White, like every page; the canvas and tools carry the ink outline.
+    <div className="flex flex-1 flex-col">
+      <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 px-4 py-6">
+        {/* Back first, where a phone's back button is expected; it asks
+          before leaving a drawing behind. */}
+        <div className="flex items-center gap-3">
+          <BackToBoard href={`/b/${slug}`} />
+          <div className="min-w-0">
+            <h1 className="text-2xl font-extrabold tracking-tight">
+              Draw a tile
+            </h1>
+            <p className="text-muted-foreground truncate text-sm">
+              {board.name}
+            </p>
+          </div>
+        </div>
 
-      {blocked ? (
-        <p role="status" className="bg-muted rounded-lg px-3 py-2 text-sm">
-          {blocked}
-        </p>
-      ) : (
-        <>
-          {!customer && <SignInFirst next={`/b/${slug}/draw`} />}
-          <DrawTileForm
-            slug={slug}
-            turnstileSiteKey={serverEnv().NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-            username={customer?.username ?? null}
-          />
-        </>
-      )}
-    </main>
+        {blocked ? (
+          <p
+            role="status"
+            className="bg-secondary rounded-2xl px-4 py-3 text-sm"
+          >
+            {blocked}
+          </p>
+        ) : (
+          <>
+            <DrawTileForm
+              slug={slug}
+              turnstileSiteKey={serverEnv().NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+              username={customer?.username ?? null}
+            />
+          </>
+        )}
+      </main>
+    </div>
   );
 }

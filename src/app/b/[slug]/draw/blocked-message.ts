@@ -26,5 +26,5 @@ export function blockedMessage(
   triesLeft: number,
 ): string {
   const tries = triesLeft === 1 ? "1 try left" : `${triesLeft} tries left`;
-  return `This one can't go up — it ${LOOKS_LIKE[category]}. Your post for today isn't used. ${tries} before 4:00 AM.`;
+  return `This one can't go up: it ${LOOKS_LIKE[category]}. Your post for today isn't used. ${tries} before 4:00 AM.`;
 }
