@@ -158,7 +158,7 @@ export function Podium({
                   with room above for the rise's overshoot. */}
               <div className="-mt-4 w-full overflow-hidden pt-4">
                 <div
-                  className="podium-riseborder-foreground text-foreground relative flex w-full flex-col items-center justify-center gap-1 overflow-hidden rounded-t-lg border-2 border-b-0 bg-white"
+                  className="podium-rise border-foreground text-foreground relative flex w-full flex-col items-center justify-center gap-1 overflow-hidden rounded-t-lg border-2 border-b-0 bg-white"
                   style={{
                     height: step.height,
                     animationDelay: `${step.delay}ms`,
