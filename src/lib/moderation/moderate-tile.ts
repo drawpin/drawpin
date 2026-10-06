@@ -2,6 +2,12 @@ import { findBlockedTerm, type BlockedTerm } from "./blocklist";
 import { categoryForOpenAi, type ModerationCategory } from "./categories";
 import { classifyDrawing } from "./nsfw-drawing";
 import { checkWithOpenAi, type ModerationInput } from "./openai";
+import {
+  blockedTermsFor,
+  blocksOpenAiCategory,
+  type ModerationLevel,
+  policyFor,
+} from "./policy";
 import { defaultProfanityTerms } from "./profanity-terms";
 import { checkWithVision, type VisionVerdict } from "./vision";
 
@@ -38,7 +44,7 @@ export type ModerationDeps = {
   checkVision?: typeof checkWithVision;
 };
 
-/** Nothing seen, for text-only checks where there's no drawing to read. */
+/** Nothing seen, when there's no drawing or the level doesn't read it. */
 const NO_DRAWING: VisionVerdict = {
   text: "",
   symbols: [],
@@ -46,6 +52,8 @@ const NO_DRAWING: VisionVerdict = {
   sexual: false,
   reason: "no-image",
 };
+
+const ALL_AGES = policyFor("all_ages");
 
 /**
  * Checks a post before it's published: the blocklist first (instant, free),
@@ -55,23 +63,41 @@ const NO_DRAWING: VisionVerdict = {
  * written into a drawing is caught by DrawPin's own list. Also used for a
  * username or board name on its own, where there's no drawing to check.
  *
+ * The board's moderation level decides which findings block (policy.ts,
+ * ADR-012). Late Night skips the nudity check and the vision model, but still
+ * asks OpenAI, for the legal floor. Usernames and board names show beyond any
+ * one board, so they're always checked at All Ages: callers checking one leave
+ * `level` at its default, and the blocklist checks the name on a post at All
+ * Ages whatever the board's level.
+ *
+ * @param level - The board's moderation level. Defaults to `all_ages`.
  * @throws {ModerationUnavailableError} If OpenAI couldn't be reached, so the
  * caller can refuse the post without using up the visitor's daily post.
  */
 export async function moderateTile(
   content: TileContent,
   deps: ModerationDeps,
+  level: ModerationLevel = "all_ages",
 ): Promise<ModerationDecision> {
-  const blockedTerms: BlockedTerm[] = [
-    ...(deps.profanityTerms ?? defaultProfanityTerms()),
-    ...deps.blockedTerms,
-  ];
+  const policy = policyFor(level);
+  const profanityTerms = deps.profanityTerms ?? defaultProfanityTerms();
+  const nameTerms = blockedTermsFor(
+    ALL_AGES,
+    profanityTerms,
+    deps.blockedTerms,
+  );
+  const blockedTerms = blockedTermsFor(
+    policy,
+    profanityTerms,
+    deps.blockedTerms,
+  );
+  const contactDetails = policy.blocks.has("contact");
 
-  for (const [field, text] of [
-    ["name", content.displayName],
-    ["caption", content.caption],
+  for (const [field, text, terms, contact] of [
+    ["name", content.displayName, nameTerms, true],
+    ["caption", content.caption, blockedTerms, contactDetails],
   ] as const) {
-    const match = findBlockedTerm(text, blockedTerms);
+    const match = findBlockedTerm(text, terms, { contactDetails: contact });
     if (match) {
       return {
         allowed: false,
@@ -95,36 +121,48 @@ export async function moderateTile(
   // All at once: the visitor waits for the slowest, not the sum.
   const [verdict, drawing, seen] = await Promise.all([
     check(input, deps.apiKey),
-    content.image
+    content.image && policy.readsDrawing
       ? checkDrawing(content.image)
       : Promise.resolve({ flagged: false, label: "no-image" }),
-    image
+    image && policy.readsDrawing
       ? checkVision(image, content.caption, deps.apiKey)
       : Promise.resolve(NO_DRAWING),
   ]);
 
   if (verdict.flagged) {
-    return {
-      allowed: false,
-      reason: `openai:${verdict.categories.join(",")}`,
-      category: categoryForOpenAi(verdict.categories),
-    };
+    // A flag that names no category reads as "language", as
+    // categoryForOpenAi names it, so it still blocks on All Ages.
+    const named =
+      verdict.categories.length > 0 ? verdict.categories : ["unnamed"];
+    const blocking = named.filter((category) =>
+      blocksOpenAiCategory(policy, category),
+    );
+    if (blocking.length > 0) {
+      return {
+        allowed: false,
+        reason: `openai:${blocking.join(",")}`,
+        category: categoryForOpenAi(blocking),
+      };
+    }
   }
-  if (drawing.flagged) {
+  if (drawing.flagged && policy.blocks.has("sexual")) {
     return {
       allowed: false,
       reason: `nsfw-drawing:${drawing.label}`,
       category: "sexual",
     };
   }
-  if (seen.hateful || seen.symbols.length > 0) {
+  if (
+    (seen.hateful || seen.symbols.length > 0) &&
+    policy.blocks.has("hateful")
+  ) {
     return {
       allowed: false,
       reason: `vision:hateful:${seen.symbols.join(",") || seen.reason}`,
       category: "hateful",
     };
   }
-  if (seen.sexual) {
+  if (seen.sexual && policy.blocks.has("sexual")) {
     return {
       allowed: false,
       reason: `vision:sexual:${seen.reason}`,
@@ -132,7 +170,7 @@ export async function moderateTile(
     };
   }
 
-  const written = findBlockedTerm(seen.text, blockedTerms);
+  const written = findBlockedTerm(seen.text, blockedTerms, { contactDetails });
   if (written) {
     return {
       allowed: false,

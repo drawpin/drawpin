@@ -5,6 +5,7 @@ import {
   moderateTile,
   type TileContent,
 } from "./moderate-tile";
+import type { ModerationCategory } from "./categories";
 import type { classifyDrawing } from "./nsfw-drawing";
 import { checkWithOpenAi, ModerationUnavailableError } from "./openai";
 import type { checkWithVision, VisionVerdict } from "./vision";
@@ -309,5 +310,215 @@ describe("checking a username on its own", () => {
 
     expect(decision).toMatchObject({ allowed: false });
     expect(check).not.toHaveBeenCalled();
+  });
+});
+
+describe("moderation levels", () => {
+  /** OpenAI flagging these categories, and nothing else objecting. */
+  function flagging(...categories: string[]) {
+    return vi.fn<typeof checkWithOpenAi>(async () => ({
+      flagged: true,
+      categories,
+    }));
+  }
+
+  const terms = {
+    profanityTerms: [
+      { term: "zzslur", category: "hateful" as const },
+      { term: "zzlewd", category: "sexual" as const },
+      { term: "zzswear", category: "language" as const },
+    ],
+    blockedTerms: ["zzextra"],
+  };
+
+  it("defaults to all_ages", async () => {
+    await expect(
+      moderateTile({ ...content, caption: "zzswear" }, stubbed(terms)),
+    ).resolves.toMatchObject({ allowed: false, category: "language" });
+  });
+
+  describe("captions", () => {
+    it.each([
+      ["zzswear", "language", true, false, false],
+      ["zzslur", "hateful", true, true, false],
+      ["zzlewd", "sexual", true, true, false],
+      ["zzextra", "language", true, true, false],
+      ["visit www.spam.co", "contact", true, true, false],
+    ] as const)(
+      "%j (%s) blocks on all_ages: %s, standard: %s, late_night: %s",
+      async (caption, category, allAges, standard, lateNight) => {
+        for (const [level, blocked] of [
+          ["all_ages", allAges],
+          ["standard", standard],
+          ["late_night", lateNight],
+        ] as const) {
+          const decision = await moderateTile(
+            { ...content, caption },
+            stubbed(terms),
+            level,
+          );
+          expect(decision.allowed, level).toBe(!blocked);
+          if (blocked) expect(decision).toMatchObject({ category });
+        }
+      },
+    );
+
+    it("finds a slur after an allowed swear word on standard", async () => {
+      await expect(
+        moderateTile(
+          { ...content, caption: "zzswear zzslur" },
+          stubbed(terms),
+          "standard",
+        ),
+      ).resolves.toMatchObject({
+        allowed: false,
+        reason: "blocklist:caption:zzslur",
+      });
+    });
+  });
+
+  it.each(["standard", "late_night"] as const)(
+    "checks the name on a post at all_ages on %s",
+    async (level) => {
+      for (const displayName of ["zzswear", "visit www.spam.co", "zzextra"]) {
+        await expect(
+          moderateTile({ ...content, displayName }, stubbed(terms), level),
+        ).resolves.toMatchObject({ allowed: false });
+      }
+    },
+  );
+
+  describe("OpenAI", () => {
+    it.each([
+      [["violence", "violence/graphic"], "violent", true, false],
+      [["self-harm"], "violent", true, false],
+      [["illicit"], "violent", true, false],
+      [["harassment"], "hateful", true, true],
+      [["hate"], "hateful", true, true],
+      [["sexual"], "sexual", true, true],
+    ] as const)(
+      "%j (%s) blocks on all_ages: %s, standard: %s, never on late_night",
+      async (categories, category, allAges, standard) => {
+        for (const [level, blocked] of [
+          ["all_ages", allAges],
+          ["standard", standard],
+          ["late_night", false],
+        ] as const) {
+          const decision = await moderateTile(
+            content,
+            stubbed({ check: flagging(...categories) }),
+            level,
+          );
+          expect(decision.allowed, level).toBe(!blocked);
+          if (blocked) expect(decision).toMatchObject({ category });
+        }
+      },
+    );
+
+    it.each([
+      ["all_ages", "openai:sexual,sexual/minors"],
+      ["standard", "openai:sexual,sexual/minors"],
+      // Only the legal floor blocks here, so only it is named.
+      ["late_night", "openai:sexual/minors"],
+    ] as const)(
+      "blocks sexual content involving minors on %s",
+      async (level, reason) => {
+        await expect(
+          moderateTile(
+            content,
+            stubbed({ check: flagging("sexual", "sexual/minors") }),
+            level,
+          ),
+        ).resolves.toEqual({
+          allowed: false,
+          reason,
+          category: "sexual",
+        });
+      },
+    );
+
+    it("names only the categories that block on the board's level", async () => {
+      await expect(
+        moderateTile(
+          content,
+          stubbed({ check: flagging("hate", "violence") }),
+          "standard",
+        ),
+      ).resolves.toEqual({
+        allowed: false,
+        reason: "openai:hate",
+        category: "hateful",
+      });
+    });
+
+    it("still fails closed on late_night when OpenAI can't be reached", async () => {
+      const check = vi.fn(async () => {
+        throw new ModerationUnavailableError("TimeoutError");
+      });
+
+      await expect(
+        moderateTile(content, stubbed({ check }), "late_night"),
+      ).rejects.toBeInstanceOf(ModerationUnavailableError);
+    });
+  });
+
+  describe("reading the drawing", () => {
+    const nudity = vi.fn<typeof classifyDrawing>(async () => ({
+      flagged: true,
+      label: "nudity:0.91",
+    }));
+
+    it("blocks drawn nudity on standard", async () => {
+      await expect(
+        moderateTile(content, stubbed({ checkDrawing: nudity }), "standard"),
+      ).resolves.toMatchObject({ allowed: false, category: "sexual" });
+    });
+
+    it.each([
+      [{ symbols: ["swastika"] }, "hateful"],
+      [{ hateful: true }, "hateful"],
+      [{ sexual: true }, "sexual"],
+      [{ text: "zzslur" }, "hateful"],
+      [{ text: "call 555 867 5309" }, "contact"],
+    ] satisfies [Partial<VisionVerdict>, ModerationCategory][])(
+      "blocks what the vision model sees (%j) on standard",
+      async (verdict, category) => {
+        await expect(
+          moderateTile(
+            content,
+            stubbed({ ...terms, checkVision: seeing(verdict) }),
+            "standard",
+          ),
+        ).resolves.toMatchObject({ allowed: false, category });
+      },
+    );
+
+    it("allows swearing and violence written into a drawing on standard", async () => {
+      await expect(
+        moderateTile(
+          content,
+          stubbed({ ...terms, checkVision: seeing({ text: "zzswear" }) }),
+          "standard",
+        ),
+      ).resolves.toEqual({ allowed: true });
+    });
+
+    it("skips the nudity check and the vision model on late_night", async () => {
+      const check = vi.fn(allow);
+      const checkDrawing = vi.fn(nudity);
+      const checkVision = seeing({ symbols: ["swastika"], sexual: true });
+
+      await expect(
+        moderateTile(
+          content,
+          stubbed({ check, checkDrawing, checkVision }),
+          "late_night",
+        ),
+      ).resolves.toEqual({ allowed: true });
+      expect(checkDrawing).not.toHaveBeenCalled();
+      expect(checkVision).not.toHaveBeenCalled();
+      // Still asked, for the legal floor.
+      expect(check).toHaveBeenCalledOnce();
+    });
   });
 });
