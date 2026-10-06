@@ -34,9 +34,10 @@ import { listWeekTimings } from "./final/data";
 import { listReveals, type Reveal } from "./reveal/data";
 import { WinnersReveal } from "./reveal/winners-reveal";
 import { TileFeed } from "./tile-feed";
+import type { TilePage } from "./tiles";
 import { VOTES_PER_WEEK } from "./vote/cast-votes";
 import { type Leader, Podium } from "./vote/podium";
-import { rankPodium } from "./vote/rank-podium";
+import { type CastVote, rankPodium } from "./vote/rank-podium";
 import { SignInToVote } from "./vote/sign-in-to-vote";
 import { SupabaseVoteStore } from "./vote/supabase-vote-store";
 import { VoteGrid } from "./vote/vote-grid";
@@ -97,7 +98,8 @@ export async function BoardScreen({
   // Then what needs this week, last week or the viewer. The viewer is passed
   // to the tiles so their own are marked: nobody reports themselves, and
   // nobody votes for themselves later.
-  const [votedTileIds, page, peek] = await Promise.all([
+  const onVoteView = view === "vote" && votingWeek !== null;
+  const [votedTileIds, page, peek, votingPage, castVotes] = await Promise.all([
     votingWeek && customer
       ? store.listVotedTileIds(votingWeek.id, customer.id)
       : [],
@@ -105,6 +107,11 @@ export async function BoardScreen({
       ? listLiveTiles(week.id, undefined, undefined, customer?.id ?? null)
       : null,
     onBoardView && votingWeek ? peekAtWeek(votingWeek.id, PEEK_COUNT) : null,
+    // The vote view's drawings and its podium's counts, in the same round.
+    onVoteView && votingWeek
+      ? listLiveTiles(votingWeek.id, undefined, undefined, customer?.id ?? null)
+      : null,
+    onVoteView && votingWeek ? store.listCastVotes(votingWeek.id) : null,
   ]);
   // A signed-out visitor sees the prompt too: they can sign in from there.
   const votesLeft = VOTES_PER_WEEK - votedTileIds.length;
@@ -182,11 +189,11 @@ export async function BoardScreen({
         {votingWeek ? (
           <VoteView
             slug={slug}
-            weekId={votingWeek.id}
             customerId={customer?.id ?? null}
             votesLeft={votesLeft}
             votedTileIds={votedTileIds}
-            store={store}
+            page={votingPage!}
+            castVotes={castVotes!}
           />
         ) : (
           <p role="status" className={`${YELLOW_STRIP} text-2xl leading-tight`}>
@@ -307,23 +314,21 @@ function VoteModeBar({
  */
 async function VoteView({
   slug,
-  weekId,
   customerId,
   votesLeft,
   votedTileIds,
-  store,
+  page,
+  castVotes,
 }: {
   slug: string;
-  weekId: string;
   customerId: string | null;
   votesLeft: number;
   votedTileIds: string[];
-  store: SupabaseVoteStore;
+  /** Last week's first page of drawings, read with the rest of the page. */
+  page: TilePage;
+  /** Last week's votes so far, for the podium. */
+  castVotes: CastVote[];
 }) {
-  const [page, castVotes] = await Promise.all([
-    listLiveTiles(weekId, undefined, undefined, customerId),
-    store.listCastVotes(weekId),
-  ]);
   if (page.tiles.length === 0) {
     return (
       <p role="status" className={`${YELLOW_STRIP} text-2xl leading-tight`}>
@@ -333,11 +338,18 @@ async function VoteView({
   }
 
   const places = rankPodium(castVotes);
-  const leaderTiles = await getLiveTiles(
-    places.map((place) => place.tileId),
-    undefined,
-    customerId,
+  // The leaders are nearly always among the drawings already read; only one
+  // further down last week's board needs its own read.
+  const onPage = page.tiles.filter((tile) =>
+    places.some((place) => place.tileId === tile.id),
   );
+  const missing = places
+    .map((place) => place.tileId)
+    .filter((id) => !onPage.some((tile) => tile.id === id));
+  const leaderTiles =
+    missing.length > 0
+      ? [...onPage, ...(await getLiveTiles(missing, undefined, customerId))]
+      : onPage;
   const leaders = places.flatMap((place, index): Leader[] => {
     const tile = leaderTiles.find((candidate) => candidate.id === place.tileId);
     return tile

@@ -62,9 +62,11 @@ export default async function DrawPage({
   await connection();
 
   const { slug } = await params;
-  const board = await requireBoard(slug, "/draw");
-
-  const customer = await getCustomer(createAdminClient(), { check: "token" });
+  // The board and who's looking don't depend on each other: read both at once.
+  const [board, customer] = await Promise.all([
+    requireBoard(slug, "/draw"),
+    getCustomer(createAdminClient(), { check: "token" }),
+  ]);
   // A guest never posts, so today's limits don't stop them drawing for fun.
   const blocked = board.isPaused
     ? "This board is paused, so posting is off right now."

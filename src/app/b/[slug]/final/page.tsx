@@ -54,21 +54,22 @@ export default async function FinalPage({
   await connection();
 
   const { slug } = await params;
-  const board = await requireBoard(slug, "/final");
-
+  // Reads that don't depend on each other go out together (performance
+  // pass, 2026-10-06): the board and who's looking, then the finalists and
+  // whether this account has voted.
   const admin = createAdminClient();
+  const [board, customer] = await Promise.all([
+    requireBoard(slug, "/final"),
+    getCustomer(admin, { check: "token" }),
+  ]);
+
   const weeks = await listWeekTimings(admin, board.id);
   const window = openFinal(weeks, board.timezone, new Date());
-  const customer = await getCustomer(admin, { check: "token" });
-
   const finalId = window ? await ensureFinal(admin, board.id, window) : null;
-  const finalists = finalId
-    ? await listFinalists(admin, finalId, customer?.id ?? null)
-    : [];
-  const alreadyVoted =
-    finalId && customer
-      ? await hasVotedInFinal(admin, finalId, customer.id)
-      : false;
+  const [finalists, alreadyVoted] = await Promise.all([
+    finalId ? listFinalists(admin, finalId, customer?.id ?? null) : [],
+    finalId && customer ? hasVotedInFinal(admin, finalId, customer.id) : false,
+  ]);
 
   // The note above the title: what this visitor can do in the final.
   const note =
