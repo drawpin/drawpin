@@ -1,12 +1,16 @@
 import Image from "next/image";
+import { useId } from "react";
 import { pinColorFor, pinStyle } from "@/components/pin";
 import { hand } from "@/lib/fonts";
 import { describeTile } from "../tile-caption";
 import type { Tile } from "../tiles";
 import { ScribbleFill } from "./scribbles";
 
+/** What the podium shows of a drawing. */
+export type PodiumTile = Pick<Tile, "id" | "author" | "caption" | "imageUrl">;
+
 /** A drawing on the podium: its place (1 to 3) and its votes so far. */
-export type Leader = { place: 1 | 2 | 3; tile: Tile; votes: number };
+export type Leader = { place: 1 | 2 | 3; tile: PodiumTile; votes: number };
 
 /**
  * Each place's step: how tall it stands (px), its colour (scribbled in,
@@ -53,7 +57,9 @@ const SPOT = { 1: 1, 2: 0, 3: 2 } as const;
  * The top 3 so far, Kahoot style, at the head of the vote page: vote counts
  * are public while voting is open, so the race stays worth watching all week
  * (docs/PLAN.md, Weekly cycle; ADR-011). The order is the one that will pick
- * the winner. A place nobody holds yet stands empty.
+ * the winner. A place nobody holds yet stands empty. The home page's Try it
+ * and the board's winners reveal show the same podium; the reveal's result
+ * is `settled`, so an empty place there is simply nobody's.
  *
  * Each step carries a trophy instead of a number, sized by place. Seen once
  * a visit, so it gets an entrance: each step rises white, its colour is
@@ -63,11 +69,17 @@ const SPOT = { 1: 1, 2: 0, 3: 2 } as const;
 export function Podium({
   leaders,
   heading = "Top 3 so far",
+  settled = false,
 }: {
   leaders: Leader[];
   /** Over the podium; the home page's "what could be" says something else. */
   heading?: string;
+  /** Voting is over: an empty place won't fill, so nothing waits on it. */
+  settled?: boolean;
 }) {
+  // Unique per podium: a board can reveal a week and a month at once.
+  const headingId = useId();
+
   if (leaders.length === 0) {
     return (
       <p className="bg-winner text-foreground w-fit -rotate-1 px-4 py-2 font-semibold shadow-[0_2px_3px_rgb(15_27_45/0.18),0_6px_12px_rgb(15_27_45/0.14)]">
@@ -77,14 +89,16 @@ export function Podium({
   }
 
   return (
-    <section aria-labelledby="podium-heading" className="flex flex-col gap-3">
+    <section aria-labelledby={headingId} className="flex flex-col gap-3">
       <h2
-        id="podium-heading"
+        id={headingId}
         className={`${hand.className} text-primary text-3xl leading-none font-bold`}
       >
         {heading}
       </h2>
-      <ol className="border-foreground grid grid-cols-3 items-end gap-2 overflow-hidden border-b-2 pt-8">
+      {/* Not clipped itself: each step clips its own rise (below), so the
+          pins keep room above the drawings to pop in. */}
+      <ol className="border-foreground grid grid-cols-3 items-end gap-2 border-b-2 pt-8">
         {PLACES.map((place) => {
           const leader = leaders.find((entry) => entry.place === place);
           const step = STEPS[place];
@@ -96,7 +110,7 @@ export function Podium({
               aria-label={
                 leader
                   ? `${ordinal(place)}: ${describeTile(leader.tile)}, ${votesLabel(leader.votes)}`
-                  : `${ordinal(place)}: nobody yet`
+                  : `${ordinal(place)}: ${settled ? "nobody" : "nobody yet"}`
               }
             >
               {leader ? (
@@ -118,7 +132,7 @@ export function Podium({
                     className="aspect-square w-full object-cover"
                   />
                 </div>
-              ) : (
+              ) : settled ? null : (
                 // A place nobody holds yet: an empty paper waiting for a
                 // drawing, so the podium never looks half built.
                 <div
@@ -136,43 +150,49 @@ export function Podium({
               >
                 {leader
                   ? (leader.tile.author?.split("#")[0] ?? "Guest")
-                  : "Still open"}
+                  : settled
+                    ? "Nobody"
+                    : "Still open"}
               </p>
-              <div
-                className="podium-rise border-foreground text-foreground relative flex w-full flex-col items-center justify-center gap-1 overflow-hidden rounded-t-lg border-2 border-b-0 bg-white"
-                style={{
-                  height: step.height,
-                  animationDelay: `${step.delay}ms`,
-                }}
-              >
-                <ScribbleFill
-                  delay={step.delay + SCRIBBLE_AFTER_RISE}
-                  duration={Math.round((SCRIBBLE_MS * step.height) / 144)}
-                  className={step.color}
-                />
-                {/* The trophy, with its place written on the cup. */}
-                <span className="relative">
-                  <Image
-                    src={`/trophies/${step.trophy}.webp`}
-                    alt=""
-                    width={step.size}
-                    height={step.size}
-                    // Already small WebP files (public/trophies).
-                    unoptimized
+              {/* The floor the step rises out of: clips it at the line,
+                  with room above for the rise's overshoot. */}
+              <div className="-mt-4 w-full overflow-hidden pt-4">
+                <div
+                  className="podium-riseborder-foreground text-foreground relative flex w-full flex-col items-center justify-center gap-1 overflow-hidden rounded-t-lg border-2 border-b-0 bg-white"
+                  style={{
+                    height: step.height,
+                    animationDelay: `${step.delay}ms`,
+                  }}
+                >
+                  <ScribbleFill
+                    delay={step.delay + SCRIBBLE_AFTER_RISE}
+                    duration={Math.round((SCRIBBLE_MS * step.height) / 144)}
+                    className={step.color}
                   />
-                  <span
-                    aria-hidden
-                    className="text-foreground absolute top-[31%] left-1/2 -translate-x-1/2 -translate-y-1/2 font-black tracking-tight"
-                    style={{ fontSize: Math.round(step.size * 0.19) }}
-                  >
-                    {ordinal(place)}
+                  {/* The trophy, with its place written on the cup. */}
+                  <span className="relative">
+                    <Image
+                      src={`/trophies/${step.trophy}.webp`}
+                      alt=""
+                      width={step.size}
+                      height={step.size}
+                      // Already small WebP files (public/trophies).
+                      unoptimized
+                    />
+                    <span
+                      aria-hidden
+                      className="text-foreground absolute top-[31%] left-1/2 -translate-x-1/2 -translate-y-1/2 font-black tracking-tight"
+                      style={{ fontSize: Math.round(step.size * 0.19) }}
+                    >
+                      {ordinal(place)}
+                    </span>
                   </span>
-                </span>
-                {leader && (
-                  <span className="relative text-xs font-bold tabular-nums">
-                    {votesLabel(leader.votes)}
-                  </span>
-                )}
+                  {leader && (
+                    <span className="relative text-xs font-bold tabular-nums">
+                      {votesLabel(leader.votes)}
+                    </span>
+                  )}
+                </div>
               </div>
             </li>
           );

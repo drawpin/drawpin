@@ -18,12 +18,16 @@ export function pinColorFor(id: string): PinColor {
 /**
  * A push pin drawn flat in DrawPin's own style: ink outline, palette fill and
  * one highlight, leaning up and to the right (UI pass, 2026-10-01). Its
- * needle's tip is at (3, 29) of a 24 × 30 box, which `.pinned` in
+ * needle's tip is at (5, 29) of a 26 × 30 box, which `.pinned` in
  * globals.css relies on to stick it into the top edge.
+ *
+ * The box starts 2 units left of the drawing's origin: tilted, the lower
+ * cap reaches about a unit past x = 0, and an SVG used as an image is
+ * always clipped to its box, so a tighter one cut the cap off flat.
  */
 function pinImage(color: PinColor): string {
   const svg =
-    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 30'>" +
+    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='-2 0 26 30'>" +
     "<g transform='translate(-10 -2) rotate(30 13 31)' stroke='#0f1b2d' stroke-width='1.5' stroke-linejoin='round' fill='" +
     color +
     "'>" +
