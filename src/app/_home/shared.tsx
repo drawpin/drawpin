@@ -77,7 +77,7 @@ export function Ending() {
       <section className="flex flex-col gap-5">
         <h2 className={SECTION_TITLE}>Why I made this</h2>
         <div
-          className={`text-muted-foreground flex max-w-2xl flex-col gap-3 rounded-xl p-6 text-base leading-relaxed ${PAPER}`}
+          className={`text-muted-foreground flex flex-col gap-3 rounded-xl p-6 text-base leading-relaxed md:p-8 md:text-lg ${PAPER}`}
         >
           <p>
             I love it when software makes a difference in people&apos;s everyday
