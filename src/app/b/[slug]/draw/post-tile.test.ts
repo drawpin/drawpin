@@ -490,4 +490,16 @@ describe("the account's daily post", () => {
     expect(store.accountClaims.size).toBe(0);
     expect(store.claims.get("venue-1:device-1:2026-09-16")).toBe(false);
   });
+
+  it("gives the account its day back when the device loses a race for its own", async () => {
+    // The device and account days are claimed together; here another post
+    // from this device claims the day between the check and the claim.
+    store.claimDailyPost = async () => false;
+
+    const result = await postTile(input({ userId }), deps);
+
+    expect(reasonOf(result)).toBe("already-posted");
+    expect(store.accountClaims.size).toBe(0);
+    expect(store.tiles).toHaveLength(0);
+  });
 });

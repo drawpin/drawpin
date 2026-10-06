@@ -177,34 +177,34 @@ export async function postTile(
   const venue = await store.findVenue(input.slug);
   if (!venue) return { ok: false, reason: "not-found" };
   if (venue.isPaused) return { ok: false, reason: "paused" };
-  // Before anything is moderated or counted. The database refuses the tile
-  // too; this is so the person hears it before their drawing is processed.
-  if (await store.isAccountBlocked(venue.id, input.userId)) {
-    return { ok: false, reason: "account-blocked" };
-  }
-
   const now = deps.now();
   const localDay = localDayFor(now, zoneAt(venue.clock, now));
 
-  const attempt = await store.getDailyAttempt(
-    venue.id,
-    input.deviceId,
-    localDay,
-  );
+  // The checks before anything is processed don't depend on each other, so
+  // they run at once (performance pass, 2026-10-06). Their answers are still
+  // read in the order below, so the reason someone hears is the same as when
+  // they ran one by one.
+  const [blocked, attempt, recentFromIp] = await Promise.all([
+    // Before anything is moderated or counted. The database refuses the tile
+    // too; this is so the person hears it before their drawing is processed.
+    store.isAccountBlocked(venue.id, input.userId),
+    store.getDailyAttempt(venue.id, input.deviceId, localDay),
+    input.ipHash
+      ? store.countRecentPostsFromIp(
+          input.ipHash,
+          new Date(now.getTime() - BURST_WINDOW_MS),
+        )
+      : 0,
+  ]);
+
+  if (blocked) return { ok: false, reason: "account-blocked" };
   if (attempt && attempt.blockedCount >= BLOCKED_ATTEMPT_LIMIT) {
     return { ok: false, reason: "locked" };
   }
   // The claim below is what really enforces this; checking here just avoids
   // processing and moderating a drawing that can't be posted anyway.
   if (attempt?.hasPosted) return { ok: false, reason: "already-posted" };
-
-  if (input.ipHash) {
-    const recent = await store.countRecentPostsFromIp(
-      input.ipHash,
-      new Date(now.getTime() - BURST_WINDOW_MS),
-    );
-    if (recent >= BURST_POST_LIMIT) return { ok: false, reason: "burst" };
-  }
+  if (recentFromIp >= BURST_POST_LIMIT) return { ok: false, reason: "burst" };
 
   let image: Buffer;
   try {
@@ -219,13 +219,20 @@ export async function postTile(
     throw error;
   }
 
+  // Moderation only starts once the checks have passed, so a post that
+  // would be refused anyway is never sent to it. Making sure this week
+  // exists runs alongside: it's harmless if the drawing is then blocked.
   let decision: ModerationDecision;
+  let weekId: string | null;
   try {
-    decision = await deps.moderate({
-      displayName: input.displayName,
-      caption: input.caption,
-      image,
-    });
+    [decision, weekId] = await Promise.all([
+      deps.moderate({
+        displayName: input.displayName,
+        caption: input.caption,
+        image,
+      }),
+      store.ensurePostingWeek(venue.id, weekBoundsAt(now, venue.clock)),
+    ]);
   } catch (error) {
     if (error instanceof ModerationUnavailableError) {
       deps.logError("Moderation unavailable; refusing the post", error);
@@ -252,29 +259,27 @@ export async function postTile(
     };
   }
 
-  const weekId = await store.ensurePostingWeek(
-    venue.id,
-    weekBoundsAt(now, venue.clock),
-  );
   if (!weekId) return { ok: false, reason: "week-closed" };
 
-  const claimed = await store.claimDailyPost(
-    venue.id,
-    input.deviceId,
-    localDay,
-  );
-  if (!claimed) return { ok: false, reason: "already-posted" };
-
-  const claimedAccount = await store.claimAccountPost(
-    venue.id,
-    input.userId,
-    localDay,
-  );
-  if (!claimedAccount) {
-    await rollback(
-      () => store.releaseDailyPost(venue.id, input.deviceId, localDay),
-      deps,
-    );
+  // The device's day and the account's day are claimed together; if only
+  // one claim wins, it's handed back, so neither is used up for nothing.
+  const [claimed, claimedAccount] = await Promise.all([
+    store.claimDailyPost(venue.id, input.deviceId, localDay),
+    store.claimAccountPost(venue.id, input.userId, localDay),
+  ]);
+  if (!claimed || !claimedAccount) {
+    if (claimed) {
+      await rollback(
+        () => store.releaseDailyPost(venue.id, input.deviceId, localDay),
+        deps,
+      );
+    }
+    if (claimedAccount) {
+      await rollback(
+        () => store.releaseAccountPost(venue.id, input.userId, localDay),
+        deps,
+      );
+    }
     return { ok: false, reason: "already-posted" };
   }
 
