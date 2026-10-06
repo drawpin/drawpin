@@ -3,10 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRightIcon } from "@phosphor-icons/react";
-import { INKED_BUTTON, PAPER } from "../b/[slug]/board-look";
+import { INKED_BUTTON } from "../b/[slug]/board-look";
 import type { Tile } from "../b/[slug]/tiles";
 import { JoinForm } from "../join/join-form";
-import { CARD_TITLE, SECTION_TITLE } from "./type";
+import { Story } from "./story";
+import { CARD_TITLE } from "./type";
 
 /**
  * Example drawings (made in Canva, public/examples), each showing a tool
@@ -44,7 +45,7 @@ export function TrophyBadge({ size }: { size: number }) {
 
 /**
  * The home page's short ending: open a board with a code,
- * start one, and the owner's story word for word.
+ * start one, and the owner's story (`Story`).
  */
 export function Ending() {
   return (
@@ -74,37 +75,7 @@ export function Ending() {
         </section>
       </div>
 
-      <section className="flex flex-col gap-5">
-        <h2 className={SECTION_TITLE}>Why I made this</h2>
-        <div
-          className={`text-muted-foreground flex flex-col gap-3 rounded-xl p-6 text-base leading-relaxed md:p-8 md:text-lg ${PAPER}`}
-        >
-          <p>
-            I love it when software makes a difference in people&apos;s everyday
-            lives. There seems to be a gap between software that makes work
-            better and software that gives everyone something fun to do every
-            day.
-          </p>
-          <p>
-            DrawPin is my attempt to point what I know about building software
-            in that direction. Draw a tile every day with your friend group, at
-            work or at your favorite local spot. It goes up next to everyone
-            else&apos;s, and at the end of the week the competition begins. That
-            was the idea, anyway.
-          </p>
-          <p>
-            It turned out there was a lot for me to learn as an aspiring
-            software engineer, too. I wanted this one idea to cover every part
-            of building software I felt unsure about: UI/UX design, security and
-            bot protection, computer vision and content moderation, database
-            design, sign-in, live updates, automated testing, Docker, continuous
-            integration and deployment, and much more. It became a chance to
-            bring groups of people a good time, and to give myself a better
-            learning experience than I ever expected.
-          </p>
-          <p>So have fun, and get drawing :)</p>
-        </div>
-      </section>
+      <Story />
     </main>
   );
 }
