@@ -59,7 +59,7 @@ export default async function FinalPage({
   const admin = createAdminClient();
   const weeks = await listWeekTimings(admin, board.id);
   const window = openFinal(weeks, board.timezone, new Date());
-  const customer = await getCustomer(admin);
+  const customer = await getCustomer(admin, { check: "token" });
 
   const finalId = window ? await ensureFinal(admin, board.id, window) : null;
   const finalists = finalId

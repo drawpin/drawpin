@@ -3,7 +3,8 @@ import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const getOwner = vi.fn<() => Promise<User | null>>();
-vi.mock("@/lib/auth", () => ({ getOwner }));
+const getSignedInUserId = vi.fn<() => Promise<string | null>>();
+vi.mock("@/lib/auth", () => ({ getOwner, getSignedInUserId }));
 
 const { getCustomer } = await import("./customer");
 
@@ -28,6 +29,7 @@ const clientReturning = (
 
 beforeEach(() => {
   getOwner.mockReset();
+  getSignedInUserId.mockReset();
 });
 
 describe("getCustomer", () => {
@@ -63,5 +65,38 @@ describe("getCustomer", () => {
     const admin = clientReturning({ data: null, error: { message: "boom" } });
 
     await expect(getCustomer(admin)).rejects.toThrow(/boom/);
+  });
+
+  it("checks the session token locally when asked, without the auth server", async () => {
+    getSignedInUserId.mockResolvedValue("user-1");
+    const admin = clientReturning({
+      data: { id: "user-1", username: "Ahmad" },
+      error: null,
+    });
+
+    await expect(getCustomer(admin, { check: "token" })).resolves.toEqual({
+      id: "user-1",
+      username: "Ahmad",
+    });
+    expect(getOwner).not.toHaveBeenCalled();
+  });
+
+  it("asks the auth server by default", async () => {
+    getOwner.mockResolvedValue(signedIn("user-1"));
+    const admin = clientReturning({
+      data: { id: "user-1", username: "Ahmad" },
+      error: null,
+    });
+
+    await getCustomer(admin);
+    expect(getOwner).toHaveBeenCalledOnce();
+    expect(getSignedInUserId).not.toHaveBeenCalled();
+  });
+
+  it("is a guest when the token check finds nobody", async () => {
+    getSignedInUserId.mockResolvedValue(null);
+    const admin = clientReturning({ data: null, error: null });
+
+    await expect(getCustomer(admin, { check: "token" })).resolves.toBeNull();
   });
 });

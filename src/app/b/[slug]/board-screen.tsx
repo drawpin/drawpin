@@ -65,22 +65,47 @@ export async function BoardScreen({
   // Always render per request: drawings and votes change while it's open.
   await connection();
 
-  // An old link, from before the owner changed the board's address, moves
-  // on to the current one (ADR-008).
-  const board = await requireBoard(slug, view === "vote" ? "/vote" : "");
-
+  // The page's reads go out in three rounds, each round all at once, since
+  // every read waits on the database (performance pass, 2026-10-06; before,
+  // about seven ran one after another). First the board and who's looking,
+  // which don't depend on each other.
   const admin = createAdminClient();
-  const customer = await getCustomer(admin);
   const store = new SupabaseVoteStore(admin);
-  const [week, votingWeek, stats] = await Promise.all([
+  const [board, customer] = await Promise.all([
+    // An old link, from before the owner changed the board's address, moves
+    // on to the current one (ADR-008).
+    requireBoard(slug, view === "vote" ? "/vote" : ""),
+    getCustomer(admin, { check: "token" }),
+  ]);
+
+  // Then everything that only needs the board.
+  const onBoardView = view === "board";
+  const [week, votingWeek, stats, timings, reveals] = await Promise.all([
     getPostingWeek(board.id),
     getVotingWeek(board.id),
     getBoardStats(board.id),
+    onBoardView ? listWeekTimings(admin, board.id) : null,
+    // Decoration: a board must still load if the results can't be read.
+    onBoardView
+      ? listReveals(admin, board.id, board.timezone).catch((error: unknown) => {
+          console.error("Could not load the winners reveal", error);
+          return [] as Reveal[];
+        })
+      : ([] as Reveal[]),
   ]);
-  const votedTileIds =
+
+  // Then what needs this week, last week or the viewer. The viewer is passed
+  // to the tiles so their own are marked: nobody reports themselves, and
+  // nobody votes for themselves later.
+  const [votedTileIds, page, peek] = await Promise.all([
     votingWeek && customer
-      ? await store.listVotedTileIds(votingWeek.id, customer.id)
-      : [];
+      ? store.listVotedTileIds(votingWeek.id, customer.id)
+      : [],
+    onBoardView && week
+      ? listLiveTiles(week.id, undefined, undefined, customer?.id ?? null)
+      : null,
+    onBoardView && votingWeek ? peekAtWeek(votingWeek.id, PEEK_COUNT) : null,
+  ]);
   // A signed-out visitor sees the prompt too: they can sign in from there.
   const votesLeft = VOTES_PER_WEEK - votedTileIds.length;
   const closesOn = votingWeek
@@ -175,25 +200,11 @@ export async function BoardScreen({
   }
 
   // The board view.
-  // The viewer is passed so their own tiles are marked: nobody reports
-  // themselves, and nobody votes for themselves later.
-  const [page, timings, votePeek] = await Promise.all([
-    week
-      ? listLiveTiles(week.id, undefined, undefined, customer?.id ?? null)
-      : null,
-    listWeekTimings(admin, board.id),
-    votingWeek && votesLeft > 0 ? peekAtWeek(votingWeek.id, PEEK_COUNT) : null,
-  ]);
-  const monthlyFinal = openFinal(timings, board.timezone, new Date());
-  // Decoration: a board must still load if the results can't be read.
-  const reveals: Reveal[] = await listReveals(
-    admin,
-    board.id,
-    board.timezone,
-  ).catch((error: unknown) => {
-    console.error("Could not load the winners reveal", error);
-    return [];
-  });
+  // The peek only shows while there are votes left to cast.
+  const votePeek = votesLeft > 0 ? peek : null;
+  const monthlyFinal = timings
+    ? openFinal(timings, board.timezone, new Date())
+    : null;
 
   return (
     <BoardLayout header={header}>
