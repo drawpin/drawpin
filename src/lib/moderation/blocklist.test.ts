@@ -158,6 +158,14 @@ describe("findBlockedTerm: categories", () => {
     expect(findBlockedTerm("call 555 867 5309", [])?.category).toBe("contact");
   });
 
+  it("lets contact details through when told to, but still matches terms", () => {
+    const options = { contactDetails: false };
+    expect(findBlockedTerm("www.spam.co", [], options)).toBeNull();
+    expect(
+      findBlockedTerm("call 555 867 5309 badword", ["badword"], options),
+    ).toEqual({ term: "badword", category: "language" });
+  });
+
   it("calls a plain configured term language", () => {
     expect(findBlockedTerm("badword", ["badword"])?.category).toBe("language");
   });

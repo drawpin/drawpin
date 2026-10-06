@@ -9,8 +9,9 @@ import type { ModerationCategory } from "./categories";
  * addresses and phone numbers) plus whatever terms are handed to it: the
  * built-in profanity list from `profanity-terms.ts` (OpenAI's text
  * moderation has a documented blind spot on slurs and contextual hate
- * speech) and any extra words a venue owner adds privately through
- * `MODERATION_BLOCKLIST`.
+ * speech) and any extra words added site-wide, privately, through
+ * `MODERATION_BLOCKLIST`. Which of these apply depends on the board's
+ * moderation level (policy.ts, ADR-012).
  */
 
 /** Spam patterns that aren't "harmful" but don't belong on a board. */
@@ -156,16 +157,22 @@ export type BlockedTerm =
  *
  * @param text - The text as the visitor typed it.
  * @param blockedTerms - Terms to match, normalized (see {@link BlockedTerm}).
+ * @param options.contactDetails - Whether links, email addresses and phone
+ * numbers count. On by default; a board's moderation level can allow them
+ * (ADR-012).
  * @returns What matched, or `null` when the text is fine.
  */
 export function findBlockedTerm(
   text: string | null,
   blockedTerms: BlockedTerm[],
+  { contactDetails = true }: { contactDetails?: boolean } = {},
 ): BlocklistMatch | null {
   if (!text) return null;
 
-  for (const { name, pattern } of SPAM_PATTERNS) {
-    if (pattern.test(text)) return { term: name, category: "contact" };
+  if (contactDetails) {
+    for (const { name, pattern } of SPAM_PATTERNS) {
+      if (pattern.test(text)) return { term: name, category: "contact" };
+    }
   }
 
   // Padded so a term at either end still matches on word boundaries.

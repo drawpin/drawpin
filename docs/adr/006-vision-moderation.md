@@ -1,7 +1,9 @@
 # ADR-006: A Vision Model Reads Every Drawing
 
 ## Status
-Accepted
+Accepted. Since ADR-012 its policy below is the All Ages level. Standard
+still blocks what it reads as hateful or sexual, and Late Night skips the
+call.
 
 ## Context
 The first test board, shared with about 40 people, got drawings that every

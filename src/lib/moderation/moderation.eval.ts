@@ -12,23 +12,50 @@
  *
  * `moderation-eval/cases.json` lists each drawing:
  * `{ file, displayName, caption, expect: "block" | "allow", category, note }`.
- * The vision check doesn't ship unless every case comes out as expected
- * (ADR-006).
+ * `expect` is for All Ages. Each case also runs at the other moderation
+ * levels (ADR-012), where a harmful case should block only if that level
+ * blocks its category. The vision check doesn't ship unless every case comes
+ * out as expected (ADR-006), and a level change doesn't ship unless All Ages
+ * still does on three runs in a row.
  */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { processTileImage } from "@/lib/tile-image";
+import type { ModerationCategory } from "./categories";
 import { moderateTile } from "./moderate-tile";
+import { type ModerationLevel, policyFor } from "./policy";
 
 const DIR = path.resolve("moderation-eval");
+
+const LEVELS: ModerationLevel[] = ["all_ages", "standard", "late_night"];
+
+/** One case at one level, as `last-run.json` records it. */
+type Row = {
+  level: ModerationLevel;
+  file: string;
+  expected: Case["expect"];
+  got: Case["expect"];
+  category: string;
+  reason: string;
+  ok: "✓" | "✗";
+  note: string;
+};
+
+/** How a case should come out on a level, from its All Ages expectation. */
+function expectedAt(testCase: Case, level: ModerationLevel): Case["expect"] {
+  if (testCase.expect === "allow") return "allow";
+  return testCase.category && policyFor(level).blocks.has(testCase.category)
+    ? "block"
+    : "allow";
+}
 
 type Case = {
   file: string;
   displayName: string | null;
   caption: string | null;
   expect: "block" | "allow";
-  category: string | null;
+  category: ModerationCategory | null;
   note: string;
 };
 
@@ -54,37 +81,46 @@ describe.skipIf(!existsSync(path.join(DIR, "cases.json")))(
         ? blocklist.split(",").map((term) => term.trim())
         : [];
 
-      const rows = [];
+      const rows: Row[] = [];
       for (const testCase of cases) {
         const image = await processTileImage(
           readFileSync(path.join(DIR, "images", testCase.file)),
         );
-        const decision = await moderateTile(
-          {
-            displayName: testCase.displayName,
-            caption: testCase.caption,
-            image,
-          },
-          { apiKey, blockedTerms },
-        );
-        const got = decision.allowed ? "allow" : "block";
-        rows.push({
-          file: testCase.file,
-          expected: testCase.expect,
-          got,
-          category: decision.allowed ? "" : decision.category,
-          reason: decision.allowed ? "" : decision.reason,
-          ok: got === testCase.expect ? "✓" : "✗",
-          note: testCase.note,
-        });
+        for (const level of LEVELS) {
+          const decision = await moderateTile(
+            {
+              displayName: testCase.displayName,
+              caption: testCase.caption,
+              image,
+            },
+            { apiKey, blockedTerms },
+            level,
+          );
+          const expected = expectedAt(testCase, level);
+          const got = decision.allowed ? "allow" : "block";
+          rows.push({
+            level,
+            file: testCase.file,
+            expected,
+            got,
+            category: decision.allowed ? "" : decision.category,
+            reason: decision.allowed ? "" : decision.reason,
+            ok: got === expected ? "✓" : "✗",
+            note: testCase.note,
+          });
+        }
       }
 
       const missed = rows.filter((row) => row.ok === "✗");
-      const summary =
-        `${rows.length - missed.length}/${rows.length} as expected — ` +
-        `${rows.filter((r) => r.expected === "block" && r.got === "block").length}/` +
-        `${rows.filter((r) => r.expected === "block").length} harmful caught, ` +
-        `${rows.filter((r) => r.expected === "allow" && r.got === "block").length} harmless wrongly blocked`;
+      const summary = LEVELS.map((level) => {
+        const at = rows.filter((row) => row.level === level);
+        return (
+          `${level}: ${at.filter((r) => r.ok === "✓").length}/${at.length} as expected — ` +
+          `${at.filter((r) => r.expected === "block" && r.got === "block").length}/` +
+          `${at.filter((r) => r.expected === "block").length} harmful caught, ` +
+          `${at.filter((r) => r.expected === "allow" && r.got === "block").length} wrongly blocked`
+        );
+      }).join("\n");
 
       // Kept next to the drawings, so each run can be compared with the last.
       writeFileSync(

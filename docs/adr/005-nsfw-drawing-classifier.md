@@ -1,7 +1,8 @@
 # ADR-005: A Second, Drawing-Aware Nudity Check Alongside OpenAI
 
 ## Status
-Accepted
+Accepted. Since ADR-012 this check runs on boards set to All Ages or
+Standard, and is skipped on Late Night.
 
 ## Context
 OpenAI's moderation endpoint (`docs/PLAN.md`, Moderation) is the required
@@ -25,8 +26,9 @@ from explicit content, including drawn/animated nudity ("Hentai"), not just
 photographic nudity ("Porn"). A tile is blocked if `Porn + Hentai`
 probability clears a threshold (`FLAG_THRESHOLD`, currently 0.7); `Sexy`
 (e.g. swimwear, suggestive-but-not-explicit) is deliberately not
-auto-blocked for now, to avoid false-positiving ordinary drawings — see
-docs/PLAN.md's back pocket on per-board moderation strictness.
+auto-blocked for now, to avoid false-positiving ordinary drawings. Each
+board's moderation level (ADR-012) now decides whether this check's verdict
+counts at all.
 
 It runs in-process on `@tensorflow/tfjs`'s **WASM** backend, not
 `@tensorflow/tfjs-node`: `tfjs-node` needs a native compiled binary, which is

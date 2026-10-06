@@ -4,13 +4,12 @@
  * contextual hate speech, and its categories can't be tuned or extended —
  * so a plain slur can slip through it. This gives the blocklist (which
  * already runs before OpenAI, for free) a second, built-in source of terms,
- * on top of whatever a venue owner adds themselves through
- * `MODERATION_BLOCKLIST`.
+ * on top of the site-wide extra terms in `MODERATION_BLOCKLIST`.
  *
- * For now this blocks every category in the source list, not just slurs —
- * see {@link MIN_SEVERITY}. Board owners choosing their own moderation
- * strictness is back-pocket (docs/PLAN.md, Back pocket); until then, one
- * fixed list applies to every board.
+ * Every category in the source list is kept here, not just slurs (see
+ * {@link MIN_SEVERITY}), each tagged with its category. A board's moderation
+ * level then decides which categories apply (policy.ts, ADR-012): All Ages
+ * blocks them all, Standard only slurs and sexual terms, Late Night none.
  *
  * Terms come from `@dsojevic/profanity-list` (MIT-licensed,
  * https://github.com/dsojevic/profanity-list) rather than being authored
