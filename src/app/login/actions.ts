@@ -1,13 +1,15 @@
 "use server";
 
+import { redirect } from "next/navigation";
+import { codeSchema, emailSchema } from "@/app/auth/email-sign-in-schema";
 import { serverEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { TURNSTILE_FIELD } from "@/lib/turnstile/field";
 import { checkTurnstile } from "@/lib/turnstile/guard";
-import { type LoginState, loginSchema } from "./schema";
+import { type CodeState, type LoginState, loginSchema } from "./schema";
 
 /**
- * Emails the owner a single-use sign-in link. Signing in with a new address
+ * Emails the owner a single-use sign-in link, with a code in it too. Signing in with a new address
  * creates the owner account, so this is also how owners sign up.
  */
 export async function sendMagicLink(
@@ -53,4 +55,45 @@ export async function sendMagicLink(
   }
 
   return { status: "sent", email: parsed.data.email };
+}
+
+/**
+ * Signs the owner in with the code from the same email, for when the link
+ * would open somewhere else, or the mail app has folded it away. Ends where
+ * the link does: the owner's board.
+ */
+export async function verifyOwnerCode(
+  _previous: CodeState,
+  formData: FormData,
+): Promise<CodeState> {
+  const email = emailSchema.safeParse(formData.get("email"));
+  if (!email.success) {
+    return { status: "error", message: "Request a new sign-in email below." };
+  }
+  const code = codeSchema.safeParse(formData.get("code"));
+  if (!code.success) {
+    return { status: "error", message: code.error.issues[0].message };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.verifyOtp({
+    email: email.data,
+    token: code.data,
+    type: "email",
+  });
+
+  if (error) {
+    if (error.status === 429) {
+      return {
+        status: "error",
+        message: "Too many tries. Wait a few minutes and try again.",
+      };
+    }
+    return {
+      status: "error",
+      message: "That code didn't work. Check it, or send a new email.",
+    };
+  }
+
+  redirect("/admin");
 }
