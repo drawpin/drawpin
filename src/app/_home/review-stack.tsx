@@ -25,8 +25,8 @@ export function ReviewStack() {
   const next = () => setOrder(([first, ...rest]) => [...rest, first]);
 
   return (
-    <div className="mx-auto grid w-full max-w-6xl items-center gap-10 px-5 md:grid-cols-[1fr_1.1fr]">
-      <ul className="relative mx-auto h-[24rem] w-full max-w-sm">
+    <div className="mx-auto grid w-full max-w-6xl items-center gap-10 px-5 md:grid-cols-[1.3fr_1fr]">
+      <ul className="relative mx-auto h-[25rem] w-full max-w-lg md:h-[28rem]">
         {QUOTES.map((quote, index) => {
           const depth = order.indexOf(index);
           return (
@@ -40,27 +40,27 @@ export function ReviewStack() {
                 onClick={next}
                 disabled={depth !== 0}
                 aria-label={depth === 0 ? "Next quote" : undefined}
-                className={`${depth === 0 ? "pinned" : ""} relative flex w-full flex-col gap-4 rounded-sm p-6 text-left ${PAPER} ${depth === 0 ? "cursor-pointer" : ""}`}
+                className={`${depth === 0 ? "pinned" : ""} relative flex w-full flex-col gap-5 rounded-sm p-7 text-left md:p-9 ${PAPER} ${depth === 0 ? "cursor-pointer" : ""}`}
                 style={pinStyle(quote.pin)}
               >
                 <span
-                  className={`${hand.className} bg-winner w-fit -rotate-2 rounded-sm px-2 text-lg font-bold`}
+                  className={`${hand.className} bg-winner w-fit -rotate-2 rounded-sm px-2 text-xl font-bold`}
                 >
                   {quote.place}
                 </span>
-                <span className="text-foreground text-xl leading-snug font-bold text-pretty">
+                <span className="text-foreground text-xl leading-snug font-bold text-pretty md:text-2xl">
                   &ldquo;{quote.text}&rdquo;
                 </span>
                 <span className="flex items-center gap-3">
                   <Image
                     src={quote.drawing}
                     alt=""
-                    width={48}
-                    height={48}
+                    width={64}
+                    height={64}
                     unoptimized
-                    className="border-foreground/15 size-12 rounded-md border object-cover"
+                    className="border-foreground/15 size-14 rounded-md border object-cover"
                   />
-                  <span className="text-muted-foreground text-sm font-semibold">
+                  <span className="text-muted-foreground text-base font-semibold">
                     {quote.who}
                   </span>
                 </span>
