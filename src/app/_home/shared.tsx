@@ -15,9 +15,9 @@ import { CARD_TITLE } from "./type";
  * The names and captions are made up.
  */
 export const EXAMPLE: Tile[] = [
-  ["skyline", "Maya#2041", "golden hour"],
-  ["dog", "Priya#8983", "Biscuit, 4"],
-  ["latte", "Theo#1997", "monday fuel"],
+  ["skyline", "Ahmad#2041", "golden hour"],
+  ["dog", "Ricky#8983", "Biscuit, 4"],
+  ["latte", "Kevin#1997", "monday fuel"],
   ["lake", "Sam#2683", "weekend plans"],
 ].map(([file, author, caption]) => ({
   id: `example-${file}`,
