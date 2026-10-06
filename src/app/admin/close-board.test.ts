@@ -20,6 +20,7 @@ describe("closeBoard", () => {
         closeVenue: vi.fn(async () => {
           calls.push("venue");
         }),
+        hasProfile: vi.fn(async () => false),
         deleteLogin: vi.fn(async () => {
           calls.push("login");
         }),
@@ -53,6 +54,14 @@ describe("closeBoard", () => {
       "storage down",
     );
     expect(deps.store.closeVenue).not.toHaveBeenCalled();
+  });
+
+  it("keeps the login of an owner who also draws", async () => {
+    deps.store.hasProfile = vi.fn(async () => true);
+
+    expect(await closeBoard(venue, venue.name, deps)).toBe("closed");
+    expect(calls).toEqual(["images 100", "images 50", "venue"]);
+    expect(deps.store.deleteLogin).not.toHaveBeenCalled();
   });
 
   it("still reports the board closed when the login can't be deleted", async () => {

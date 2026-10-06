@@ -385,6 +385,16 @@ export class SupabaseCloseBoardStore implements CloseBoardStore {
     if (error) throw new Error(`closeVenue: ${error.message}`);
   }
 
+  async hasProfile(ownerId: string): Promise<boolean> {
+    const { data, error } = await this.admin
+      .from("profiles")
+      .select("id")
+      .eq("id", ownerId)
+      .maybeSingle();
+    if (error) throw new Error(`hasProfile: ${error.message}`);
+    return data !== null;
+  }
+
   async deleteLogin(ownerId: string): Promise<void> {
     const { error } = await this.admin.auth.admin.deleteUser(ownerId);
     if (error) throw new Error(`deleteLogin: ${error.message}`);

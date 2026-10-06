@@ -1,5 +1,5 @@
 /**
- * What each board moderation level blocks (ADR-012). The owner picks the
+ * What each board moderation level blocks (ADR-013). The owner picks the
  * level; this decides which kinds of content it refuses and which checks it
  * runs. The checks themselves don't change between levels, only which of
  * their findings count.
@@ -46,7 +46,7 @@ const POLICIES: Record<ModerationLevel, ModerationPolicy> = {
 
 /**
  * OpenAI's category for sexual content involving minors. It blocks on every
- * level: hosting it is illegal, so it isn't the owner's to allow (ADR-012).
+ * level: hosting it is illegal, so it isn't the owner's to allow (ADR-013).
  */
 const LEGAL_FLOOR = "sexual/minors";
 

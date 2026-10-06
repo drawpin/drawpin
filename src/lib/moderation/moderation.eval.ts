@@ -13,7 +13,7 @@
  * `moderation-eval/cases.json` lists each drawing:
  * `{ file, displayName, caption, expect: "block" | "allow", category, note }`.
  * `expect` is for All Ages. Each case also runs at the other moderation
- * levels (ADR-012), where a harmful case should block only if that level
+ * levels (ADR-013), where a harmful case should block only if that level
  * blocks its category. The vision check doesn't ship unless every case comes
  * out as expected (ADR-006), and a level change doesn't ship unless All Ages
  * still does on three runs in a row.

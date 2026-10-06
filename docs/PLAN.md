@@ -1,4 +1,4 @@
-# DrawPin — Product Plan (v16, locked)
+# DrawPin — Product Plan (v17, locked)
 
 > Source of truth for v1 scope. Changes require an ADR in `docs/adr/` and a version bump here.
 
@@ -77,7 +77,7 @@ Drawing for fun needs no account. **Posting and competing do.**
 Account + signed device ID cookie + browser fingerprint (hashed) + IP rate limit (hashed) + Cloudflare Turnstile on post and vote. The device layers add to the account limit.
 
 ### Owner admin (bare minimum)
-- Owners sign in by email (Supabase Auth): one email carries a code to type and a link to tap, both single-use with a short expiry, rate-limited, Turnstile on login. Customers sign in with Google or an emailed code; the two are separate roles on one auth system, and an owner's address can't be used as a customer's.
+- Owners sign in by email (Supabase Auth): one email carries a code to type and a link to tap, both single-use with a short expiry, rate-limited, Turnstile on login. Customers sign in with Google or an emailed code. One account can both draw and own a board (ADR-013): Start a board and Manage my board take a signed-in account straight to its board or to setup.
 - **One board per owner.**
 - Setup: email → code or link → board name + time zone + moderation level → done.
 - One screen: (1) QR + today's code (download, or print a table tent or poster in one of five looks), (2) Pause board toggle, (3) Remove a tile, (4) reported tiles, surfaced first, (5) rename the board, (6) change the board link, (7) change the time zone, (8) block an account (ADR-008), (9) close the board (ADR-009), (10) board rules: the moderation level (ADR-012).
@@ -162,6 +162,8 @@ v14 changes: records what shipped alongside v12 and v13. Downloading your own dr
 v15 changes: weekly vote counts are public while voting is open, as a top-3 podium on the vote page (ADR-011), and the reveal when voting closes stays; the monthly final keeps its counts hidden until it closes.
 
 v16 changes: moderation is no longer one fixed policy. Each board picks a level, All Ages (today's rules, the default), Standard or Late Night (ADR-012), at setup and from a tenth owner setting; sexual content involving minors is blocked on every level, and usernames and board names stay at All Ages. Per-board moderation strictness leaves the back pocket.
+
+v17 changes: one account can both draw and own a board (ADR-013); closing a board keeps the sign-in of an owner who also draws, and a drawing account that owns a board is closed from the owner screen before it can be deleted.
 
 ## Diagrams
 

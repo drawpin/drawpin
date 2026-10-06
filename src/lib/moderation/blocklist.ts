@@ -11,7 +11,7 @@ import type { ModerationCategory } from "./categories";
  * moderation has a documented blind spot on slurs and contextual hate
  * speech) and any extra words added site-wide, privately, through
  * `MODERATION_BLOCKLIST`. Which of these apply depends on the board's
- * moderation level (policy.ts, ADR-012).
+ * moderation level (policy.ts, ADR-013).
  */
 
 /** Spam patterns that aren't "harmful" but don't belong on a board. */
@@ -159,7 +159,7 @@ export type BlockedTerm =
  * @param blockedTerms - Terms to match, normalized (see {@link BlockedTerm}).
  * @param options.contactDetails - Whether links, email addresses and phone
  * numbers count. On by default; a board's moderation level can allow them
- * (ADR-012).
+ * (ADR-013).
  * @returns What matched, or `null` when the text is fine.
  */
 export function findBlockedTerm(

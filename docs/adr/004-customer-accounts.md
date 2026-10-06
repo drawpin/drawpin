@@ -3,6 +3,8 @@
 ## Status
 Accepted. Guest posting is withdrawn by ADR-007: a guest can draw but not post.
 Google is no longer the only way in: ADR-010 adds a code emailed to any address.
+An account is no longer an owner or a customer only: ADR-013 lets one account
+do both.
 
 ## Context
 `docs/PLAN.md` through v7 had **no customer accounts**: "no app download, no
