@@ -117,7 +117,7 @@ const PRESSED =
  * phone, where eight of them share a row. An invisible 4px band around it
  * (`after:`) takes the tap area to about 46px without making the circle
  * bigger (measured: the row below trims a pixel off the bottom edge);
- * the bands overlap their neighbours' by a pixel or two, which a thumb never
+ * the bands overlap their neighbours' by a few pixels, which a thumb never
  * notices. The ring shows which colour is in hand. Picked constantly, so it
  * only answers the tap: a small squeeze, and a grow under a mouse.
  */
