@@ -19,8 +19,8 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       title="Sign in to DrawPin"
       intro={
         <p>
-          For whoever&apos;s setting up a board. We&apos;ll email you a link —
-          no password needed.
+          Start a new board, or manage the one you have. We&apos;ll email you a
+          sign-in link, no password needed.
         </p>
       }
     >
@@ -36,7 +36,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       {/* Customers sign in with Google from the board itself, so anyone who
           lands here looking for that needs pointing back. */}
       <p className="text-muted-foreground text-center text-sm">
-        Here to draw? You don&apos;t need this — join a board from the{" "}
+        Here to draw? You don&apos;t need this. Join a board from the{" "}
         <Link href="/" className="underline underline-offset-4">
           home page
         </Link>

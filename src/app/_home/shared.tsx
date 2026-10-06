@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRightIcon } from "@phosphor-icons/react";
-import { INKED_BUTTON } from "../b/[slug]/board-look";
+import { HEADER_BUTTON, INKED_BUTTON } from "../b/[slug]/board-look";
 import type { Tile } from "../b/[slug]/tiles";
 import { JoinForm } from "../join/join-form";
 import { Story } from "./story";
@@ -44,8 +44,8 @@ export function TrophyBadge({ size }: { size: number }) {
 }
 
 /**
- * The home page's short ending: open a board with a code,
- * start one, and the owner's story (`Story`).
+ * The home page's short ending: open a board with a code, start a board or
+ * manage one, and the owner's story (`Story`).
  */
 export function Ending() {
   return (
@@ -63,15 +63,24 @@ export function Ending() {
         </section>
         <section className="bg-primary text-primary-foreground border-foreground flex flex-col items-start justify-between gap-4 rounded-xl border-2 px-5 py-7 shadow-[5px_5px_0_var(--foreground)]">
           <div className="flex flex-col gap-2">
-            <h2 className={CARD_TITLE}>Start a board for your group</h2>
+            <h2 className={CARD_TITLE}>Start or manage a board</h2>
             <p className="text-white/85">
               It&apos;s free. Print one QR code and the board runs itself.
+              Already have one? Sign in to see today&apos;s code, reports and
+              settings.
             </p>
           </div>
-          <Link href="/login" className={INKED_BUTTON}>
-            Start a board
-            <ArrowRightIcon weight="bold" className="size-5" />
-          </Link>
+          {/* Both go to the same email sign-in: it takes a new owner on to
+              set a board up, and an owner who has one straight to it. */}
+          <div className="flex flex-wrap gap-3">
+            <Link href="/login" className={INKED_BUTTON}>
+              Start a board
+              <ArrowRightIcon weight="bold" className="size-5" />
+            </Link>
+            <Link href="/login" className={`${HEADER_BUTTON} text-base`}>
+              Manage my board
+            </Link>
+          </div>
         </section>
       </div>
 
