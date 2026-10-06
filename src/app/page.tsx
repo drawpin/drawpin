@@ -1,4 +1,5 @@
 import type { Viewport } from "next";
+import { Feedback } from "./_home/feedback";
 import { PosterHero } from "./_home/poster-hero";
 import { ReviewStack } from "./_home/review-stack";
 import { Ending } from "./_home/shared";
@@ -15,8 +16,8 @@ export const viewport: Viewport = { themeColor: "#004aad" };
  * The poster lands the idea in one glance; trying it gets them drawing on the
  * spot, and shows their drawing winning; and the week shows what happens
  * next, from the first drawing to the winner's trophy. Then what people
- * using it say, the code, starting a board, and the owner's own story,
- * word for word.
+ * using it say, a place to send ideas and bugs, the code, starting a board,
+ * and the owner's own story.
  *
  * White under the blue hero, not the boards' blue-grey tint: straight from
  * the deep blue, the tint read as a muddy change of colour.
@@ -42,6 +43,7 @@ export default function Home() {
         </div>
         <ReviewStack />
       </section>
+      <Feedback />
       <Ending />
     </div>
   );
