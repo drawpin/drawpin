@@ -113,15 +113,21 @@ const PRESSED =
   "aria-pressed:border-primary aria-pressed:bg-secondary aria-pressed:text-primary";
 
 /**
- * A colour swatch: a circle as wide as its grid column, at least 44px on a
- * 375px phone. The ring shows which colour is in hand. Picked constantly, so
- * it only answers the tap: a small squeeze, and a grow under a mouse.
+ * A colour swatch: a circle as wide as its grid column, about 39px on a
+ * phone, where eight of them share a row. An invisible 4px band around it
+ * (`after:`) takes the tap area to about 46px without making the circle
+ * bigger (measured: the row below trims a pixel off the bottom edge);
+ * the bands overlap their neighbours' by a few pixels, which a thumb never
+ * notices. While pressed the band widens, since the squeeze below shrinks
+ * it too, and a press that starts in it must still end on the button to
+ * count as a tap. The ring shows which colour is in hand. Picked constantly,
+ * so it only answers the tap: a small squeeze, and a grow under a mouse.
  */
+const SWATCH =
+  "relative after:absolute after:-inset-[4px] active:after:-inset-[9px] after:rounded-full after:content-[''] border-border focus-visible:ring-highlight aria-pressed:ring-primary aspect-square w-full max-w-12 cursor-pointer justify-self-center rounded-full border outline-none transition-transform duration-150 ease-out hover:scale-110 focus-visible:ring-3 active:scale-90 aria-pressed:ring-2 aria-pressed:ring-offset-2 motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100";
+
 /** What a tap on Post with nothing drawn says: an invitation, not a scolding. */
 const BLANK_NUDGE = "Nothing drawn yet. Draw something, then post it.";
-
-const SWATCH =
-  "border-border focus-visible:ring-highlight aria-pressed:ring-primary aspect-square w-full max-w-12 cursor-pointer justify-self-center rounded-full border outline-none transition-transform duration-150 ease-out hover:scale-110 focus-visible:ring-3 active:scale-90 aria-pressed:ring-2 aria-pressed:ring-offset-2 motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100";
 
 /** The colour a step puts on the tile, if it adds one: the eraser doesn't. */
 function inkOf(op: DrawOp): string | null {
