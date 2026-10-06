@@ -26,7 +26,8 @@ That suits a family restaurant. It doesn't suit every group that uses
 DrawPin: a group chat or a late-night party gets a swear word or a
 cartoon of blood refused, with no way to loosen it. The plan kept
 per-board strictness in its back pocket until there was feedback from more
-than one board. There now is.
+than one board; the owner chose to bring it forward now, before boards
+beyond the first are invited, so each can be set up the way it means to run.
 
 ## Decision
 
@@ -135,5 +136,6 @@ and nothing is checked again. The owner can still remove any of them.
   that someone didn't expect to lead there. The one-time warning, the
   Board rules link, Report and Remove tile are what stand between that
   visitor and the board.
-- Owners now decide what their board hosts. DrawPin still removes
-  anything illegal, and the floor still applies, whatever the level.
+- Owners now decide what their board hosts. The Terms still forbid
+  anything illegal on every board, and the floor still applies, whatever
+  the level.
