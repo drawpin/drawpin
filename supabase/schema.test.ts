@@ -2238,3 +2238,141 @@ describe("deleting an account", () => {
     }
   });
 });
+
+describe("podiums", () => {
+  /** A week with four account tiles and 3, 2, 1 and 0 votes on them. */
+  async function seedVotedWeek() {
+    const board = await seedBoard();
+    const artistId = crypto.randomUUID();
+    const voters = [
+      crypto.randomUUID(),
+      crypto.randomUUID(),
+      crypto.randomUUID(),
+    ];
+    await db.exec(`
+      insert into auth.users (id, email) values
+        ('${artistId}', '${artistId}@example.com'),
+        ${voters.map((id) => `('${id}', '${id}@example.com')`).join(", ")};
+      insert into profiles (id, username) values
+        ('${artistId}', 'Artist'),
+        ${voters.map((id, i) => `('${id}', 'Voter${i}')`).join(", ")};
+      update tiles set user_id = '${artistId}', display_name = 'Artist', name_tag = '0001'
+        where week_id = '${board.weekId}' and device_id = '${board.artistDeviceId}';
+      update weeks set posting_ends_at = now() - interval '1 day',
+                       voting_ends_at = now() + interval '6 days'
+        where id = '${board.weekId}';
+    `);
+    const [first, second, third] = board.tileIds;
+    const ballots: [string, string][] = [
+      [voters[0], first],
+      [voters[1], first],
+      [voters[2], first],
+      [voters[0], second],
+      [voters[1], second],
+      [voters[0], third],
+    ];
+    for (const [userId, tileId] of ballots) {
+      await db.query(
+        `insert into votes (week_id, tile_id, user_id) values ($1, $2, $3)`,
+        [board.weekId, tileId, userId],
+      );
+    }
+    return { ...board, first, second, third };
+  }
+
+  const closeVoting = (weekId: string) =>
+    db.query(
+      `update weeks set voting_ends_at = now() - interval '1 minute' where id = $1`,
+      [weekId],
+    );
+
+  it("shows nothing while the week is still being voted on", async () => {
+    const { weekId } = await seedVotedWeek();
+
+    const result = await db.query(`select * from week_podium($1)`, [weekId]);
+    expect(result.rows).toEqual([]);
+  });
+
+  it("ranks the top three by votes once voting closes", async () => {
+    const { weekId, first, second, third } = await seedVotedWeek();
+    await closeVoting(weekId);
+
+    const result = await db.query<{
+      place: number;
+      tile_id: string;
+      votes: number;
+    }>(`select place, tile_id, votes from week_podium($1)`, [weekId]);
+    expect(result.rows).toEqual([
+      { place: 1, tile_id: first, votes: 3 },
+      { place: 2, tile_id: second, votes: 2 },
+      { place: 3, tile_id: third, votes: 1 },
+    ]);
+  });
+
+  it("agrees with the Hall of Fame on who won", async () => {
+    const { weekId, first } = await seedVotedWeek();
+    await closeVoting(weekId);
+
+    await db.query(`select finalize_week_winner($1)`, [weekId]);
+    const hall = await db.query<{ tile_id: string }>(
+      `select tile_id from hall_of_fame where week_id = $1`,
+      [weekId],
+    );
+    expect(hall.rows[0].tile_id).toBe(first);
+  });
+
+  it("leaves out a removed tile", async () => {
+    const { weekId, first, second } = await seedVotedWeek();
+    await closeVoting(weekId);
+    await db.query(`update tiles set status = 'removed' where id = $1`, [
+      first,
+    ]);
+
+    const result = await db.query<{ place: number; tile_id: string }>(
+      `select place, tile_id from week_podium($1)`,
+      [weekId],
+    );
+    expect(result.rows[0]).toEqual({ place: 1, tile_id: second });
+  });
+
+  it("orders a closed final's finalists, and hides an open one", async () => {
+    const { venueId, weekId, tileIds } = await seedBoard();
+    await db.query(
+      `insert into hall_of_fame (venue_id, week_id, tile_id, vote_count) values ($1, $2, $3, 2)`,
+      [venueId, weekId, tileIds[0]],
+    );
+    const finalId = crypto.randomUUID();
+    await db.query(
+      `insert into monthly_finals (id, venue_id, month, starts_at, ends_at)
+       values ($1, $2, '2026-09-01', now() - interval '7 days', now() + interval '1 day')`,
+      [finalId, venueId],
+    );
+
+    expect(
+      (await db.query(`select * from final_podium($1)`, [finalId])).rows,
+    ).toEqual([]);
+
+    await db.query(
+      `update monthly_finals set ends_at = now() - interval '1 minute' where id = $1`,
+      [finalId],
+    );
+    const result = await db.query<{ place: number; tile_id: string }>(
+      `select place, tile_id from final_podium($1)`,
+      [finalId],
+    );
+    expect(result.rows).toEqual([{ place: 1, tile_id: tileIds[0] }]);
+  });
+
+  it("is for the server alone", async () => {
+    const { weekId } = await seedBoard();
+
+    await db.exec("set role anon");
+    try {
+      await expect(
+        db.query(`select * from week_podium($1)`, [weekId]),
+      ).rejects.toThrow(/permission denied/i);
+    } finally {
+      await db.exec("reset role");
+    }
+  });
+});
