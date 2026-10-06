@@ -9,10 +9,11 @@ import { EXAMPLE, TrophyBadge } from "./shared";
 /**
  * Where each drawing is pinned on the poster, desktop only: overlapping the
  * edges of the type, at a slant, like a wall someone's been at. On a phone
- * they sit in a scattered row under it instead.
+ * they sit in a scattered row under it instead. The top one sits low
+ * enough for its pin to stick out above it inside the poster, which clips.
  */
 const SPOTS = [
-  "md:absolute md:top-6 md:right-[4%] md:w-40 md:rotate-2",
+  "md:absolute md:top-10 md:right-[4%] md:w-40 md:rotate-2",
   "md:absolute md:top-[44%] md:right-[22%] md:w-40 md:-rotate-1",
   "md:absolute md:bottom-6 md:right-[3%] md:w-40 md:rotate-1",
 ];

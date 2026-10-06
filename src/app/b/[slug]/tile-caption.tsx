@@ -2,7 +2,7 @@ import { hand } from "@/lib/fonts";
 import type { Tile } from "./tiles";
 
 /** What a drawing shows, for screen readers: its caption, or whose it is. */
-export function describeTile(tile: Tile): string {
+export function describeTile(tile: Pick<Tile, "author" | "caption">): string {
   return (
     tile.caption ??
     (tile.author ? `Drawing by ${tile.author}` : "Guest drawing")
