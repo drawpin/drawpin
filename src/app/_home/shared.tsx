@@ -54,7 +54,7 @@ export function Ending() {
           id="join"
           className="border-foreground flex scroll-mt-6 flex-col gap-4 rounded-xl border-2 bg-white px-5 py-7 shadow-[5px_5px_0_var(--primary)]"
         >
-          <h2 className={CARD_TITLE}>Got a code?</h2>
+          <h2 className={CARD_TITLE}>Have a code?</h2>
           <p className="text-muted-foreground -mt-2">
             It&apos;s on the board&apos;s card, and changes every morning.
           </p>
@@ -62,9 +62,9 @@ export function Ending() {
         </section>
         <section className="bg-primary text-primary-foreground border-foreground flex flex-col items-start justify-between gap-4 rounded-xl border-2 px-5 py-7 shadow-[5px_5px_0_var(--foreground)]">
           <div className="flex flex-col gap-2">
-            <h2 className={CARD_TITLE}>Start one for your people</h2>
+            <h2 className={CARD_TITLE}>Start a board for your group</h2>
             <p className="text-white/85">
-              Free. One QR card on the table and it runs itself.
+              It&apos;s free. Print one QR code and the board runs itself.
             </p>
           </div>
           <Link href="/login" className={INKED_BUTTON}>

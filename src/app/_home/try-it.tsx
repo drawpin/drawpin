@@ -83,7 +83,7 @@ export function TryItPlay() {
   return (
     <div className="mx-auto grid w-full max-w-6xl items-center gap-8 px-5 md:grid-cols-2">
       <section className="flex flex-col items-start gap-4">
-        <p className={NOTE}>{pinned ? "Picture this" : "Go on, try it"}</p>
+        <p className={NOTE}>{pinned ? "Picture this" : "Try it yourself"}</p>
         <h2 className={SECTION_TITLE}>
           {pinned ? "Your drawing, first place." : "Draw something."}
         </h2>

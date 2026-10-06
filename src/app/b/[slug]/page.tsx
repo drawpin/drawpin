@@ -21,7 +21,7 @@ export async function generateMetadata({
       siteName: "DrawPin",
       title: board.name,
       description:
-        "Tap to join the drawing board! One tile each per day, vote for your favorite!",
+        "Join the drawing board: draw one tile a day and vote for your favorite.",
       url: `/b/${slug}`,
       images: [{ url: "/og-v2.png", width: 1200, height: 630, alt: "DrawPin" }],
     },

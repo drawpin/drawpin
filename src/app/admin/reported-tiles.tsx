@@ -104,7 +104,7 @@ function ReportedCard({ tile }: { tile: ReportedAdminTile }) {
                 size="sm"
                 disabled={dismissing}
               >
-                {dismissing ? "Dismissing…" : "It's fine"}
+                {dismissing ? "Dismissing…" : "Keep it"}
               </Button>
             </form>
           </>

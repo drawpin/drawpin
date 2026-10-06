@@ -28,7 +28,7 @@ export function SignInToVote({
   heading?: React.ReactNode;
   /** A line under each drawing, by tile id (the monthly final's "won its week"). */
   notes?: Record<string, React.ReactNode>;
-  /** What the card says after "Want a say?". */
+  /** What the card says after "Want to vote?". */
   ask?: string;
 }) {
   const [asking, setAsking] = useState(false);
@@ -58,7 +58,7 @@ export function SignInToVote({
           className={`motion-safe:animate-fade-up sticky bottom-4 z-20 flex items-center gap-3 rounded-xl p-3 pl-4 ${PAPER}`}
         >
           <p className="text-muted-foreground min-w-0 flex-1 text-sm">
-            <span className="text-foreground font-semibold">Want a say?</span>{" "}
+            <span className="text-foreground font-semibold">Want to vote?</span>{" "}
             {ask}
           </p>
           <GoogleSignIn next={next} label="Sign in" size="sm" />

@@ -118,7 +118,7 @@ const PRESSED =
  * it only answers the tap: a small squeeze, and a grow under a mouse.
  */
 /** What a tap on Post with nothing drawn says: an invitation, not a scolding. */
-const BLANK_NUDGE = "Nothing drawn yet. Add a doodle, then post it.";
+const BLANK_NUDGE = "Nothing drawn yet. Draw something, then post it.";
 
 const SWATCH =
   "border-border focus-visible:ring-highlight aria-pressed:ring-primary aspect-square w-full max-w-12 cursor-pointer justify-self-center rounded-full border outline-none transition-transform duration-150 ease-out hover:scale-110 focus-visible:ring-3 active:scale-90 aria-pressed:ring-2 aria-pressed:ring-offset-2 motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100";

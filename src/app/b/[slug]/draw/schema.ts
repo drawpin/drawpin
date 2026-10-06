@@ -23,10 +23,10 @@ export const postTileFormSchema = z.object({
   caption: optionalText(80, "caption"),
   image: z
     .instanceof(Blob, {
-      message: "Nothing drawn yet. Add a doodle, then post it.",
+      message: "Nothing drawn yet. Draw something, then post it.",
     })
     .refine((file) => file.size > 0, {
-      message: "Nothing drawn yet. Add a doodle, then post it.",
+      message: "Nothing drawn yet. Draw something, then post it.",
     })
     .refine((file) => file.size <= MAX_UPLOAD_BYTES, {
       message: "Your drawing is too large to upload.",

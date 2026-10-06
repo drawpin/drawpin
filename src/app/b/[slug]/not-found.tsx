@@ -4,7 +4,7 @@ import { CardPage, INKED_BUTTON } from "./board-look";
 export default function BoardNotFound() {
   return (
     <CardPage
-      note="Hmm, no board here"
+      note="No board here"
       title="Board not found"
       intro={<p>Check the link, or scan the board&apos;s code again.</p>}
     >

@@ -136,7 +136,7 @@ export function Podium({
               >
                 {leader
                   ? (leader.tile.author?.split("#")[0] ?? "Guest")
-                  : "Up for grabs"}
+                  : "Still open"}
               </p>
               <div
                 className="podium-rise border-foreground text-foreground relative flex w-full flex-col items-center justify-center gap-1 overflow-hidden rounded-t-lg border-2 border-b-0 bg-white"

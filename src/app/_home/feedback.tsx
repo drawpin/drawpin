@@ -68,8 +68,9 @@ export function Feedback() {
         <div className="grid gap-8 px-5 py-7 md:grid-cols-[1fr_1.3fr] md:px-8">
           <div className="flex flex-col items-start gap-4">
             <p className={LEAD}>
-              DrawPin gets better every week, and a lot of that starts with what
-              people send. Spotted a bug, or got an idea? Tell me.
+              DrawPin is continuously getting better, and a lot of that starts
+              with feedback. Spotted a bug, or have an idea? Feel free to let me
+              know!
             </p>
             <Cone className="hidden h-24 w-auto -rotate-6 md:block" />
           </div>

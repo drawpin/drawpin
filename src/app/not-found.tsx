@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "Page not found · DrawPin" };
 export default function NotFound() {
   return (
     <CardPage
-      note="Oops, a wrong turn"
+      note="Wrong link"
       title="Page not found"
       intro={<p>That link doesn&apos;t go anywhere on DrawPin.</p>}
     >
