@@ -141,7 +141,7 @@ moving target. Tracked in issue #67:
   quiet, so an outage looks like a slow evening (#64). The daily health check
   now emails when a dependency stops answering; error tracking and an uptime
   monitor are still to do.
-- **It is proven in production**: the whole cycle run on a real phone (#65),
+- **It is proven in production** *(done)*: the whole cycle run on a real phone (#65),
   including the devices a QR scan actually lands on (#66).
 
 v6 changes: scheduling moved from an hourly cron to on-demand transitions plus a daily cleanup job (ADR-003, Vercel Hobby only allows daily cron); owner Pause/Remove moved from phase 4 into phase 2 as the moderation backstop; moderation-outage behavior defined; phase 4 is now the UI pass.
