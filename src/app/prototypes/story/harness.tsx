@@ -7,16 +7,14 @@ import {
   useRef,
   useState,
 } from "react";
-import { Chapters } from "./chapters";
-import { Highlighted } from "./highlighted";
-import { Letter } from "./letter";
+import { SideBySide } from "./side-by-side";
+import { Toolbox } from "./toolbox";
 
-// Round one (2026-10-05): the home page's "Why I made this", word for
-// word, given some style three ways.
+// Round two (2026-10-05): Letter and Chapters together, with the skills
+// set out for aspiring software engineers, in two layouts.
 const VARIANTS = [
-  { name: "Letter", Component: Letter },
-  { name: "Highlighted", Component: Highlighted },
-  { name: "Chapters", Component: Chapters },
+  { name: "Toolbox", Component: Toolbox },
+  { name: "Side by side", Component: SideBySide },
 ];
 
 /** The picker's own look, verbatim from the prototype skill: harness chrome. */
