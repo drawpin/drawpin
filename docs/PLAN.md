@@ -1,4 +1,4 @@
-# DrawPin — Product Plan (v15, locked)
+# DrawPin — Product Plan (v16, locked)
 
 > Source of truth for v1 scope. Changes require an ADR in `docs/adr/` and a version bump here.
 
@@ -39,8 +39,14 @@ Drawing for fun needs no account. **Posting and competing do.**
 - A board shows how many artists and drawings it has had, all time. The counts are kept as tiles are posted, so they don't drop when the 30-day clean-up deletes old tiles.
 
 ### Moderation (automatic only)
-- Every username, caption, and drawing is checked by a blocklist + OpenAI moderation (text + image). Every drawing is also read by a vision model (`gpt-4.1-mini`) for written words, hate symbols and sexual content, and the words it reads go through the blocklist too (ADR-006).
-- Family-friendly policy: slurs, hate symbols, and genitals or sexual acts are blocked. Religious and national symbols, and nudity without genitals, are allowed. Anything borderline is blocked.
+- At All Ages, every username, caption, and drawing is checked by a blocklist + OpenAI moderation (text + image). Every drawing is also read by a vision model (`gpt-4.1-mini`) for written words, hate symbols and sexual content, and the words it reads go through the blocklist too (ADR-006).
+- Each board has a **moderation level** (ADR-012), picked at setup and changeable by the owner. A change applies to new posts only.
+  - **All Ages** (default): best for family spots and businesses. Full moderation, blocking anything suggestive, crude or violent: swearing, violence, slurs, hate symbols, genitals or sexual acts, and contact details. Religious and national symbols, and nudity without genitals, are allowed. Anything borderline is blocked.
+  - **Standard**: allows swearing, violence and gore. Sexual content, slurs, hate symbols and contact details are still blocked.
+  - **Late Night**: no moderation, and no vision model call.
+  - On every level, sexual content involving minors is blocked (a legal floor, not a setting), and Report and Remove tile still work. Politics isn't checked on any level.
+- The level covers drawings and captions posted on that board. Usernames and board names are always checked at All Ages.
+- Visitors see a "Board rules" link in the board footer saying what the level allows. Standard and Late Night also say so in the draw screen's small print, and Late Night shows a one-time "this board isn't moderated" warning before the board, remembered per device.
 - A blocked post says what kind of problem it was (hateful, sexual, violent, contact details or language) and how many tries are left, but never the word that matched. It does **not** use up the daily post.
 - **3 blocked attempts in a day locks the device until the next 4:00 AM reset.**
 - If moderation can't be reached, the post is refused with "try again in a minute" and does **not** use up the daily post. It's never published unchecked, and posting works again as soon as moderation is back.
@@ -73,8 +79,8 @@ Account + signed device ID cookie + browser fingerprint (hashed) + IP rate limit
 ### Owner admin (bare minimum)
 - Owners sign in by email (Supabase Auth): one email carries a code to type and a link to tap, both single-use with a short expiry, rate-limited, Turnstile on login. Customers sign in with Google or an emailed code; the two are separate roles on one auth system, and an owner's address can't be used as a customer's.
 - **One board per owner.**
-- Setup: email → code or link → venue name + time zone → done.
-- One screen: (1) QR + today's code (download, or print a table tent or poster in one of five looks), (2) Pause board toggle, (3) Remove a tile, (4) reported tiles, surfaced first, (5) rename the board, (6) change the board link, (7) change the time zone, (8) block an account (ADR-008), (9) close the board (ADR-009).
+- Setup: email → code or link → board name + time zone + moderation level → done.
+- One screen: (1) QR + today's code (download, or print a table tent or poster in one of five looks), (2) Pause board toggle, (3) Remove a tile, (4) reported tiles, surfaced first, (5) rename the board, (6) change the board link, (7) change the time zone, (8) block an account (ADR-008), (9) close the board (ADR-009), (10) board rules: the moderation level (ADR-012).
 - Renaming changes the display name only. The slug is generated once at setup, the QR encodes `/b/<slug>`, and the daily code is keyed by venue and time window — so a rename reprints nothing.
 - Changing the link builds a new slug from the current name, offered once a rename has left the old one behind. Every former slug redirects to the board for good and is never given to another board, so printed codes keep working.
 - Changing the time zone takes effect from the next week; the current week keeps its boundaries.
@@ -94,7 +100,7 @@ No charges for venues or users in v1.
 ## Tech stack
 - Next.js (App Router) on Vercel: customer pages, admin page, API route handlers, cron endpoints
 - Supabase: Postgres, Storage (tile images, WebP), Realtime (new/removed tiles), Auth (owners by emailed code or link, customers by Google or emailed code)
-- OpenAI moderation endpoint (text + image), a vision model reading every drawing (ADR-006), a drawing-aware nudity check (NSFWJS, ADR-005), custom blocklist
+- OpenAI moderation endpoint (text + image), a vision model reading every drawing below Late Night (ADR-006, ADR-012), a drawing-aware nudity check (NSFWJS, ADR-005), custom blocklist
 - Email through custom SMTP (Resend), from `hello@drawpin.io`: sign-in emails and health alerts
 - Cloudflare Turnstile; FingerprintJS (open source)
 - Canvas drawing: `perfect-freehand`
@@ -104,15 +110,6 @@ No charges for venues or users in v1.
 ## Back pocket (not v1)
 Weekly prompt mode ("challenges"), live jam mode, location checks, Google
 sign-in for owners, multi-location owners, wall display.
-
-**Per-board moderation strictness.** Today moderation is one fixed set of
-rules for every board: the built-in profanity list
-(`src/lib/moderation/profanity-terms.ts`) blocks every category the source
-list carries, not just slurs, and the drawing nudity check allows its
-"Sexy" class through (ADR-005). Letting each owner tune their own board's
-strictness — e.g. slurs only vs. all profanity, or how the nudity check
-treats "Sexy" — is a reasonable ask once there's real feedback across more
-than one board. Not v1.
 
 Accounts open a few more: a customer's saved drawings and history (#44),
 and more ways to sign in — Facebook, Apple, passkeys (#50). Google and
@@ -163,6 +160,8 @@ v13 changes: customers can sign in with a code emailed to any address as well as
 v14 changes: records what shipped alongside v12 and v13. Downloading your own drawings (#57) moves from the back pocket into v1; a board's artist and drawing counts are all-time; the owner's QR can be printed as a table tent or poster; owners can type the code from their sign-in email as well as tap its link.
 
 v15 changes: weekly vote counts are public while voting is open, as a top-3 podium on the vote page (ADR-011), and the reveal when voting closes stays; the monthly final keeps its counts hidden until it closes.
+
+v16 changes: moderation is no longer one fixed policy. Each board picks a level, All Ages (today's rules, the default), Standard or Late Night (ADR-012), at setup and from a tenth owner setting; sexual content involving minors is blocked on every level, and usernames and board names stay at All Ages. Per-board moderation strictness leaves the back pocket.
 
 ## Diagrams
 
