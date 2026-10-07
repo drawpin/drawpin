@@ -1,8 +1,8 @@
 /**
  * The board moderation levels as people see them (ADR-012): their names, what
  * the owner is told when picking one, and what visitors are told. What each
- * level actually blocks is in policy.ts; keep the two in step. Kept free of server-only code, so the setup and admin forms
- * can import it.
+ * level actually blocks is in policy.ts; keep the two in step. Kept free of
+ * server-only code, so the setup and admin forms can import it.
  */
 import type { ModerationLevel } from "./policy";
 
