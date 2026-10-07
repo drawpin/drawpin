@@ -1,8 +1,8 @@
 # DrawPin
 
 A free, mobile-web shared drawing board for any group of people — a café, a
-classroom, a party, a group chat. People scan a printed QR code or enter a
-daily 8-digit code, draw a tile, see everyone's tiles live, vote for the weekly
+classroom, a party, a group chat. People scan a printed QR code or enter an
+8-digit code, draw a tile, see everyone's tiles live, vote for the weekly
 winner, and crown a monthly super winner. No app download. Anyone can draw for
 fun; posting, voting and reporting need a sign-in, with Google or a code
 emailed to any address.

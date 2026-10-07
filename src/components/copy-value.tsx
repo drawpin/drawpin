@@ -13,7 +13,7 @@ type CopyState = "idle" | "copied" | "selected";
 
 /**
  * A value shown with a Copy button beside it, for the owner to paste the
- * board's link or today's code into a message (issue #172).
+ * board's link or its code into a message (issue #172).
  *
  * When the clipboard can't be written (no HTTPS, some in-app browsers, a
  * refused permission), the value is selected instead and a line says to copy

@@ -57,7 +57,7 @@ export function Ending() {
         >
           <h2 className={CARD_TITLE}>Have a code?</h2>
           <p className="text-muted-foreground -mt-2">
-            It&apos;s on the board&apos;s card, and changes every morning.
+            It&apos;s the 8-digit code on the board&apos;s card.
           </p>
           <JoinForm />
         </section>
@@ -66,8 +66,7 @@ export function Ending() {
             <h2 className={CARD_TITLE}>Start or manage a board</h2>
             <p className="text-white/85">
               It&apos;s free. Print one QR code and the board runs itself.
-              Already have one? Sign in to see today&apos;s code, reports and
-              settings.
+              Already have one? Sign in to see your code, reports and settings.
             </p>
           </div>
           {/* Both go to the same email sign-in: it takes a new owner on to

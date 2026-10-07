@@ -4,20 +4,25 @@ import { hand } from "@/lib/fonts";
 /**
  * The card a board's owner puts out (UI pass, 2026-10-05): the board's name,
  * an invitation, the QR and the address, in the boards' own look, so a café
- * can put it on a table without designing anything. The day's code isn't on
- * it: it changes every morning, and a printed card can't.
+ * can put it on a table without designing anything. The board's code is on
+ * it for anyone who can't scan: it stays the same until the owner makes a new
+ * one (ADR-014).
  */
 export function QrCard({
   name,
   url,
   svg,
+  code,
 }: {
   name: string;
   url: string;
   /** The QR as SVG markup, generated server-side from our own URL. */
   svg: string;
+  /** The board's 8-digit join code. */
+  code: string;
 }) {
   const address = url.replace(/^https?:\/\//, "");
+  const site = new URL(url).host;
   return (
     <div className="print-card border-foreground mx-auto flex w-full max-w-72 flex-col items-center gap-3 rounded-xl border-2 bg-white px-5 pt-5 pb-4 text-center shadow-[5px_5px_0_var(--primary)]">
       <p
@@ -42,6 +47,13 @@ export function QrCard({
       </p>
       <p className="text-muted-foreground font-mono text-xs break-all">
         {address}
+      </p>
+      <p className="text-muted-foreground text-xs">
+        No camera? Go to {site} and type{" "}
+        <span className="text-foreground font-mono text-sm font-bold tracking-[0.15em] whitespace-nowrap">
+          {code}
+        </span>
+        .
       </p>
     </div>
   );

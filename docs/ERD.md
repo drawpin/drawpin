@@ -79,19 +79,24 @@ board's printed codes.
 in one transaction; `service_role` only.
 
 ### `daily_codes`
-The 8-digit code people type instead of scanning the QR, rotated daily.
+The 8-digit code people type instead of scanning the QR. A board keeps one
+code until its owner makes a new one (ADR-014); the table keeps its old name
+from when codes changed daily.
 
 | Column | Type | Notes |
 |---|---|---|
 | `id` | `uuid` | PK |
 | `venue_id` | `uuid` | FK → `venues` |
 | `code` | `char(8)` | digits only |
-| `valid_from` / `valid_until` | `timestamptz` | `valid_until > valid_from` |
+| `valid_from` / `valid_until` | `timestamptz` | `valid_until > valid_from`; `infinity` while the code is live |
+
+A code works while `valid_from <= now < valid_until`. Making a new code closes
+the live row at that moment and adds an open-ended one.
 
 An exclusion constraint stops the same code being live at two venues at once,
 so a typed code always resolves to exactly one venue. The generator retries on
-conflict. A second constraint, `daily_codes_one_per_window`, allows only one
-code per venue per day, so two first views of `/admin` can't each create one.
+conflict. A partial unique index, `daily_codes_one_live_per_venue`, allows only
+one live code per venue, so two first views of `/admin` can't each create one.
 
 ### `weeks`
 A venue's weekly cycle: posting, then voting, then closed.
@@ -422,10 +427,12 @@ one statement; execute is granted to `service_role` only, so `post_attempts`
 stays closed to the API roles. `count_recent_posts_from_ip(ip_hash, since)`
 counts recent posts from the devices last seen on one network, for burst
 protection; same grant, since neither `devices` nor `tiles` can be joined this
-way through the API. `ensure_daily_code(venue_id, valid_from, valid_until)`
-returns the venue's code for that window, creating it on the first ask and
-retrying past codes live elsewhere, and `record_code_attempt(ip_hash,
-window_start)` counts a wrong guess; both are granted to `service_role` only.
+way through the API. `ensure_join_code(venue_id)`
+returns the venue's live code, creating it on the first ask and retrying past
+codes live elsewhere; `replace_join_code(venue_id)` closes the live code and
+makes a new, different one in one transaction; and `record_code_attempt(ip_hash,
+window_start)` counts a wrong guess. All three are granted to `service_role`
+only.
 
 The daily cleanup (issue #31) uses three more: `list_expired_weeks(before)`
 returns weeks past retention that still hold something deletable — a week down

@@ -9,6 +9,8 @@ import type { JoinStore } from "./join";
 export class SupabaseJoinStore implements JoinStore {
   constructor(private readonly admin: SupabaseClient) {}
 
+  // A live code's valid_until is 'infinity' and a replaced one's is the
+  // moment it was replaced, so one range check covers both (ADR-014).
   async findVenueByCode(code: string, at: Date): Promise<string | null> {
     const moment = at.toISOString();
     const { data, error } = await this.admin

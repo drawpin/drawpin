@@ -4,15 +4,15 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { hashIpAddress } from "@/lib/device-id";
 import { clientIpFrom } from "@/lib/device-signals/request-ip";
-import { type JoinFailure, joinWithCode } from "@/lib/daily-code/join";
-import { SupabaseJoinStore } from "@/lib/daily-code/supabase-join-store";
+import { type JoinFailure, joinWithCode } from "@/lib/join-code/join";
+import { SupabaseJoinStore } from "@/lib/join-code/supabase-join-store";
 import { serverEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { type JoinState, joinSchema } from "./schema";
 
 const FAILURE_MESSAGES: Record<JoinFailure, string> = {
   malformed: "Enter the 8-digit code.",
-  unknown: "That code isn't right. Codes change every morning at 4:00 AM.",
+  unknown: "That code isn't right. Check the digits and try again.",
   "rate-limited": "Too many tries. Wait a few minutes and try again.",
 };
 

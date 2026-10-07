@@ -3,6 +3,8 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { boardUrl, createBoardQrCode } from "@/lib/board";
 import { serverEnv } from "@/lib/env";
+import { ensureJoinCode } from "@/lib/join-code/ensure";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireOwnedVenue } from "../venue";
 import { LOOKS, type LookId } from "./looks";
 import { Preview, PrintButton } from "./preview";
@@ -56,9 +58,10 @@ export default async function PrintPage({
     params.paper,
     PAPERS.map((each) => each.id),
   );
-  const { svg } = await createBoardQrCode(
-    boardUrl(serverEnv().SITE_URL, venue.slug),
-  );
+  const [{ svg }, code] = await Promise.all([
+    createBoardQrCode(boardUrl(serverEnv().SITE_URL, venue.slug)),
+    ensureJoinCode(createAdminClient(), venue.id),
+  ]);
 
   const href = (change: Partial<Record<"look" | "format" | "paper", string>>) =>
     `/admin/print?${new URLSearchParams({ look, format, paper, ...change })}`;
@@ -161,6 +164,7 @@ export default async function PrintPage({
           paper={paper}
           name={venue.name}
           qrSvg={svg}
+          code={code}
         />
       </Preview>
     </main>

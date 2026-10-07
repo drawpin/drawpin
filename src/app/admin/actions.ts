@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { boardUrl } from "@/lib/board";
 import { serverEnv } from "@/lib/env";
+import { replaceJoinCode } from "@/lib/join-code/ensure";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isSupportedTimeZone } from "@/lib/timezones";
@@ -61,7 +62,7 @@ export type RenameBoardState =
 /**
  * Changes the name shown on the owner's board.
  *
- * Only the display name: the slug, the QR code and the daily join code are
+ * Only the display name: the slug, the QR code and the join code are
  * untouched, so nothing printed stops working (issue #105).
  *
  * Revalidates `/admin` alone. Every `/b/[slug]` page calls `connection()`, so
@@ -140,6 +141,35 @@ export async function changeBoardLinkAction(): Promise<ChangeLinkState> {
   console.info(`Board link changed: ${venue.id} ${venue.slug} -> ${slug}`);
   revalidatePath("/admin");
   return { status: "changed", url: boardUrl(serverEnv().SITE_URL, slug) };
+}
+
+export type NewCodeState =
+  | { status: "idle" }
+  | { status: "error"; message: string }
+  | { status: "changed" };
+
+/**
+ * Gives the owner's board a new join code. The old one stops working at once,
+ * which is the remedy for a code that has got around (ADR-014).
+ */
+export async function newJoinCodeAction(): Promise<NewCodeState> {
+  const venue = await requireOwnedVenue();
+
+  try {
+    await replaceJoinCode(createAdminClient(), venue.id);
+  } catch (error) {
+    console.error(error);
+    return {
+      status: "error",
+      message:
+        "We couldn't make a new code. Your code hasn't changed; try again in a minute.",
+    };
+  }
+
+  // The code itself stays out of the logs: it opens the board.
+  console.info(`Board code replaced: ${venue.id}`);
+  revalidatePath("/admin");
+  return { status: "changed" };
 }
 
 export type TimeZoneState =

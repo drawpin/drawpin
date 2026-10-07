@@ -3,7 +3,8 @@
 ## Status
 Accepted. Adds to the owner admin in `docs/PLAN.md` (v10), which listed five
 things only. Built one at a time, in this order: link, time zone, blocking.
-Closing a board and deleting its data is ADR-009.
+Closing a board and deleting its data is ADR-009. The join code no longer
+follows the day (ADR-014), so a time zone change leaves it alone.
 
 ## Context
 The owner screen was cut to the bare minimum for v1. Three things owners will
