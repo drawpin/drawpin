@@ -7,8 +7,13 @@ describe("setupSchema", () => {
       setupSchema.parse({
         name: "  Blue Bottle ",
         timezone: "America/Chicago",
+        moderationLevel: "all_ages",
       }),
-    ).toEqual({ name: "Blue Bottle", timezone: "America/Chicago" });
+    ).toEqual({
+      name: "Blue Bottle",
+      timezone: "America/Chicago",
+      moderationLevel: "all_ages",
+    });
   });
 
   it("requires a name", () => {
@@ -35,6 +40,32 @@ describe("setupSchema", () => {
       const result = setupSchema.safeParse({ name: "Cafe", timezone });
       expect(result.error?.issues[0].message).toBe(
         "Pick your venue's time zone.",
+      );
+    },
+  );
+
+  it.each(["all_ages", "standard", "late_night"])(
+    "accepts %s as the moderation level",
+    (moderationLevel) => {
+      const result = setupSchema.parse({
+        name: "Cafe",
+        timezone: "Europe/Paris",
+        moderationLevel,
+      });
+      expect(result.moderationLevel).toBe(moderationLevel);
+    },
+  );
+
+  it.each([null, "", "strict"])(
+    "rejects %j as a moderation level",
+    (moderationLevel) => {
+      const result = setupSchema.safeParse({
+        name: "Cafe",
+        timezone: "Europe/Paris",
+        moderationLevel,
+      });
+      expect(result.error?.issues[0].message).toBe(
+        "Pick the rules for your board.",
       );
     },
   );

@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 import { requireOwner } from "@/lib/auth";
+import { toModerationLevel } from "@/lib/moderation/levels";
+import type { ModerationLevel } from "@/lib/moderation/policy";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   clockFromRow,
@@ -27,6 +29,8 @@ export type OwnerVenue = {
   /** The board's zone, and any change to it the owner has scheduled. */
   clock: VenueClock;
   isPaused: boolean;
+  /** What posts on the board are checked for (ADR-012). */
+  moderationLevel: ModerationLevel;
 };
 
 /**
@@ -39,7 +43,9 @@ export async function requireOwnedVenue(): Promise<OwnerVenue> {
 
   const { data, error } = await createAdminClient()
     .from("venues")
-    .select(`id, name, slug, is_paused, ${VENUE_CLOCK_COLUMNS}`)
+    .select(
+      `id, name, slug, is_paused, moderation_level, ${VENUE_CLOCK_COLUMNS}`,
+    )
     .eq("owner_id", owner.id)
     .maybeSingle();
 
@@ -53,6 +59,7 @@ export async function requireOwnedVenue(): Promise<OwnerVenue> {
     slug: data.slug,
     clock: clockFromRow(data),
     isPaused: data.is_paused,
+    moderationLevel: toModerationLevel(data.moderation_level),
   };
 }
 
