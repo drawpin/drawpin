@@ -20,16 +20,19 @@ export function Sheet({
   paper,
   name,
   qrSvg,
+  code,
 }: {
   look: LookId;
   format: PrintFormat;
   paper: Paper;
   name: string;
   qrSvg: string;
+  /** The board's 8-digit join code. */
+  code: string;
 }) {
   const size = PAPER_SIZE[paper];
   const card = (layout: CardLayout) => (
-    <Look look={look} name={name} qrSvg={qrSvg} layout={layout} />
+    <Look look={look} name={name} qrSvg={qrSvg} code={code} layout={layout} />
   );
 
   return (

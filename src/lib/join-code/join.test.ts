@@ -10,21 +10,28 @@ import {
 
 /** An in-memory stand-in for the live codes and the guess counter. */
 class FakeStore implements JoinStore {
-  codes = new Map<string, { slug: string; from: Date; until: Date }>();
+  codes = new Map<string, { slug: string; from: Date; until: Date | null }>();
   guesses = new Map<string, number>();
 
+  /** A code live from a fixed moment until it's replaced (ADR-014). */
   addLiveCode(code: string, slug: string) {
     this.codes.set(code, {
       slug,
       from: new Date("2026-09-17T09:00:00Z"),
-      until: new Date("2026-09-18T09:00:00Z"),
+      until: null,
     });
+  }
+
+  replaceCode(code: string, at: Date) {
+    const found = this.codes.get(code);
+    if (found) found.until = at;
   }
 
   async findVenueByCode(code: string, at: Date) {
     const found = this.codes.get(code);
     if (!found) return null;
-    return at >= found.from && at < found.until ? found.slug : null;
+    const live = at >= found.from && (found.until === null || at < found.until);
+    return live ? found.slug : null;
   }
 
   async countWrongGuesses(ipHash: string, windowStart: Date) {
@@ -80,13 +87,19 @@ describe("joinWithCode", () => {
     expect(await join("87654321")).toEqual({ ok: false, reason: "unknown" });
   });
 
-  it("refuses yesterday's code", async () => {
-    const tomorrow = new Date("2026-09-18T15:00:00Z");
+  it("keeps working on the following days", async () => {
+    const nextMonth = new Date("2026-10-17T15:00:00Z");
 
-    expect(await join("12345678", IP, tomorrow)).toEqual({
-      ok: false,
-      reason: "unknown",
+    expect(await join("12345678", IP, nextMonth)).toEqual({
+      ok: true,
+      slug: "cafe-aaaa",
     });
+  });
+
+  it("refuses a code once the owner has replaced it", async () => {
+    store.replaceCode("12345678", new Date("2026-09-17T14:00:00Z"));
+
+    expect(await join("12345678")).toEqual({ ok: false, reason: "unknown" });
   });
 
   it("counts a wrong guess against the network", async () => {

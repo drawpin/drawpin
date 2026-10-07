@@ -11,11 +11,14 @@ const SKY = "#6badfa";
 const YELLOW = "#ffca39";
 const ORANGE = "#ff821b";
 
-/** What every card says. The daily code changes, so it can't be printed. */
+/**
+ * What every card says. The footer ends with the board's code, which stays
+ * the same until the owner makes a new one (ADR-014).
+ */
 export const CARD_COPY = {
   headline: "Scan to join the drawing board!",
   detail: "One tile each per day, vote for your favorite!",
-  footer: "No camera? Go to drawpin.io and type today's code.",
+  footer: "No camera? Go to drawpin.io and type",
 } as const;
 
 /**
@@ -118,11 +121,13 @@ function nameSize(name: string, layout: CardLayout): string {
 function Card({
   name,
   qrSvg,
+  code,
   layout,
   theme,
 }: {
   name: string;
   qrSvg: string;
+  code: string;
   layout: CardLayout;
   theme: Theme;
 }) {
@@ -205,7 +210,16 @@ function Card({
           className={poster ? "text-[10.5pt]" : "text-[8.5pt]"}
           style={{ color: "#525252" }}
         >
-          {CARD_COPY.footer}
+          {CARD_COPY.footer}{" "}
+          {/* Bigger and darker than the line around it, and spaced out the
+              way the owner's screen shows it, so it reads across a table. */}
+          <span
+            className={`font-mono font-bold tracking-[0.15em] whitespace-nowrap ${poster ? "text-[15pt]" : "text-[11pt]"}`}
+            style={{ color: INK }}
+          >
+            {code}
+          </span>
+          .
         </p>
         {!poster && <Wordmark width="w-[1.3in]" mono={theme.mono} />}
       </div>
@@ -352,11 +366,14 @@ export function Look({
   look,
   name,
   qrSvg,
+  code,
   layout,
 }: {
   look: LookId;
   name: string;
   qrSvg: string;
+  /** The board's 8-digit join code, printed in the footer. */
+  code: string;
   layout: CardLayout;
 }) {
   const theme: Theme = THEMES[look];
@@ -381,7 +398,13 @@ export function Look({
       <div
         className={`relative flex flex-1 flex-col ${poster ? "justify-center" : ""}`}
       >
-        <Card name={name} qrSvg={qrSvg} layout={layout} theme={theme} />
+        <Card
+          name={name}
+          qrSvg={qrSvg}
+          code={code}
+          layout={layout}
+          theme={theme}
+        />
       </div>
     </div>
   );

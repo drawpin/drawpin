@@ -6,9 +6,8 @@ import {
   PrinterIcon,
 } from "@phosphor-icons/react/ssr";
 import { connection } from "next/server";
-import { CopyValue } from "@/components/copy-value";
 import { boardUrl, createBoardQrCode } from "@/lib/board";
-import { ensureDailyCode } from "@/lib/daily-code/ensure";
+import { ensureJoinCode } from "@/lib/join-code/ensure";
 import { hand } from "@/lib/fonts";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { serverEnv } from "@/lib/env";
@@ -25,6 +24,7 @@ import { BlockedAccounts } from "./blocked-accounts";
 import { BoardLink } from "./board-link";
 import { BoardTiles } from "./board-tiles";
 import { CloseBoardForm } from "./close-board-form";
+import { JoinCode } from "./join-code";
 import { QrCard } from "./qr-card";
 import { RenameBoard } from "./rename-board";
 import { ReportedTiles } from "./reported-tiles";
@@ -62,9 +62,9 @@ export default async function AdminPage() {
   const [qr, tiles, code, reported, blocked] = await Promise.all([
     createBoardQrCode(url),
     listBoardTiles(venue.id),
-    // Created on the first view of the day, so it exists before anyone is
-    // told it (ADR-003).
-    ensureDailyCode(createAdminClient(), venue),
+    // Created on the first view, so it exists before anyone is told it
+    // (ADR-003). It stays until the owner makes a new one (ADR-014).
+    ensureJoinCode(createAdminClient(), venue.id),
     listReportedTiles(venue.id),
     listBlockedAccounts(venue.id),
   ]);
@@ -113,7 +113,7 @@ export default async function AdminPage() {
       )}
 
       <section className="flex flex-col gap-4">
-        <QrCard name={venue.name} url={url} svg={qr.svg} />
+        <QrCard name={venue.name} url={url} svg={qr.svg} code={code} />
         <div className="flex flex-wrap justify-center gap-3">
           <Link href="/admin/print" className={INKED_BUTTON}>
             <PrinterIcon weight="bold" className="size-5" />
@@ -130,18 +130,9 @@ export default async function AdminPage() {
         </div>
       </section>
 
-      <section className={CARD}>
-        <h2 className="font-black tracking-tight">Today&apos;s code</h2>
-        <CopyValue
-          value={code.replace(/\s/g, "")}
-          name="code"
-          className="border-foreground rounded-xl border-2 bg-white px-3 py-2 text-center font-mono text-3xl font-bold tracking-[0.3em]"
-        />
-        <p className="text-muted-foreground text-sm">
-          Anyone who can&apos;t scan can type this on the DrawPin home page. It
-          changes every morning at 4:00 AM, so it isn&apos;t on the card.
-        </p>
-      </section>
+      <div className={CARD}>
+        <JoinCode code={code} />
+      </div>
 
       <div className={CARD}>
         <BoardLink

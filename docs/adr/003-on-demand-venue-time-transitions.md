@@ -1,7 +1,8 @@
 # ADR-003: On-Demand Venue-Time Transitions Instead of an Hourly Cron
 
 ## Status
-Accepted
+Accepted. The join code no longer changes daily: ADR-014 makes it permanent
+until the owner makes a new one. It is still created on demand.
 
 ## Context
 `docs/PLAN.md` (v5) scheduled the time-based work on a Vercel Cron job running

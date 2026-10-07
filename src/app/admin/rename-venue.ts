@@ -11,8 +11,8 @@ export type RenameResult = "renamed" | "unchanged";
  * Changes a venue's display name.
  *
  * The slug is not recomputed. It is generated once at setup and stored, the
- * QR code encodes `/b/<slug>`, and the daily join code is keyed by venue and
- * time window — so a rename reprints nothing (issue #105). Changing the slug
+ * QR code encodes `/b/<slug>`, and the join code is keyed by venue — so a
+ * rename reprints nothing (issue #105). Changing the slug
  * is a separate feature that needs somewhere to keep former slugs, or every
  * printed code dies at once.
  *

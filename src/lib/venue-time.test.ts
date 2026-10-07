@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   clockStatus,
-  dayBoundsAt,
-  dayBoundsFor,
   finalBoundsFor,
   firstWeekEnd,
   formatBoundary,
@@ -105,37 +103,6 @@ describe("weekBoundsFor", () => {
       "Pacific/Kiritimati",
     );
     expect(iso(bounds.startsAt)).toBe("2026-09-13T14:00:00.000Z");
-  });
-});
-
-describe("dayBoundsFor", () => {
-  it("runs 4:00 AM to 4:00 AM venue time", () => {
-    // Wednesday 10:00 AM in Chicago (CDT, UTC-5).
-    expect(dayBoundsFor(at("2026-09-16T15:00:00Z"), "America/Chicago")).toEqual(
-      {
-        startsAt: at("2026-09-16T09:00:00Z"),
-        endsAt: at("2026-09-17T09:00:00Z"),
-      },
-    );
-  });
-
-  it("keeps the small hours on the previous day's code", () => {
-    // 2:00 AM Thursday still belongs to Wednesday's window.
-    expect(dayBoundsFor(at("2026-09-17T07:00:00Z"), "America/Chicago")).toEqual(
-      {
-        startsAt: at("2026-09-16T09:00:00Z"),
-        endsAt: at("2026-09-17T09:00:00Z"),
-      },
-    );
-  });
-
-  it("stays at 4:00 AM across a daylight saving change", () => {
-    // Saturday 2026-10-31, the day US clocks go back overnight: 4:00 AM is
-    // CDT at the start and CST at the end, so the day runs 25 hours.
-    const bounds = dayBoundsFor(at("2026-10-31T18:00:00Z"), "America/Chicago");
-
-    expect(iso(bounds.startsAt)).toBe("2026-10-31T09:00:00.000Z");
-    expect(iso(bounds.endsAt)).toBe("2026-11-01T10:00:00.000Z");
   });
 });
 
@@ -294,30 +261,6 @@ describe("weekBoundsAt", () => {
     const now = at("2026-09-22T15:00:00Z");
     expect(weekBoundsAt(now, changeTo("Asia/Tokyo"))).toEqual(
       weekBoundsFor(now, CHICAGO),
-    );
-  });
-});
-
-describe("dayBoundsAt", () => {
-  it("starts the first new day at the change, not before it", () => {
-    // 7:00 PM in Tokyo: its day began at 4:00 AM, nine hours before the change.
-    const bounds = dayBoundsAt(
-      at("2026-10-05T10:00:00Z"),
-      changeTo("Asia/Tokyo"),
-    );
-
-    expect(iso(bounds.startsAt)).toBe("2026-10-05T09:00:00.000Z");
-    expect(iso(bounds.endsAt)).toBe("2026-10-05T19:00:00.000Z");
-  });
-
-  it("uses the old zone before the change and the new one after", () => {
-    const clock = changeTo("Asia/Tokyo");
-    const before = at("2026-10-01T15:00:00Z");
-    const after = at("2026-10-07T15:00:00Z");
-
-    expect(dayBoundsAt(before, clock)).toEqual(dayBoundsFor(before, CHICAGO));
-    expect(dayBoundsAt(after, clock)).toEqual(
-      dayBoundsFor(after, "Asia/Tokyo"),
     );
   });
 });

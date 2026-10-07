@@ -1,16 +1,16 @@
-# DrawPin — Product Plan (v17, locked)
+# DrawPin — Product Plan (v18, locked)
 
 > Source of truth for v1 scope. Changes require an ADR in `docs/adr/` and a version bump here.
 
 ## Concept
 Free, web-based shared drawing boards for any group of people — a restaurant, a classroom, a party, a group chat. Whoever sets a board up decides what it's for. Scan a printed QR or enter an 8-digit code, Kahoot-style. No app download, and no account needed to draw for fun. Signing in with Google is what puts a drawing on the board: draw a tile, see everyone's tiles, vote for the weekly winner, and crown a monthly super winner.
 
-A place with tables is one kind of group and the one the product was designed around — printed codes, a daily rotation, an owner who prints one thing and walks away — so the model keeps that shape: a board has an owner, a time zone and a code. The outward copy does not assume a business.
+A place with tables is one kind of group and the one the product was designed around — printed codes, an owner who prints one thing and walks away — so the model keeps that shape: a board has an owner, a time zone and a code. The outward copy does not assume a business.
 
 ## Scope v1
 ### Joining
 - Static printed QR opens the venue's board directly (Option B).
-- 8-digit code rotates daily at **4:00 AM venue local time**, for people typing it in.
+- Each board has one 8-digit code, for people typing it in. It's printed with the QR on the table tent and poster, and stays the same until the owner makes a new one (ADR-014). Wrong guesses are rate-limited per network.
 - No wall TV/tablet. The board is viewed on phones.
 - Location checks (IP/geofence) are out of scope for v1.
 
@@ -80,8 +80,9 @@ Account + signed device ID cookie + browser fingerprint (hashed) + IP rate limit
 - Owners sign in by email (Supabase Auth): one email carries a code to type and a link to tap, both single-use with a short expiry, rate-limited, Turnstile on login. Customers sign in with Google or an emailed code. One account can both draw and own a board (ADR-013): Start a board and Manage my board take a signed-in account straight to its board or to setup.
 - **One board per owner.**
 - Setup: email → code or link → board name + time zone + moderation level → done.
-- One screen: (1) QR + today's code (download, or print a table tent or poster in one of five looks), (2) Pause board toggle, (3) Remove a tile, (4) reported tiles, surfaced first, (5) rename the board, (6) change the board link, (7) change the time zone, (8) block an account (ADR-008), (9) close the board (ADR-009), (10) board rules: the moderation level (ADR-012).
-- Renaming changes the display name only. The slug is generated once at setup, the QR encodes `/b/<slug>`, and the daily code is keyed by venue and time window — so a rename reprints nothing.
+- One screen: (1) QR + the board's code (download, or print a table tent or poster in one of five looks, both showing the code), and a new code on request, (2) Pause board toggle, (3) Remove a tile, (4) reported tiles, surfaced first, (5) rename the board, (6) change the board link, (7) change the time zone, (8) block an account (ADR-008), (9) close the board (ADR-009), (10) board rules: the moderation level (ADR-012).
+- Renaming changes the display name only. The slug is generated once at setup, the QR encodes `/b/<slug>`, and the code is keyed by venue — so a rename reprints nothing.
+- Making a new code stops the old one at once (ADR-014), so the owner reprints the table tent or poster. The QR and the link don't change.
 - Changing the link builds a new slug from the current name, offered once a rename has left the old one behind. Every former slug redirects to the board for good and is never given to another board, so printed codes keep working.
 - Changing the time zone takes effect from the next week; the current week keeps its boundaries.
 - Blocking an account stops it posting, voting and reporting on that board, and removes its live tiles there. The owner can unblock.
@@ -104,7 +105,7 @@ No charges for venues or users in v1.
 - Email through custom SMTP (Resend), from `hello@drawpin.io`: sign-in emails and health alerts
 - Cloudflare Turnstile; FingerprintJS (open source)
 - Canvas drawing: `perfect-freehand`
-- Venue-time transitions happen on demand, when first needed (ADR-003): daily join code, week status, weekly winner, monthly final and super winner
+- Venue-time transitions happen on demand, when first needed (ADR-003): the join code, week status, weekly winner, monthly final and super winner
 - Scheduled jobs: Vercel Cron (daily) → 30-day cleanup, and a daily health check of the database, storage, the OpenAI key and the Turnstile secret, which emails when one fails
 
 ## Back pocket (not v1)
@@ -118,7 +119,7 @@ still draw as a guest. None of these are v1.
 
 ## Phases
 1. Owner signs in → creates board → customers open QR → username → draw tile → live feed on phones *(done)*
-2. Safety, before sharing the board publicly: moderation pipeline, owner Pause board + Remove tile, Turnstile, device limits, rotating daily join code
+2. Safety, before sharing the board publicly: moderation pipeline, owner Pause board + Remove tile, Turnstile, device limits, join code
 3. Accounts and the weekly cycle: Google sign-in and profiles, then week status from timestamps, voting, weekly winner, Hall of Fame, monthly final and super winner, reporting, cleanup job
 4. **Fully functional first** (issue #67), then the UI pass (#40, with #39) — including showing a real board on the home page rather than describing one
 5. Back-pocket features. Downloading your own drawings (#57) came first and is in v1 as of v14.
@@ -164,6 +165,8 @@ v15 changes: weekly vote counts are public while voting is open, as a top-3 podi
 v16 changes: moderation is no longer one fixed policy. Each board picks a level, All Ages (today's rules, the default), Standard or Late Night (ADR-012), at setup and from a tenth owner setting; sexual content involving minors is blocked on every level, and usernames and board names stay at All Ages. Per-board moderation strictness leaves the back pocket.
 
 v17 changes: one account can both draw and own a board (ADR-013); closing a board keeps the sign-in of an owner who also draws, and a drawing account that owns a board is closed from the owner screen before it can be deleted.
+
+v18 changes: a board's 8-digit code no longer changes every morning (ADR-014). Each board keeps one code until its owner makes a new one, which stops the old one at once; the code that was live when this shipped became each board's permanent code. The table tent and poster print the code, and the wrong-guess limit stays as the brute-force protection.
 
 ## Diagrams
 

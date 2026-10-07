@@ -36,10 +36,14 @@ async function stubSupabaseSchema(instance: PGlite) {
   `);
 }
 
-async function applyMigrations(instance: PGlite) {
+/** Applies the migrations in order, or only those `include` keeps. */
+async function applyMigrations(
+  instance: PGlite,
+  include: (file: string) => boolean = () => true,
+) {
   const dir = path.join(import.meta.dirname, "migrations");
   const files = readdirSync(dir)
-    .filter((file) => file.endsWith(".sql"))
+    .filter((file) => file.endsWith(".sql") && include(file))
     .sort();
 
   for (const file of files) {
@@ -716,39 +720,57 @@ describe("count_recent_posts_from_ip", () => {
   });
 });
 
-describe("ensure_daily_code", () => {
-  const WINDOW = ["2026-09-17T09:00:00Z", "2026-09-18T09:00:00Z"];
-
-  const ensure = async (venueId: string, window = WINDOW) => {
-    const result = await db.query<{ ensure_daily_code: string }>(
-      `select ensure_daily_code($1::uuid, $2::timestamptz, $3::timestamptz)`,
-      [venueId, ...window],
+describe("ensure_join_code and replace_join_code", () => {
+  const ensure = async (venueId: string) => {
+    const result = await db.query<{ code: string }>(
+      `select ensure_join_code($1::uuid) as code`,
+      [venueId],
     );
-    return result.rows[0].ensure_daily_code;
+    return result.rows[0].code;
   };
 
-  it("makes one 8-digit code and returns it again all day", async () => {
+  const replace = async (venueId: string) => {
+    const result = await db.query<{ code: string }>(
+      `select replace_join_code($1::uuid) as code`,
+      [venueId],
+    );
+    return result.rows[0].code;
+  };
+
+  /** The venues a code opens right now, looked up the way joining does. */
+  const opens = async (code: string) => {
+    const result = await db.query<{ venue_id: string }>(
+      `select venue_id from daily_codes
+        where code = $1 and valid_from <= now() and valid_until > now()`,
+      [code],
+    );
+    return result.rows.map((row) => row.venue_id);
+  };
+
+  it("makes one 8-digit code and keeps returning it", async () => {
     const { venueId } = await seedBoard();
 
     const code = await ensure(venueId);
 
     expect(code).toMatch(/^[0-9]{8}$/);
     expect(await ensure(venueId)).toBe(code);
+    expect(await opens(code)).toEqual([venueId]);
   });
 
-  it("makes a new code for the next day", async () => {
+  it("keeps the code with no end date", async () => {
     const { venueId } = await seedBoard();
+    await ensure(venueId);
 
-    const today = await ensure(venueId);
-    const tomorrow = await ensure(venueId, [
-      "2026-09-18T09:00:00Z",
-      "2026-09-19T09:00:00Z",
-    ]);
+    const result = await db.query<{ open: boolean }>(
+      `select valid_until = 'infinity' as open from daily_codes
+        where venue_id = $1`,
+      [venueId],
+    );
 
-    expect(tomorrow).not.toBe(today);
+    expect(result.rows).toEqual([{ open: true }]);
   });
 
-  it("gives two venues different codes for the same day", async () => {
+  it("gives two venues different codes", async () => {
     const first = await seedBoard();
     const second = await seedBoard();
 
@@ -759,36 +781,149 @@ describe("ensure_daily_code", () => {
     const { venueId } = await seedBoard();
     await db.query(
       `insert into daily_codes (venue_id, code, valid_from, valid_until)
-       values ($1, '00000042', $2::timestamptz, $3::timestamptz)`,
-      [venueId, ...WINDOW],
+       values ($1, '00000042', '2026-09-17T09:00:00Z', 'infinity')`,
+      [venueId],
     );
 
     // Two first views of /admin race; the loser must not make a second code.
     expect(await ensure(venueId)).toBe("00000042");
   });
 
-  it("allows only one code per venue per day", async () => {
+  it("allows only one live code per venue", async () => {
     const { venueId } = await seedBoard();
     await ensure(venueId);
 
     await expect(
       db.query(
         `insert into daily_codes (venue_id, code, valid_from, valid_until)
-         values ($1, '00000043', $2::timestamptz, $3::timestamptz)`,
-        [venueId, ...WINDOW],
+         values ($1, '00000043', '2026-09-17T09:00:00Z', 'infinity')`,
+        [venueId],
       ),
-    ).rejects.toThrow(/daily_codes_one_per_window/);
+    ).rejects.toThrow(/daily_codes_one_live_per_venue/);
   });
 
-  it("is reachable by the server only", async () => {
-    const result = await db.query<{ grantee: string }>(
-      `select grantee from information_schema.role_routine_grants
-       where routine_name = 'ensure_daily_code' and grantee <> 'postgres'
-       order by grantee`,
+  it("replaces a code: the old one stops working at once", async () => {
+    const { venueId } = await seedBoard();
+    const old = await ensure(venueId);
+
+    const next = await replace(venueId);
+
+    expect(next).toMatch(/^[0-9]{8}$/);
+    expect(next).not.toBe(old);
+    expect(await opens(old)).toEqual([]);
+    expect(await opens(next)).toEqual([venueId]);
+    expect(await ensure(venueId)).toBe(next);
+  });
+
+  it("keeps the replaced code's row, closed at the change", async () => {
+    const { venueId } = await seedBoard();
+    await db.query(
+      `insert into daily_codes (venue_id, code, valid_from, valid_until)
+       values ($1, '00000044', '2026-09-17T09:00:00Z', 'infinity')`,
+      [venueId],
+    );
+    await replace(venueId);
+
+    const result = await db.query<{ closed: boolean }>(
+      `select valid_until <= now() as closed from daily_codes
+        where venue_id = $1 and code = '00000044'`,
+      [venueId],
     );
 
-    expect(result.rows.map((row) => row.grantee)).toEqual(["service_role"]);
+    expect(result.rows).toEqual([{ closed: true }]);
   });
+
+  it("replaces a code made in the same transaction", async () => {
+    const { venueId } = await seedBoard();
+
+    const result = await db.query<{ first: string; second: string }>(
+      `select ensure_join_code($1::uuid) as first,
+              replace_join_code($1::uuid) as second`,
+      [venueId],
+    );
+    const { first, second } = result.rows[0];
+
+    expect(second).not.toBe(first);
+    expect(await opens(first)).toEqual([]);
+    expect(await ensure(venueId)).toBe(second);
+  });
+
+  it("makes a code for a board that had none", async () => {
+    const { venueId } = await seedBoard();
+
+    const code = await replace(venueId);
+
+    expect(await ensure(venueId)).toBe(code);
+  });
+
+  it("refuses a board that doesn't exist", async () => {
+    await expect(replace(crypto.randomUUID())).rejects.toThrow(/not found/);
+  });
+
+  it("no longer has the daily version", async () => {
+    const result = await db.query(
+      `select 1 from information_schema.routines
+        where routine_name = 'ensure_daily_code'`,
+    );
+
+    expect(result.rows).toEqual([]);
+  });
+
+  it.each(["ensure_join_code", "replace_join_code"])(
+    "keeps %s reachable by the server only",
+    async (name) => {
+      const result = await db.query<{ grantee: string }>(
+        `select grantee from information_schema.role_routine_grants
+         where routine_name = $1 and grantee <> 'postgres'
+         order by grantee`,
+        [name],
+      );
+
+      expect(result.rows.map((row) => row.grantee)).toEqual(["service_role"]);
+    },
+  );
+});
+
+describe("the move to permanent join codes", () => {
+  const MIGRATION = "20261006170000_permanent_join_codes.sql";
+
+  it("keeps today's code for good and lets older ones lapse", async () => {
+    // A database as it was before the move, holding a board with yesterday's
+    // code and today's.
+    const before = new PGlite({ extensions: { btree_gist } });
+    await stubSupabaseSchema(before);
+    await applyMigrations(before, (file) => file < MIGRATION);
+    const ownerId = crypto.randomUUID();
+    const venueId = crypto.randomUUID();
+    await before.exec(`
+      insert into auth.users (id, email) values ('${ownerId}', 'o@example.com');
+      insert into owners (id, email) values ('${ownerId}', 'o@example.com');
+      insert into venues (id, owner_id, name, slug, timezone)
+        values ('${venueId}', '${ownerId}', 'Test Cafe', 'cafe-move', 'America/Chicago');
+      insert into daily_codes (venue_id, code, valid_from, valid_until) values
+        ('${venueId}', '11111111', now() - interval '30 hours', now() - interval '6 hours'),
+        ('${venueId}', '22222222', now() - interval '6 hours', now() + interval '18 hours');
+    `);
+
+    await applyMigrations(before, (file) => file === MIGRATION);
+
+    const result = await before.query<{ code: string; open: boolean }>(
+      `select code, valid_until = 'infinity' as open from daily_codes
+        where venue_id = $1 order by code`,
+      [venueId],
+    );
+    expect(result.rows).toEqual([
+      { code: "11111111", open: false },
+      { code: "22222222", open: true },
+    ]);
+    const kept = await before.query<{ code: string }>(
+      `select ensure_join_code($1::uuid) as code`,
+      [venueId],
+    );
+    expect(kept.rows[0].code).toBe("22222222");
+
+    await before.close();
+  }, 30_000);
 });
 
 describe("record_code_attempt", () => {

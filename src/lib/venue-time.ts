@@ -19,29 +19,6 @@ export function localDayFor(now: Date, timeZone: string): string {
   return venueDate(now, timeZone).toString();
 }
 
-export type DayBounds = {
-  /** 4:00 AM venue time: the day, and today's join code, begin. */
-  startsAt: Date;
-  /** The next 4:00 AM: the code expires and a new one is generated. */
-  endsAt: Date;
-};
-
-/**
- * The boundaries of the venue-local day containing `now`, used as the validity
- * window of the daily join code (docs/PLAN.md, Joining).
- *
- * Found per date rather than by adding 24 hours, so a day that crosses a
- * daylight saving change still runs 4:00 AM to 4:00 AM on the wall clock.
- */
-export function dayBoundsFor(now: Date, timeZone: string): DayBounds {
-  const today = venueDate(now, timeZone);
-
-  return {
-    startsAt: resetMoment(today, timeZone),
-    endsAt: resetMoment(today.add({ days: 1 }), timeZone),
-  };
-}
-
 export type WeekBounds = {
   /** Monday 4:00 AM venue time: posting opens. */
   startsAt: Date;
@@ -225,21 +202,6 @@ export function weekBoundsAt(now: Date, clock: VenueClock): WeekBounds {
     };
   }
   return weekBoundsFor(now, change.timeZone);
-}
-
-/**
- * {@link dayBoundsFor}, for a board whose time zone may be changing. The
- * first new-zone day starts at the change rather than at its own 4:00 AM,
- * which could be before it, so two days' join codes never overlap.
- */
-export function dayBoundsAt(now: Date, clock: VenueClock): DayBounds {
-  const zone = zoneAt(clock, now);
-  const bounds = dayBoundsFor(now, zone);
-  if (!clock.change || now < clock.change.from) return bounds;
-
-  return bounds.startsAt < clock.change.from
-    ? { ...bounds, startsAt: clock.change.from }
-    : bounds;
 }
 
 /** What changing a board's time zone to a new one does (ADR-008). */
