@@ -178,7 +178,8 @@ used" and each insert, and an account ends up with more votes than it has.
 
 ### `post_attempts`
 The per-device daily record of blocked attempts. It used to hold the device's
-daily post too; that limit is gone (PLAN v19).
+daily post too (`has_posted`); that limit is gone (PLAN v19) and the column was
+dropped by `20261007120000_drop_post_attempts_has_posted`.
 
 | Column | Type | Notes |
 |---|---|---|
@@ -187,7 +188,6 @@ daily post too; that limit is gone (PLAN v19).
 | `device_id` | `uuid` | FK → `devices` |
 | `local_day` | `date` | the venue-local day, not a UTC day |
 | `blocked_count` | `int` | 3 blocked attempts lock the device until reset |
-| `has_posted` | `boolean` | no longer read or written (PLAN v19); due to be dropped in a later migration |
 
 Unique on `(venue_id, device_id, local_day)`.
 
