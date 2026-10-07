@@ -24,10 +24,4 @@ describe("MODERATION_LEVELS", () => {
     expect(MODERATION_LEVELS[0]).toBe(DEFAULT_MODERATION_LEVEL);
     expect(DEFAULT_MODERATION_LEVEL).toBe("all_ages");
   });
-
-  it("tells the owner that Late Night still blocks the legal floor", () => {
-    expect(MODERATION_LEVEL_INFO.late_night.forOwner).toMatch(
-      /sexual content involving minors is always blocked/,
-    );
-  });
 });

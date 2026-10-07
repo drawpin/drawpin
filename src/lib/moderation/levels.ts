@@ -32,8 +32,7 @@ export const MODERATION_LEVEL_INFO: Record<
   },
   late_night: {
     name: "Late Night",
-    forOwner:
-      "No moderation, except the very specific cases the law requires (sexual content involving minors is always blocked).",
+    forOwner: "No moderation.",
   },
 };
 
