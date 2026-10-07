@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { findMovedSlug } from "@/lib/former-slugs";
+import { toModerationLevel } from "@/lib/moderation/levels";
 import { clockFromRow, VENUE_CLOCK_COLUMNS } from "@/lib/venue-time";
 import type { WeekBounds } from "@/lib/venue-time";
 import { isTakingPosts } from "@/lib/week-phase";
@@ -21,7 +22,7 @@ export class SupabaseTileStore implements TileStore {
   async findVenue(slug: string): Promise<PostingVenue | null> {
     const { data, error } = await this.admin
       .from("venues")
-      .select(`id, is_paused, ${VENUE_CLOCK_COLUMNS}`)
+      .select(`id, is_paused, moderation_level, ${VENUE_CLOCK_COLUMNS}`)
       .eq("slug", slug)
       .maybeSingle();
 
@@ -31,6 +32,7 @@ export class SupabaseTileStore implements TileStore {
         id: data.id,
         clock: clockFromRow(data),
         isPaused: data.is_paused,
+        moderationLevel: toModerationLevel(data.moderation_level),
       };
     }
 

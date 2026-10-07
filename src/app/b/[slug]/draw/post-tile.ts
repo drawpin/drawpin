@@ -3,6 +3,7 @@ import type {
   TileContent,
 } from "@/lib/moderation/moderate-tile";
 import type { ModerationCategory } from "@/lib/moderation/categories";
+import type { ModerationLevel } from "@/lib/moderation/policy";
 import { ModerationUnavailableError } from "@/lib/moderation/openai";
 import { BlankTileImageError, InvalidTileImageError } from "@/lib/tile-image";
 import {
@@ -31,6 +32,8 @@ export type PostingVenue = {
   id: string;
   clock: VenueClock;
   isPaused: boolean;
+  /** What the board's posts are checked for (ADR-012). */
+  moderationLevel: ModerationLevel;
 };
 
 export type NewTile = {
@@ -102,7 +105,11 @@ export interface TileStore {
 export type PostTileDeps = {
   store: TileStore;
   processImage: (upload: Uint8Array) => Promise<Buffer>;
-  moderate: (content: TileContent) => Promise<ModerationDecision>;
+  /** Checks the post against the board's moderation level (ADR-012). */
+  moderate: (
+    content: TileContent,
+    level: ModerationLevel,
+  ) => Promise<ModerationDecision>;
   nameTag: (userId: string, displayName: string) => string;
   newId: () => string;
   now: () => Date;
@@ -226,11 +233,10 @@ export async function postTile(
   let weekId: string | null;
   try {
     [decision, weekId] = await Promise.all([
-      deps.moderate({
-        displayName: input.displayName,
-        caption: input.caption,
-        image,
-      }),
+      deps.moderate(
+        { displayName: input.displayName, caption: input.caption, image },
+        venue.moderationLevel,
+      ),
       store.ensurePostingWeek(venue.id, weekBoundsAt(now, venue.clock)),
     ]);
   } catch (error) {

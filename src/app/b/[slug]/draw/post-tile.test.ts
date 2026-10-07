@@ -118,6 +118,7 @@ const venue: PostingVenue = {
   id: "venue-1",
   clock: { timeZone: "America/Chicago", change: null },
   isPaused: false,
+  moderationLevel: "all_ages",
 };
 
 let store: FakeStore;
@@ -261,12 +262,25 @@ describe("postTile", () => {
   it("moderates the processed image with the name and caption", async () => {
     await postTile(input(), deps);
 
-    expect(deps.moderate).toHaveBeenCalledWith({
-      displayName: "Ahmad",
-      caption: "hello",
-      image: Buffer.from("webp"),
-    });
+    expect(deps.moderate).toHaveBeenCalledWith(
+      { displayName: "Ahmad", caption: "hello", image: Buffer.from("webp") },
+      "all_ages",
+    );
   });
+
+  it.each(["standard", "late_night"] as const)(
+    "moderates at the board's level, %s",
+    async (moderationLevel) => {
+      store.venues.set("cafe-aaaa", { ...venue, moderationLevel });
+
+      await postTile(input(), deps);
+
+      expect(deps.moderate).toHaveBeenCalledWith(
+        expect.objectContaining({ displayName: "Ahmad" }),
+        moderationLevel,
+      );
+    },
+  );
 
   it("blocks a flagged post without using up the day", async () => {
     deps.moderate = vi.fn<PostTileDeps["moderate"]>(async () => ({
