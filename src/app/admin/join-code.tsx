@@ -26,17 +26,17 @@ export function JoinCode({ code }: { code: string }) {
   );
 
   return (
-    <section className="flex flex-col gap-3">
-      <h2 className="font-black tracking-tight">Board code</h2>
+    <section className="flex flex-col gap-2">
+      <h2 className="text-sm font-black tracking-tight">Board code</h2>
       <CopyValue
         value={code}
         name="code"
-        className="border-foreground rounded-xl border-2 bg-white py-2 pl-14 text-center font-mono text-2xl font-bold tracking-[0.25em] sm:text-3xl sm:tracking-[0.3em]"
+        className="border-foreground rounded-xl border-2 bg-white py-2 pl-4 font-mono text-xl font-bold tracking-[0.2em]"
       />
-      <p className="text-muted-foreground text-sm">
-        Anyone who can&apos;t scan can type this on the DrawPin home page.
-        It&apos;s printed on your table cards and posters, and stays the same
-        until you make a new one.
+      <p className="text-muted-foreground text-xs">
+        For anyone who can&apos;t scan: they type it on the DrawPin home page.
+        It&apos;s on your printed cards and posters, and stays the same until
+        you make a new one.
       </p>
 
       {state.status === "changed" && (

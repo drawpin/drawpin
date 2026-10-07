@@ -18,7 +18,8 @@ import {
   removeTileAction,
   type RemoveTileState,
 } from "./actions";
-import type { AdminTile } from "./board-tiles";
+import { type OwnerDrawing, reportLine } from "./drawings";
+import { Flag } from "./flag";
 import { columnCount, visibleRowsHeight } from "./tile-grid";
 
 const idle: RemoveTileState = { status: "idle" };
@@ -45,21 +46,21 @@ const CONFIRM = `${BUTTON} flex-1 border-destructive bg-destructive text-white h
  * A drawing on the owner's screen. Its options (Remove, Block account for a
  * drawing posted by an account, and Keep it for a reported one) sit over the
  * drawing and appear on hover, keyboard focus or a tap. Remove and Block are
- * permanent, so each asks first, in the same place over the drawing.
+ * permanent, so each asks first, in the same place over the drawing. A
+ * reported drawing carries a small flag in its corner.
  */
 function OwnerTile({
   tile,
   open,
   onToggle,
-  canKeep,
   children,
 }: {
-  tile: AdminTile;
+  tile: OwnerDrawing;
   open: boolean;
   onToggle: () => void;
-  canKeep: boolean;
   children: ReactNode;
 }) {
+  const canKeep = tile.reports !== undefined;
   const [removeState, remove, removing] = useActionState(
     removeTileAction,
     idle,
@@ -136,7 +137,18 @@ function OwnerTile({
           />
         </button>
 
-        {/* A tap on the tint, outside the buttons, closes it again. */}
+        {/* Seen, not heard: the line under the drawing says it's reported. */}
+        {tile.reports && (
+          <span
+            aria-hidden
+            className="owner-tile-badge border-foreground pointer-events-none absolute top-1.5 left-1.5 inline-flex items-center gap-1 rounded-md border-2 bg-white py-0.5 pr-1.5 pl-0.5 text-xs font-bold"
+          >
+            <Flag className="size-5" />
+            Reported
+          </span>
+        )}
+
+        {/* A tap on the wash, outside the buttons, closes it again. */}
         <div
           ref={optionsRef}
           id={optionsId}
@@ -145,7 +157,7 @@ function OwnerTile({
               onToggle();
             }
           }}
-          className={`owner-tile-options ring-foreground absolute inset-0 flex overflow-y-auto overscroll-contain rounded-lg p-1 ring-2 ring-inset ${asking ? "bg-white/95" : "bg-highlight/45 cursor-pointer"}`}
+          className={`owner-tile-options ring-foreground absolute inset-0 flex overflow-y-auto overscroll-contain rounded-lg p-1 ring-2 ring-inset ${asking ? "bg-white/95" : "bg-foreground/10 cursor-pointer"}`}
         >
           {/* my-auto rather than justify-center, so a question too tall for
               a small tile scrolls from its top instead of being cut off. */}
@@ -219,24 +231,20 @@ function OwnerTile({
 
 /**
  * The owner's drawings as a grid with options over each one (see
- * {@link OwnerTile}). Past two rows it scrolls inside its card instead of
- * stretching the page, with a fade at the bottom edge until it's scrolled to
- * the end. Used for this week's drawings and for reported ones.
+ * {@link OwnerTile}), each with its caption, who posted it and, when it's
+ * reported, what the reports say. Past two rows it scrolls inside its card
+ * instead of stretching the page, with a fade at the bottom edge until it's
+ * scrolled to the end.
  *
- * @param countLabel - Said over the grid, like "12 drawings".
- * @param canKeep - Offer Keep it, which clears a drawing's reports.
- * @param details - What shows under each drawing.
+ * @param countLabel - Said over the grid, like "12 drawings", when nothing
+ *   else around it counts them.
  */
-export function OwnerTileGrid<T extends AdminTile>({
+export function OwnerTileGrid({
   tiles,
   countLabel,
-  canKeep = false,
-  details,
 }: {
-  tiles: T[];
-  countLabel: string;
-  canKeep?: boolean;
-  details: (tile: T) => ReactNode;
+  tiles: OwnerDrawing[];
+  countLabel?: string;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [maxHeight, setMaxHeight] = useState<number | null>(null);
@@ -285,7 +293,9 @@ export function OwnerTileGrid<T extends AdminTile>({
             Tap a drawing for its options.
           </span>
         </p>
-        <p className="shrink-0 font-bold tabular-nums">{countLabel}</p>
+        {countLabel && (
+          <p className="shrink-0 font-bold tabular-nums">{countLabel}</p>
+        )}
       </div>
 
       <div className="relative">
@@ -295,19 +305,18 @@ export function OwnerTileGrid<T extends AdminTile>({
           ref={listRef}
           onScroll={checkEnd}
           style={scrolls ? { maxHeight } : undefined}
-          className={`relative -m-1 grid grid-cols-2 gap-3 p-1 sm:grid-cols-3 ${scrolls ? "scroll-py-2 overflow-x-hidden overflow-y-auto overscroll-y-contain" : ""}`}
+          className={`relative -m-1 grid grid-cols-2 gap-3 p-1 sm:grid-cols-3 xl:grid-cols-4 ${scrolls ? "scroll-py-2 overflow-x-hidden overflow-y-auto overscroll-y-contain" : ""}`}
         >
           {tiles.map((tile) => (
             <OwnerTile
               key={tile.id}
               tile={tile}
-              canKeep={canKeep}
               open={openId === tile.id}
               onToggle={() =>
                 setOpenId((current) => (current === tile.id ? null : tile.id))
               }
             >
-              {details(tile)}
+              <TileDetails tile={tile} />
             </OwnerTile>
           ))}
         </ul>
@@ -317,5 +326,24 @@ export function OwnerTileGrid<T extends AdminTile>({
         />
       </div>
     </div>
+  );
+}
+
+/** What shows under a drawing: its caption, who posted it, and its reports. */
+function TileDetails({ tile }: { tile: OwnerDrawing }) {
+  return (
+    <>
+      {/* The caption may be what was reported, so it always shows. */}
+      {tile.caption && <p className="text-sm break-words">{tile.caption}</p>}
+      <p className="text-muted-foreground text-xs break-words">
+        {tile.author ?? "Guest"}
+        {tile.earlier && " · From an earlier week"}
+      </p>
+      {tile.reports && (
+        <p className="text-xs font-semibold break-words">
+          {reportLine(tile.reports)}
+        </p>
+      )}
+    </>
   );
 }

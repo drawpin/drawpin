@@ -24,7 +24,7 @@ export function QrCard({
   const address = url.replace(/^https?:\/\//, "");
   const site = new URL(url).host;
   return (
-    <div className="print-card border-foreground mx-auto flex w-full max-w-72 flex-col items-center gap-3 rounded-xl border-2 bg-white px-5 pt-5 pb-4 text-center shadow-[5px_5px_0_var(--primary)]">
+    <div className="print-card border-foreground flex w-full flex-col items-center gap-3 rounded-xl border-2 bg-white px-5 pt-5 pb-4 text-center shadow-[5px_5px_0_var(--primary)]">
       <p
         className={`${hand.className} bg-winner text-foreground -rotate-2 rounded-sm px-3 py-0.5 text-2xl leading-tight font-bold`}
       >

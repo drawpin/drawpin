@@ -18,7 +18,7 @@ import {
 import { broadcastToBoard, TILE_REMOVED_EVENT } from "@/lib/realtime/broadcast";
 import type { BlockStore } from "./block-account";
 import type { CloseBoardStore } from "./close-board";
-import type { AdminTile } from "./board-tiles";
+import type { AdminTile, ReportedTile } from "./drawings";
 import type { OwnedTile, OwnerTileStore } from "./remove-tile";
 
 export type OwnerVenue = {
@@ -179,13 +179,6 @@ export class SupabaseOwnerTileStore implements OwnerTileStore {
     await broadcastToBoard(venueId, TILE_REMOVED_EVENT, { tileId });
   }
 }
-
-/** A tile customers have flagged, with what they said about it. */
-export type ReportedTile = AdminTile & {
-  reportCount: number;
-  /** The distinct reasons given, most recent first. */
-  reasons: string[];
-};
 
 type ReportRow = {
   reason: string;

@@ -35,13 +35,13 @@ export function BoardLink({
 
   return (
     <section className="flex flex-col gap-2">
-      <h2 className="font-black tracking-tight">Board link</h2>
+      <h2 className="text-sm font-black tracking-tight">Board link</h2>
       <CopyValue
         value={url}
         name="board link"
         className="bg-muted rounded-lg px-3 py-2 font-mono text-sm break-all"
       />
-      <p className="text-muted-foreground text-sm">
+      <p className="text-muted-foreground text-xs">
         People open this link by scanning the QR code. It doesn&apos;t change
         when you rename your board.
       </p>
