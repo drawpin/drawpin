@@ -37,19 +37,31 @@ export default function TermsPage() {
         </section>
 
         <section className="flex flex-col gap-2">
-          <h2 className="text-lg font-black">What not to post</h2>
+          <h2 className="text-lg font-black">Each board has its own rules</h2>
+          <p>
+            Whoever sets up a board picks how strict it is. All Ages blocks
+            anything suggestive, crude or violent. Standard allows swearing,
+            violence and gore. Late Night isn&apos;t moderated, and warns you
+            before you go in. Every board links to its rules at the foot of the
+            page. Follow the rules of the board you&apos;re posting to.
+          </p>
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <h2 className="text-lg font-black">On every board</h2>
           <ul className="list-disc pl-5">
-            <li>Anything illegal, hateful, sexual, or violent.</li>
-            <li>Adverts, links, spam, or contact details.</li>
-            <li>
-              Anything that identifies someone else, or that you&apos;d be
-              embarrassed to see on a wall in that café.
-            </li>
+            <li>Nothing illegal.</li>
+            <li>No sexual content involving minors, ever.</li>
+            <li>Nothing that identifies someone else without their say-so.</li>
+            <li>No spam.</li>
           </ul>
           <p>
-            Every name, caption and drawing is checked automatically before it
-            appears. Anyone signed in can report anything that slips through,
-            and a board&apos;s owner can remove anything on their own board.
+            Captions and drawings are checked automatically against the
+            board&apos;s rules before they appear; on a Late Night board, only
+            for sexual content involving minors. Usernames and board names are
+            checked at the strictest level everywhere. Automatic checks can miss
+            things: anyone signed in can report a drawing, and a board&apos;s
+            owner can remove anything on their own board.
           </p>
         </section>
 
