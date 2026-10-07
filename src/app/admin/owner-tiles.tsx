@@ -29,15 +29,6 @@ const VISIBLE_ROWS = 2;
 /** How much of the next row shows under them, in px, as a hint to scroll. */
 const PEEK = 24;
 
-/**
- * The options over a tile show under a mouse, to a keyboard (any part of the
- * tile has visible focus), or once tapped open. `:focus-visible` rather than
- * `:focus-within` because a tap focuses the button on Android, which would
- * keep the options up after a second tap closes them.
- */
-const SHOWN_ON_TILE =
-  "group-hover/tile:pointer-events-auto group-hover/tile:opacity-100 group-has-[:focus-visible]/tile:pointer-events-auto group-has-[:focus-visible]/tile:opacity-100 group-data-[open=true]/tile:pointer-events-auto group-data-[open=true]/tile:opacity-100";
-
 /** A button over a tile, every one a full 44px target. */
 const BUTTON =
   "focus-visible:ring-highlight inline-flex h-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border-2 px-2 text-sm font-bold whitespace-nowrap outline-none transition-[background-color,color,scale] duration-150 ease-out focus-visible:ring-3 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 motion-reduce:transition-none motion-reduce:active:scale-100";
@@ -124,7 +115,9 @@ function OwnerTile({
 
   return (
     <li className="flex flex-col gap-1">
-      <div className="group/tile relative" data-open={shown}>
+      {/* When the options show, and how they fade in, is `.owner-tile` in
+          globals.css: under a mouse, to a keyboard, or once tapped open. */}
+      <div className="owner-tile relative" data-open={shown}>
         <button
           ref={drawingRef}
           type="button"
@@ -152,11 +145,11 @@ function OwnerTile({
               onToggle();
             }
           }}
-          className={`ring-foreground absolute inset-0 flex overflow-y-auto overscroll-contain rounded-lg p-1 ring-2 transition-opacity duration-150 ease-out ring-inset motion-reduce:transition-none ${asking ? "bg-white/95 opacity-100" : `bg-highlight/45 pointer-events-none opacity-0 ${SHOWN_ON_TILE}`}`}
+          className={`owner-tile-options ring-foreground absolute inset-0 flex overflow-y-auto overscroll-contain rounded-lg p-1 ring-2 ring-inset ${asking ? "bg-white/95" : "bg-highlight/45 cursor-pointer"}`}
         >
           {/* my-auto rather than justify-center, so a question too tall for
               a small tile scrolls from its top instead of being cut off. */}
-          <div className="my-auto flex w-full flex-col gap-1">
+          <div className="owner-tile-options-body my-auto flex w-full flex-col gap-1">
             {asking === null && (
               <>
                 <button
