@@ -2,11 +2,13 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type AdminTile, BoardTiles } from "./board-tiles";
+import { type ReportedAdminTile, ReportedTiles } from "./reported-tiles";
 
 // The real actions reach Supabase; these tests only look at the screen.
 vi.mock("./actions", () => ({
   removeTileAction: vi.fn(async () => ({ status: "idle" })),
   blockAccountAction: vi.fn(async () => ({ status: "idle" })),
+  dismissReportsAction: vi.fn(async () => ({ status: "idle" })),
 }));
 
 // Lets React's act() run outside a testing library.
@@ -25,8 +27,8 @@ const tile = (id: string, canBlock = true): AdminTile => ({
 let container: HTMLDivElement;
 let root: Root;
 
-function render(tiles: AdminTile[]) {
-  act(() => root.render(<BoardTiles tiles={tiles} />));
+function render(element: React.ReactNode) {
+  act(() => root.render(element));
 }
 
 beforeEach(() => {
@@ -41,34 +43,34 @@ afterEach(() => {
 });
 
 const buttons = () => Array.from(container.querySelectorAll("button"));
-const byText = (text: string) =>
-  buttons().find((button) => button.textContent === text);
+const allByText = (text: string) =>
+  buttons().filter((button) => button.textContent === text);
+const byText = (text: string) => allByText(text)[0];
 const drawing = (index: number) =>
   container.querySelectorAll<HTMLButtonElement>("button[aria-expanded]")[index];
 
 describe("BoardTiles", () => {
   it("says when there are no drawings", () => {
-    render([]);
+    render(<BoardTiles tiles={[]} />);
     expect(container.textContent).toBe("No drawings on the board this week.");
   });
 
   it("counts the drawings", () => {
-    render([tile("1")]);
+    render(<BoardTiles tiles={[tile("1")]} />);
     expect(container.textContent).toContain("1 drawing");
-    render([tile("1"), tile("2")]);
+    render(<BoardTiles tiles={[tile("1"), tile("2")]} />);
     expect(container.textContent).toContain("2 drawings");
   });
 
   it("offers Block account only for a drawing posted by an account", () => {
-    render([tile("1"), tile("2", false)]);
-    expect(buttons().filter((b) => b.textContent === "Remove")).toHaveLength(2);
-    expect(
-      buttons().filter((b) => b.textContent === "Block account"),
-    ).toHaveLength(1);
+    render(<BoardTiles tiles={[tile("1"), tile("2", false)]} />);
+    expect(allByText("Remove")).toHaveLength(2);
+    expect(allByText("Block account")).toHaveLength(1);
+    expect(allByText("Keep it")).toHaveLength(0);
   });
 
   it("opens one drawing's options at a time on a tap", () => {
-    render([tile("1"), tile("2")]);
+    render(<BoardTiles tiles={[tile("1"), tile("2")]} />);
     act(() => drawing(0).click());
     expect(drawing(0).getAttribute("aria-expanded")).toBe("true");
 
@@ -80,22 +82,54 @@ describe("BoardTiles", () => {
     expect(drawing(1).getAttribute("aria-expanded")).toBe("false");
   });
 
-  it("asks before removing, and puts focus back on Cancel", () => {
-    render([tile("1")]);
+  it("asks before removing, on the drawing, then puts focus back", () => {
+    render(<BoardTiles tiles={[tile("1")]} />);
     act(() => byText("Remove")!.click());
-    expect(byText("Confirm")).toBeDefined();
-    expect(byText("Remove")).toBeUndefined();
+    expect(container.textContent).toContain("Remove this drawing?");
+    expect(byText("Block account")).toBeUndefined();
+    // The question keeps the options showing while it's open.
+    expect(drawing(0).getAttribute("aria-expanded")).toBe("true");
     expect(document.activeElement?.textContent).toBe("Cancel");
 
     act(() => byText("Cancel")!.click());
-    expect(byText("Confirm")).toBeUndefined();
+    expect(container.textContent).not.toContain("Remove this drawing?");
     expect(document.activeElement).toBe(drawing(0));
   });
 
-  it("explains blocking before it blocks", () => {
-    render([tile("1")]);
+  it("says what blocking does before it blocks", () => {
+    render(<BoardTiles tiles={[tile("1")]} />);
     act(() => byText("Block account")!.click());
-    expect(container.textContent).toContain("Block Sam#0001?");
+    expect(container.textContent).toContain(
+      "Block Sam#0001? They can't post, vote or report here, and their drawings are removed.",
+    );
     expect(byText("Block")).toBeDefined();
+  });
+});
+
+describe("ReportedTiles", () => {
+  const reported = (id: string): ReportedAdminTile => ({
+    ...tile(id),
+    reportCount: 2,
+    reasons: ["spam", "other"],
+  });
+
+  it("shows nothing when there are no reports", () => {
+    render(<ReportedTiles tiles={[]} />);
+    expect(container.innerHTML).toBe("");
+  });
+
+  it("counts them and says why each was reported", () => {
+    render(<ReportedTiles tiles={[reported("1"), reported("2")]} />);
+    expect(container.textContent).toContain("2 reported");
+    expect(container.textContent).toContain(
+      "Sam#0001 · 2 reports: spam, something else",
+    );
+  });
+
+  it("offers Keep it alongside Remove and Block account", () => {
+    render(<ReportedTiles tiles={[reported("1")]} />);
+    expect(byText("Remove")).toBeDefined();
+    expect(byText("Block account")).toBeDefined();
+    expect(byText("Keep it")?.getAttribute("type")).toBe("submit");
   });
 });
