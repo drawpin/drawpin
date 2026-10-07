@@ -507,6 +507,55 @@
   }
 }
 
+/* The options over a drawing on the owner's screen (src/app/admin/owner-tiles.tsx):
+   the tint, outline and buttons fade in together, the buttons growing in
+   from just smaller, and fade out a little faster than they came. The curve
+   is a gentle ease-out rather than the sharp one used elsewhere: the tint
+   covers the whole drawing, and a curve that's most of the way there in its
+   first frame made the hover feel instant and jumpy. They show
+   under a mouse, to a keyboard (any part of the tile has visible focus), or
+   once tapped open (`data-open`, also set while a question is asked).
+   `:focus-visible` rather than `:focus-within` because a tap focuses the
+   button on Android, which would keep them up after a second tap closes
+   them. Only opacity and scale move, so nothing shifts under the pointer;
+   the buttons only scale, never translate, because the options box scrolls
+   for a question too tall for its tile, and a translate would push them past
+   its edge and flash a scrollbar. */
+.owner-tile-options {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.owner-tile-options-body {
+  transition: scale 150ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.owner-tile:is([data-open="true"], :has(:focus-visible)) .owner-tile-options {
+  opacity: 1;
+  pointer-events: auto;
+  transition-duration: 240ms;
+}
+.owner-tile:is([data-open="true"], :has(:focus-visible))
+  .owner-tile-options-body {
+  scale: none;
+  transition-duration: 240ms;
+}
+@media (hover: hover) {
+  .owner-tile:hover .owner-tile-options {
+    opacity: 1;
+    pointer-events: auto;
+    transition-duration: 240ms;
+  }
+  .owner-tile:hover .owner-tile-options-body {
+    scale: none;
+    transition-duration: 240ms;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .owner-tile-options-body {
+    scale: 0.96;
+  }
+}
+
 /* Printing the admin page prints only the board's QR card, centred near the
    top of the page, at a size that scans from across a table. */
 @media print {
