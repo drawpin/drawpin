@@ -23,6 +23,7 @@ import {
 import { setBoardPaused, signOut } from "./actions";
 import { BlockedAccounts } from "./blocked-accounts";
 import { BoardLink } from "./board-link";
+import { BoardRules } from "./board-rules";
 import { BoardTiles } from "./board-tiles";
 import { CloseBoardForm } from "./close-board-form";
 import { JoinCode } from "./join-code";
@@ -165,6 +166,10 @@ export default async function AdminPage() {
           }
           nextChangeFrom={formatBoundary(clock.nextChangeFrom, clock.timeZone)}
         />
+      </div>
+
+      <div className={CARD}>
+        <BoardRules level={venue.moderationLevel} />
       </div>
 
       {/* A row, not a card's worth: it's one fact and one switch. */}

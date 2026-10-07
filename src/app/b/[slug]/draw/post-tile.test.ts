@@ -18,7 +18,6 @@ import {
 class FakeStore implements TileStore {
   venues = new Map<string, PostingVenue>();
   weeks = new Map<string, { id: string; closed: boolean }>();
-  claims = new Map<string, boolean>();
   blocked = new Map<string, number>();
   images = new Map<string, Buffer>();
   tiles: NewTile[] = [];
@@ -49,10 +48,7 @@ class FakeStore implements TileStore {
   async getDailyAttempt(venueId: string, deviceId: string, localDay: string) {
     const key = `${venueId}:${deviceId}:${localDay}`;
     const blockedCount = this.blocked.get(key) ?? 0;
-    const hasPosted = this.claims.get(key) ?? false;
-    return blockedCount === 0 && !hasPosted
-      ? null
-      : { hasPosted, blockedCount };
+    return blockedCount === 0 ? null : { blockedCount };
   }
 
   /** Posts recorded against a network, newest last. */
@@ -77,6 +73,10 @@ class FakeStore implements TileStore {
   /** Days already claimed by an account, as `venue:user:day`. */
   accountClaims = new Set<string>();
 
+  async hasAccountPosted(venueId: string, userId: string, localDay: string) {
+    return this.accountClaims.has(`${venueId}:${userId}:${localDay}`);
+  }
+
   async claimAccountPost(venueId: string, userId: string, localDay: string) {
     const key = `${venueId}:${userId}:${localDay}`;
     if (this.accountClaims.has(key)) return false;
@@ -86,17 +86,6 @@ class FakeStore implements TileStore {
 
   async releaseAccountPost(venueId: string, userId: string, localDay: string) {
     this.accountClaims.delete(`${venueId}:${userId}:${localDay}`);
-  }
-
-  async claimDailyPost(venueId: string, deviceId: string, localDay: string) {
-    const key = `${venueId}:${deviceId}:${localDay}`;
-    if (this.claims.get(key)) return false;
-    this.claims.set(key, true);
-    return true;
-  }
-
-  async releaseDailyPost(venueId: string, deviceId: string, localDay: string) {
-    this.claims.set(`${venueId}:${deviceId}:${localDay}`, false);
   }
 
   async uploadImage(path: string, image: Buffer) {
@@ -118,6 +107,7 @@ const venue: PostingVenue = {
   id: "venue-1",
   clock: { timeZone: "America/Chicago", change: null },
   isPaused: false,
+  moderationLevel: "all_ages",
 };
 
 let store: FakeStore;
@@ -187,7 +177,7 @@ describe("postTile", () => {
     expect(store.tiles[0].caption).toBeNull();
   });
 
-  it("allows one post per device per venue-local day", async () => {
+  it("allows one post per account per venue-local day", async () => {
     await postTile(input(), deps);
 
     await expect(postTile(input(), deps)).resolves.toEqual({
@@ -213,12 +203,22 @@ describe("postTile", () => {
     expect((await postTile(other, deps)).ok).toBe(true);
   });
 
-  it("stops a second account posting again from the same device", async () => {
+  it("lets a second account post from the same device the same day", async () => {
     await postTile(input(), deps);
 
     const result = await postTile(input({ userId: "user-2" }), deps);
 
+    expect(result.ok).toBe(true);
+    expect(store.tiles).toHaveLength(2);
+  });
+
+  it("still stops the same account posting twice from the same device", async () => {
+    await postTile(input(), deps);
+
+    const result = await postTile(input(), deps);
+
     expect(reasonOf(result)).toBe("already-posted");
+    expect(store.tiles).toHaveLength(1);
   });
 
   it("refuses unknown and paused boards", async () => {
@@ -232,7 +232,7 @@ describe("postTile", () => {
       ok: false,
       reason: "paused",
     });
-    expect(store.claims.size).toBe(0);
+    expect(store.accountClaims.size).toBe(0);
   });
 
   it("refuses an account the owner has blocked, before any work", async () => {
@@ -243,7 +243,7 @@ describe("postTile", () => {
       reason: "account-blocked",
     });
     expect(deps.processImage).not.toHaveBeenCalled();
-    expect(store.claims.size).toBe(0);
+    expect(store.accountClaims.size).toBe(0);
   });
 
   it.each([
@@ -255,18 +255,31 @@ describe("postTile", () => {
     });
 
     expect(await postTile(input(), deps)).toEqual({ ok: false, reason });
-    expect(store.claims.size).toBe(0);
+    expect(store.accountClaims.size).toBe(0);
   });
 
   it("moderates the processed image with the name and caption", async () => {
     await postTile(input(), deps);
 
-    expect(deps.moderate).toHaveBeenCalledWith({
-      displayName: "Ahmad",
-      caption: "hello",
-      image: Buffer.from("webp"),
-    });
+    expect(deps.moderate).toHaveBeenCalledWith(
+      { displayName: "Ahmad", caption: "hello", image: Buffer.from("webp") },
+      "all_ages",
+    );
   });
+
+  it.each(["standard", "late_night"] as const)(
+    "moderates at the board's level, %s",
+    async (moderationLevel) => {
+      store.venues.set("cafe-aaaa", { ...venue, moderationLevel });
+
+      await postTile(input(), deps);
+
+      expect(deps.moderate).toHaveBeenCalledWith(
+        expect.objectContaining({ displayName: "Ahmad" }),
+        moderationLevel,
+      );
+    },
+  );
 
   it("blocks a flagged post without using up the day", async () => {
     deps.moderate = vi.fn<PostTileDeps["moderate"]>(async () => ({
@@ -284,7 +297,7 @@ describe("postTile", () => {
     });
     expect(store.tiles).toHaveLength(0);
     expect(store.images.size).toBe(0);
-    expect([...store.claims.values()]).not.toContain(true);
+    expect(store.accountClaims.size).toBe(0);
 
     // The day is still available for a clean post.
     deps.moderate = vi.fn<PostTileDeps["moderate"]>(async () => ({
@@ -352,7 +365,7 @@ describe("postTile", () => {
     await postTile(input(), deps);
     store.weeks.forEach((week) => (week.closed = true));
 
-    expect(await postTile(input({ deviceId: "device-2" }), deps)).toEqual({
+    expect(await postTile(input({ userId: "user-2" }), deps)).toEqual({
       ok: false,
       reason: "week-closed",
     });
@@ -385,7 +398,7 @@ describe("postTile", () => {
 
   it("still reports the failure if clean-up also fails", async () => {
     store.failInsert = true;
-    store.releaseDailyPost = async () => {
+    store.releaseAccountPost = async () => {
       throw new Error("db down");
     };
 
@@ -431,7 +444,7 @@ describe("burst protection", () => {
     await postTile(input({ ipHash }), deps);
 
     expect(deps.moderate).not.toHaveBeenCalled();
-    expect(store.claims.size).toBe(0);
+    expect(store.accountClaims.size).toBe(0);
   });
 
   it("ignores posts older than the window", async () => {
@@ -469,37 +482,22 @@ describe("the account's daily post", () => {
     expect(store.tiles).toHaveLength(1);
   });
 
-  it("gives the device its day back when the account's is already used", async () => {
-    await postTile(input({ userId, deviceId: "phone" }), deps);
-    await postTile(input({ userId, deviceId: "laptop" }), deps);
-
-    // The laptop never posted, so it must not be left marked as having done so.
-    const attempt = await store.getDailyAttempt(
-      "venue-1",
-      "laptop",
-      "2026-09-16",
-    );
-    expect(attempt?.hasPosted ?? false).toBe(false);
-  });
-
-  it("releases both claims when saving fails", async () => {
+  it("releases the claim when saving fails", async () => {
     store.failInsert = true;
 
     await postTile(input({ userId }), deps);
 
     expect(store.accountClaims.size).toBe(0);
-    expect(store.claims.get("venue-1:device-1:2026-09-16")).toBe(false);
   });
 
-  it("gives the account its day back when the device loses a race for its own", async () => {
-    // The device and account days are claimed together; here another post
-    // from this device claims the day between the check and the claim.
-    store.claimDailyPost = async () => false;
+  it("refuses a post that loses a race for the account's day", async () => {
+    // Another post from this account claims the day between the check and
+    // the claim.
+    store.claimAccountPost = async () => false;
 
     const result = await postTile(input({ userId }), deps);
 
     expect(reasonOf(result)).toBe("already-posted");
-    expect(store.accountClaims.size).toBe(0);
     expect(store.tiles).toHaveLength(0);
   });
 });

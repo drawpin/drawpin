@@ -1,3 +1,4 @@
+import type { ModerationLevel } from "@/lib/moderation/policy";
 import { createBoardSlug } from "@/lib/slug";
 
 /** The subset of a Postgres error returned by supabase-js that this needs. */
@@ -8,6 +9,7 @@ type VenueRow = {
   name: string;
   slug: string;
   timezone: string;
+  moderation_level: ModerationLevel;
 };
 
 export type InsertVenue = (
@@ -26,7 +28,12 @@ const MAX_SLUG_ATTEMPTS = 5;
  * @throws {Error} On any other database error, or if no free slug was found.
  */
 export async function createVenue(
-  input: { ownerId: string; name: string; timezone: string },
+  input: {
+    ownerId: string;
+    name: string;
+    timezone: string;
+    moderationLevel: ModerationLevel;
+  },
   insert: InsertVenue,
   makeSlug: (name: string) => string = createBoardSlug,
 ): Promise<"created" | "already-exists"> {
@@ -36,6 +43,7 @@ export async function createVenue(
       name: input.name,
       slug: makeSlug(input.name),
       timezone: input.timezone,
+      moderation_level: input.moderationLevel,
     });
 
     if (!error) return "created";

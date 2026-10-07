@@ -7,6 +7,7 @@ import { hand } from "@/lib/fonts";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { BoardLayout, HEADER_BUTTON, YELLOW_STRIP } from "../board-look";
 import { getBoard, requireBoard } from "../data";
+import { lateNightGate } from "../late-night/gate";
 import { PinnedDrawing } from "../pinned-drawing";
 import { sharePreview } from "../share-preview";
 import type { Tile } from "../tiles";
@@ -89,6 +90,8 @@ export default async function HallOfFamePage({
 
   const { slug } = await params;
   const board = await requireBoard(slug, "/hall-of-fame");
+  const gate = await lateNightGate(board, "/hall-of-fame");
+  if (gate) return gate;
 
   const admin = createAdminClient();
   const [winners, superWinners] = await Promise.all([

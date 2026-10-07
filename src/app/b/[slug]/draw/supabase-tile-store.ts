@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { findMovedSlug } from "@/lib/former-slugs";
+import { toModerationLevel } from "@/lib/moderation/levels";
 import { clockFromRow, VENUE_CLOCK_COLUMNS } from "@/lib/venue-time";
 import type { WeekBounds } from "@/lib/venue-time";
 import { isTakingPosts } from "@/lib/week-phase";
@@ -21,7 +22,7 @@ export class SupabaseTileStore implements TileStore {
   async findVenue(slug: string): Promise<PostingVenue | null> {
     const { data, error } = await this.admin
       .from("venues")
-      .select(`id, is_paused, ${VENUE_CLOCK_COLUMNS}`)
+      .select(`id, is_paused, moderation_level, ${VENUE_CLOCK_COLUMNS}`)
       .eq("slug", slug)
       .maybeSingle();
 
@@ -31,6 +32,7 @@ export class SupabaseTileStore implements TileStore {
         id: data.id,
         clock: clockFromRow(data),
         isPaused: data.is_paused,
+        moderationLevel: toModerationLevel(data.moderation_level),
       };
     }
 
@@ -56,14 +58,12 @@ export class SupabaseTileStore implements TileStore {
   ): Promise<DailyAttempt | null> {
     const { data, error } = await this.admin
       .from("post_attempts")
-      .select("has_posted, blocked_count")
+      .select("blocked_count")
       .match({ venue_id: venueId, device_id: deviceId, local_day: localDay })
       .maybeSingle();
 
     if (error) throw new Error(`getDailyAttempt: ${error.message}`);
-    return data
-      ? { hasPosted: data.has_posted, blockedCount: data.blocked_count }
-      : null;
+    return data ? { blockedCount: data.blocked_count } : null;
   }
 
   async countRecentPostsFromIp(ipHash: string, since: Date): Promise<number> {
@@ -135,45 +135,19 @@ export class SupabaseTileStore implements TileStore {
     return isTakingPosts(week, new Date()) ? data.id : null;
   }
 
-  async claimDailyPost(
+  async hasAccountPosted(
     venueId: string,
-    deviceId: string,
+    userId: string,
     localDay: string,
   ): Promise<boolean> {
-    const key = { venue_id: venueId, device_id: deviceId, local_day: localDay };
-
-    const { error: insertError } = await this.admin
-      .from("post_attempts")
-      .upsert(key, {
-        onConflict: "venue_id,device_id,local_day",
-        ignoreDuplicates: true,
-      });
-    if (insertError) throw new Error(`claimDailyPost: ${insertError.message}`);
-
-    // Only one request can flip has_posted from false to true, so concurrent
-    // posts from the same device can't both succeed.
     const { data, error } = await this.admin
-      .from("post_attempts")
-      .update({ has_posted: true })
-      .match(key)
-      .eq("has_posted", false)
-      .select("id");
+      .from("account_posts")
+      .select("user_id")
+      .match({ venue_id: venueId, user_id: userId, local_day: localDay })
+      .maybeSingle();
 
-    if (error) throw new Error(`claimDailyPost: ${error.message}`);
-    return data.length === 1;
-  }
-
-  async releaseDailyPost(
-    venueId: string,
-    deviceId: string,
-    localDay: string,
-  ): Promise<void> {
-    const { error } = await this.admin
-      .from("post_attempts")
-      .update({ has_posted: false })
-      .match({ venue_id: venueId, device_id: deviceId, local_day: localDay });
-
-    if (error) throw new Error(`releaseDailyPost: ${error.message}`);
+    if (error) throw new Error(`hasAccountPosted: ${error.message}`);
+    return data !== null;
   }
 
   async claimAccountPost(
