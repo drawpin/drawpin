@@ -80,27 +80,26 @@ export default async function BoardRulesPage({
         </section>
       )}
 
-      <section className={CARD}>
-        <h2 className="font-black tracking-tight">Blocked here</h2>
-        <ul className="list-disc pl-5">
-          {info.blocked.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-        {board.moderationLevel !== "late_night" && (
+      {info.blocked.length > 0 && (
+        <section className={CARD}>
+          <h2 className="font-black tracking-tight">Blocked here</h2>
+          <ul className="list-disc pl-5">
+            {info.blocked.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
           <p className="text-muted-foreground text-sm">
             Checks are automatic, so now and then something slips through.
           </p>
-        )}
-      </section>
+        </section>
+      )}
 
       <section className={CARD}>
         <h2 className="font-black tracking-tight">On every board</h2>
         <p>
-          Sexual content involving minors is always blocked, and posting
-          anything illegal is against the Terms on every board. Usernames and
-          board names are checked at the strictest level, whatever a
-          board&apos;s rules.
+          Posting anything illegal is against the Terms on every board.
+          Usernames and board names are checked at the strictest level, whatever
+          a board&apos;s rules.
         </p>
         <p>
           If something here shouldn&apos;t be, anyone signed in can report it,

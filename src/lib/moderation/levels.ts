@@ -24,13 +24,11 @@ type LevelInfo = {
   summary: string;
   /** What gets through on this level, beyond what every level allows. */
   allowed: readonly string[];
-  /** What's refused on this level. The legal floor is always last. */
+  /** What's refused on this level. */
   blocked: readonly string[];
   /** The line on the draw screen, on a level that allows more than All Ages. */
   drawNote: string | null;
 };
-
-const LEGAL_FLOOR = "Sexual content involving minors, on every board";
 
 /** Each level's name, and what owners and visitors are told about it. */
 export const MODERATION_LEVEL_INFO: Record<ModerationLevel, LevelInfo> = {
@@ -47,7 +45,6 @@ export const MODERATION_LEVEL_INFO: Record<ModerationLevel, LevelInfo> = {
       "Nudity and sexual content",
       "Slurs, hate symbols and harassment",
       "Links, email addresses and phone numbers",
-      LEGAL_FLOOR,
     ],
     drawNote: null,
   },
@@ -61,21 +58,18 @@ export const MODERATION_LEVEL_INFO: Record<ModerationLevel, LevelInfo> = {
       "Nudity and sexual content",
       "Slurs, hate symbols and harassment",
       "Links, email addresses and phone numbers",
-      LEGAL_FLOOR,
     ],
     drawNote:
       "This board allows swearing, violence and gore. Sexual content, slurs and contact details are still blocked.",
   },
   late_night: {
     name: "Late Night",
-    forOwner:
-      "No moderation, except the very specific cases the law requires (sexual content involving minors is always blocked).",
+    forOwner: "No moderation.",
     summary:
-      "This board isn't moderated. Drawings and captions go up without being checked for anything except what the law requires.",
-    allowed: ["Anything the law allows"],
-    blocked: [LEGAL_FLOOR],
-    drawNote:
-      "This board isn't moderated. Only sexual content involving minors is blocked.",
+      "This board has no moderation. Drawings and captions go up without being checked.",
+    allowed: [],
+    blocked: [],
+    drawNote: "This board has no moderation.",
   },
 };
 

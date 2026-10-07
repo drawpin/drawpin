@@ -25,12 +25,6 @@ describe("MODERATION_LEVELS", () => {
     expect(MODERATION_LEVELS[0]).toBe(DEFAULT_MODERATION_LEVEL);
     expect(DEFAULT_MODERATION_LEVEL).toBe("all_ages");
   });
-
-  it("tells the owner that Late Night still blocks the legal floor", () => {
-    expect(MODERATION_LEVEL_INFO.late_night.forOwner).toMatch(
-      /sexual content involving minors is always blocked/,
-    );
-  });
 });
 
 describe("what visitors are told", () => {
@@ -50,12 +44,6 @@ describe("what visitors are told", () => {
         blocks.has(category as keyof typeof told),
       );
     }
-  });
-
-  it.each(MODERATION_LEVELS)("names the legal floor on %s", (level) => {
-    expect(MODERATION_LEVEL_INFO[level].blocked.at(-1)).toMatch(
-      /Sexual content involving minors/,
-    );
   });
 
   it("adds a draw-screen note only where more than All Ages is allowed", () => {

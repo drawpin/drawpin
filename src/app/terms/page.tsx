@@ -51,17 +51,16 @@ export default function TermsPage() {
           <h2 className="text-lg font-black">On every board</h2>
           <ul className="list-disc pl-5">
             <li>Nothing illegal.</li>
-            <li>No sexual content involving minors, ever.</li>
             <li>Nothing that identifies someone else without their say-so.</li>
             <li>No spam.</li>
           </ul>
           <p>
             Captions and drawings are checked automatically against the
-            board&apos;s rules before they appear; on a Late Night board, only
-            for sexual content involving minors. Usernames and board names are
-            checked at the strictest level everywhere. Automatic checks can miss
-            things: anyone signed in can report a drawing, and a board&apos;s
-            owner can remove anything on their own board.
+            board&apos;s rules before they appear, except on Late Night boards,
+            which have no moderation. Usernames and board names are checked at
+            the strictest level everywhere. Automatic checks can miss things:
+            anyone signed in can report a drawing, and a board&apos;s owner can
+            remove anything on their own board.
           </p>
         </section>
 

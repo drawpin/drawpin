@@ -33,8 +33,7 @@ function LateNightWarning({ board, page }: { board: Board; page: GatedPage }) {
       intro={
         <p>
           Drawings and captions on {board.name} go up without being checked, so
-          you may see things you&apos;d rather not. Only sexual content
-          involving minors is blocked.
+          you may see things you&apos;d rather not.
         </p>
       }
     >
