@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { signOut } from "@/app/admin/actions";
 import { Button } from "@/components/ui/button";
 import { requireOwner } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { listTimeZones } from "@/lib/timezones";
 import { SetupForm } from "./setup-form";
 
@@ -15,8 +15,10 @@ export default async function SetupPage() {
   // (ADR-013). One board per account: someone who has one goes to it.
   const owner = await requireOwner();
 
-  const supabase = await createClient();
-  const { data: venue, error } = await supabase
+  // The service role, after the sign-in check above: `owner_id` isn't one of
+  // the venue columns signed-in users may read (docs/ERD.md, Data API
+  // grants), so filtering on it with their own client is refused.
+  const { data: venue, error } = await createAdminClient()
     .from("venues")
     .select("id")
     .eq("owner_id", owner.id)
