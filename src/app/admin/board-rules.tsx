@@ -1,11 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { ModerationLevelPicker } from "@/components/moderation-level-picker";
-import { Button } from "@/components/ui/button";
 import { MODERATION_LEVEL_INFO } from "@/lib/moderation/levels";
 import type { ModerationLevel } from "@/lib/moderation/policy";
 import { type BoardRulesState, setModerationLevelAction } from "./actions";
+import { SAVE_BUTTON } from "./inline-save";
 
 const initialState: BoardRulesState = { status: "idle" };
 
@@ -13,17 +13,36 @@ const initialState: BoardRulesState = { status: "idle" };
  * The board's moderation level, and the way to change it (ADR-012). Says up
  * front that a change only reaches new posts, since an owner tightening the
  * rules might expect what's already up to be checked again.
+ *
+ * Save shows only once a level other than the saved one is picked, like the
+ * name and time zone. After a save the page brings the picked level as the
+ * saved one, so Save goes away by itself.
  */
 export function BoardRules({ level }: { level: ModerationLevel }) {
   const [state, formAction, pending] = useActionState(
     setModerationLevelAction,
     initialState,
   );
+  const [picked, setPicked] = useState<string>(level);
+  const changed = picked !== level;
 
   return (
-    <section className="flex flex-col gap-2">
-      <h2 className="font-black tracking-tight">Board rules</h2>
-      <form action={formAction} className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2">
+      <form
+        action={formAction}
+        // The picker's radios are uncontrolled; this only follows them.
+        onChange={(event) => {
+          // A form's change event comes from the field that changed.
+          const input: EventTarget = event.target;
+          if (
+            input instanceof HTMLInputElement &&
+            input.name === "moderationLevel"
+          ) {
+            setPicked(input.value);
+          }
+        }}
+        className="flex flex-col gap-2"
+      >
         {/* Remounts after a save, so it shows what was saved. */}
         <ModerationLevelPicker
           key={level}
@@ -47,16 +66,16 @@ export function BoardRules({ level }: { level: ModerationLevel }) {
           </p>
         )}
 
-        <Button
-          type="submit"
-          variant="outline"
-          size="sm"
-          className="self-start"
-          disabled={pending}
-        >
-          {pending ? "Saving…" : "Save rules"}
-        </Button>
+        {changed && (
+          <button
+            type="submit"
+            disabled={pending}
+            className={`${SAVE_BUTTON} self-start`}
+          >
+            {pending ? "Saving…" : "Save rules"}
+          </button>
+        )}
       </form>
-    </section>
+    </div>
   );
 }

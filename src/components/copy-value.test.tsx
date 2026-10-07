@@ -27,6 +27,11 @@ afterEach(() => {
 
 const button = () => container.querySelector("button")!;
 const status = () => container.querySelector('[role="status"]')!;
+/** The "Copied" tag shown over the button, outside it. */
+const copiedTag = () =>
+  [...container.querySelectorAll("span")].find(
+    (span) => span.textContent === "Copied" && !button().contains(span),
+  );
 
 async function click() {
   await act(async () => button().click());
@@ -47,9 +52,11 @@ describe("CopyValue", () => {
     expect(writeText).toHaveBeenCalledWith("12345678");
     expect(button().textContent).toBe("Copied");
     expect(status().textContent).toBe("Copied the code.");
+    expect(copiedTag()?.getAttribute("aria-hidden")).toBe("true");
 
     act(() => vi.advanceTimersByTime(2000));
     expect(button().textContent).toBe("Copy code");
+    expect(copiedTag()).toBeUndefined();
     expect(status().textContent).toBe("");
   });
 

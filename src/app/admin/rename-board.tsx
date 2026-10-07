@@ -1,15 +1,21 @@
 "use client";
 
-import { useActionState } from "react";
-import { Button } from "@/components/ui/button";
+import { useActionState, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import { renameBoardAction, type RenameBoardState } from "./actions";
+import { INLINE_SAVE_ROOM, InlineSave } from "./inline-save";
+import { nameChanged } from "./name-changed";
 
 const initialState: RenameBoardState = { status: "idle" };
 
 /**
  * Changes the name on the owner's board.
+ *
+ * Save shows inside the field once the name typed differs from the saved
+ * one, and goes again if it's typed back. After a save the page brings the
+ * new name, which then matches the field, so Save goes away by itself.
  *
  * The help text is the point of the section as much as the field is: an owner
  * about to rename is bracing for a reprint, and the answer is that there
@@ -20,21 +26,34 @@ export function RenameBoard({ name }: { name: string }) {
     renameBoardAction,
     initialState,
   );
+  const [typed, setTyped] = useState(name);
+  const changed = nameChanged(typed, name);
 
   return (
-    <section className="flex flex-col gap-2">
-      <h2 className="font-black tracking-tight">Board name</h2>
-      <form action={formAction} className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2">
+      <form
+        action={formAction}
+        // Enter on an unchanged name would save nothing.
+        onSubmit={(event) => {
+          if (!changed) event.preventDefault();
+        }}
+        className="flex flex-col gap-2"
+      >
         <Label htmlFor="venue-name" className="sr-only">
           Board name
         </Label>
-        <Input
-          id="venue-name"
-          name="name"
-          maxLength={120}
-          required
-          defaultValue={name}
-        />
+        <div className="relative">
+          <Input
+            id="venue-name"
+            name="name"
+            maxLength={120}
+            required
+            value={typed}
+            onChange={(event) => setTyped(event.target.value)}
+            className={cn("h-14", changed && INLINE_SAVE_ROOM)}
+          />
+          {changed && <InlineSave label="name" pending={pending} />}
+        </div>
         <p className="text-muted-foreground text-sm">
           This is the name everyone sees on your board. Your board link and QR
           code stay the same, so anything you&apos;ve already printed keeps
@@ -58,17 +77,7 @@ export function RenameBoard({ name }: { name: string }) {
             reprinting; the QR code on them still works.
           </p>
         )}
-
-        <Button
-          type="submit"
-          variant="outline"
-          size="sm"
-          className="self-start"
-          disabled={pending}
-        >
-          {pending ? "Saving…" : "Save name"}
-        </Button>
       </form>
-    </section>
+    </div>
   );
 }
