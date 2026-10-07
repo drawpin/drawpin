@@ -32,7 +32,10 @@ export default function TermsPage() {
             Your drawing is yours. By posting it you let us and the board&apos;s
             owner show it on that board, and, if it wins a week, keep showing it
             in that board&apos;s Hall of Fame, which is kept indefinitely.
-            Boards are public: anyone with the link can see what&apos;s on them.
+            Drawings that don&apos;t win are deleted 30 days after their
+            week&apos;s voting ends; you can save your own from your account
+            before then. Boards are public: anyone with the link can see
+            what&apos;s on them.
           </p>
         </section>
 
@@ -66,19 +69,42 @@ export default function TermsPage() {
 
         <section className="flex flex-col gap-2">
           <h2 className="text-lg font-black">The limits</h2>
+          <p>
+            Anyone can draw just for fun. Posting a drawing, voting and
+            reporting need you to be signed in.
+          </p>
           <ul className="list-disc pl-5">
             <li>
-              One drawing per device per day, and one per account per day.
+              One drawing a day on each board, per account and per device: a
+              second account or a second device doesn&apos;t get you a second
+              post on the same board.
             </li>
             <li>
-              Three votes per account per week, on different drawings, never
-              your own, and votes are final.
+              A drawing that&apos;s blocked doesn&apos;t use up your post, but
+              three blocked attempts in a day stop that device posting on the
+              board until the next day.
             </li>
-            <li>One vote per account in a monthly final.</li>
+            <li>
+              Captions are up to 80 characters. Only a few drawings can be
+              posted from one network in ten minutes.
+            </li>
+            <li>
+              A week&apos;s drawings are voted on during the week after. Each
+              account gets three votes a week on each board, on different
+              drawings and never your own, and votes are final.
+            </li>
+            <li>
+              The drawing with the most votes wins its week, with at least one
+              vote; a tie goes to the one posted first.
+            </li>
+            <li>
+              Each month, up to four of a board&apos;s weekly winners go to a
+              one-week final, with one vote per account.
+            </li>
           </ul>
           <p>
             Days and weeks turn over at 4:00 AM in the board&apos;s own time
-            zone.
+            zone, and weeks start on Monday.
           </p>
         </section>
 
@@ -89,7 +115,8 @@ export default function TermsPage() {
             someone who keeps breaking them, or who is trying to break the
             voting. A board&apos;s owner can remove any drawing from it,
             including one that had already won, in which case that week is
-            judged again without it.
+            judged again without it, and can stop an account posting on their
+            board.
           </p>
         </section>
 
