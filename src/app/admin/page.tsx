@@ -13,6 +13,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { serverEnv } from "@/lib/env";
 import { slugifyVenueName, slugMatchesName } from "@/lib/slug";
 import { listTimeZones } from "@/lib/timezones";
+import { cn } from "@/lib/utils";
 import { clockStatus, formatBoundary } from "@/lib/venue-time";
 import {
   BoardLayout,
@@ -166,16 +167,25 @@ export default async function AdminPage() {
         />
       </div>
 
-      <section className={CARD}>
-        <h2 className="font-black tracking-tight">
-          {venue.isPaused ? "Board paused" : "Board open"}
-        </h2>
-        <p className="text-muted-foreground text-sm">
-          {venue.isPaused
-            ? "People can see the board but can't post."
-            : "People can post to the board."}
-        </p>
-        <form action={setBoardPaused}>
+      {/* A row, not a card's worth: it's one fact and one switch. */}
+      <section className="border-foreground flex items-center justify-between gap-3 rounded-xl border-2 bg-white py-2.5 pr-2.5 pl-4 shadow-[4px_4px_0_var(--primary)]">
+        <div className="flex min-w-0 items-center gap-3">
+          <span
+            aria-hidden
+            className={`border-foreground size-3 shrink-0 rounded-full border-2 ${venue.isPaused ? "bg-winner" : "bg-primary"}`}
+          />
+          <div className="min-w-0">
+            <h2 className="leading-tight font-black tracking-tight">
+              {venue.isPaused ? "Board paused" : "Board open"}
+            </h2>
+            <p className="text-muted-foreground text-sm leading-snug">
+              {venue.isPaused
+                ? "People can see the board but can't post."
+                : "People can post to the board."}
+            </p>
+          </div>
+        </div>
+        <form action={setBoardPaused} className="shrink-0">
           <input
             type="hidden"
             name="paused"
@@ -183,7 +193,10 @@ export default async function AdminPage() {
           />
           <button
             type="submit"
-            className={venue.isPaused ? INKED_BUTTON : QUIET_BUTTON}
+            className={cn(
+              venue.isPaused ? INKED_BUTTON : QUIET_BUTTON,
+              "h-11 px-3.5 text-sm",
+            )}
           >
             {venue.isPaused ? "Resume posting" : "Pause board"}
           </button>

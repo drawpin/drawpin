@@ -31,7 +31,7 @@ export function JoinCode({ code }: { code: string }) {
       <CopyValue
         value={code}
         name="code"
-        className="border-foreground rounded-xl border-2 bg-white px-3 py-2 text-center font-mono text-3xl font-bold tracking-[0.3em]"
+        className="border-foreground rounded-xl border-2 bg-white py-2 pl-14 text-center font-mono text-2xl font-bold tracking-[0.25em] sm:text-3xl sm:tracking-[0.3em]"
       />
       <p className="text-muted-foreground text-sm">
         Anyone who can&apos;t scan can type this on the DrawPin home page.

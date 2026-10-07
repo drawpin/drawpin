@@ -1,9 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
-import { Button } from "@/components/ui/button";
+import { useActionState, useState } from "react";
+import { CaretDownIcon } from "@phosphor-icons/react";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import { setTimeZoneAction, type TimeZoneState } from "./actions";
+import { INLINE_SAVE_ROOM, InlineSave } from "./inline-save";
 
 const initialState: TimeZoneState = { status: "idle" };
 
@@ -13,6 +15,10 @@ const initialState: TimeZoneState = { status: "idle" };
  * A change waits for the end of this posting week, so the form says when it
  * takes over rather than implying it's immediate. The times it shows are
  * worked out on the server, in the zone each one falls in.
+ *
+ * Save shows inside the box, in place of its arrow, once a zone other than
+ * the saved one is picked. After a save the page brings the zone that was
+ * picked as the saved one, so Save goes away by itself.
  */
 export function TimeZone({
   zones,
@@ -35,6 +41,9 @@ export function TimeZone({
     setTimeZoneAction,
     initialState,
   );
+  const saved = scheduled?.timeZone ?? timeZone;
+  const [picked, setPicked] = useState(saved);
+  const changed = settlingUntil === null && picked !== saved;
 
   return (
     <section className="flex flex-col gap-2">
@@ -43,22 +52,35 @@ export function TimeZone({
         <Label htmlFor="board-timezone" className="sr-only">
           Time zone
         </Label>
-        <select
-          id="board-timezone"
-          name="timezone"
-          required
-          // Remounts after a save, so it shows what was saved.
-          key={scheduled?.timeZone ?? timeZone}
-          disabled={settlingUntil !== null}
-          defaultValue={scheduled?.timeZone ?? timeZone}
-          className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-9 w-full rounded-lg border px-2.5 text-base outline-none focus-visible:ring-3 disabled:opacity-60 md:text-sm"
-        >
-          {zones.map((zone) => (
-            <option key={zone} value={zone}>
-              {zone.replaceAll("_", " ")}
-            </option>
-          ))}
-        </select>
+        <div className="relative">
+          <select
+            id="board-timezone"
+            name="timezone"
+            required
+            disabled={settlingUntil !== null}
+            value={picked}
+            onChange={(event) => setPicked(event.target.value)}
+            className={cn(
+              "border-foreground focus-visible:ring-highlight h-14 w-full cursor-pointer appearance-none truncate rounded-xl border-2 bg-white pr-11 pl-3.5 text-base outline-none focus-visible:ring-3 disabled:cursor-not-allowed disabled:opacity-60",
+              changed && INLINE_SAVE_ROOM,
+            )}
+          >
+            {zones.map((zone) => (
+              <option key={zone} value={zone}>
+                {zone.replaceAll("_", " ")}
+              </option>
+            ))}
+          </select>
+          {changed ? (
+            <InlineSave label="time zone" pending={pending} />
+          ) : (
+            <CaretDownIcon
+              weight="bold"
+              aria-hidden
+              className="pointer-events-none absolute top-1/2 right-4 size-5 -translate-y-1/2"
+            />
+          )}
+        </div>
 
         {scheduled ? (
           <p className="text-muted-foreground text-sm">
@@ -84,18 +106,6 @@ export function TimeZone({
           <p role="alert" className="text-destructive text-sm">
             {state.message}
           </p>
-        )}
-
-        {settlingUntil === null && (
-          <Button
-            type="submit"
-            variant="outline"
-            size="sm"
-            className="self-start"
-            disabled={pending}
-          >
-            {pending ? "Saving…" : "Save time zone"}
-          </Button>
         )}
       </form>
     </section>
