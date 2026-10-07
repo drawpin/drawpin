@@ -426,12 +426,12 @@ describe("daily codes", () => {
   });
 });
 
-describe("daily posting budget", () => {
+describe("daily blocked-attempt record", () => {
   it("keeps one attempt row per device per venue-local day", async () => {
     const { venueId, artistDeviceId } = await seedBoard();
 
-    await db.exec(`insert into post_attempts (venue_id, device_id, local_day, has_posted)
-                   values ('${venueId}', '${artistDeviceId}', '2026-09-16', true);`);
+    await db.exec(`insert into post_attempts (venue_id, device_id, local_day)
+                   values ('${venueId}', '${artistDeviceId}', '2026-09-16');`);
 
     await expect(
       db.exec(`insert into post_attempts (venue_id, device_id, local_day)
