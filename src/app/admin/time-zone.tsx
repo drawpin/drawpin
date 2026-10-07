@@ -46,8 +46,7 @@ export function TimeZone({
   const changed = settlingUntil === null && picked !== saved;
 
   return (
-    <section className="flex flex-col gap-2">
-      <h2 className="font-black tracking-tight">Time zone</h2>
+    <div className="flex flex-col gap-2">
       <form action={formAction} className="flex flex-col gap-2">
         <Label htmlFor="board-timezone" className="sr-only">
           Time zone
@@ -108,6 +107,6 @@ export function TimeZone({
           </p>
         )}
       </form>
-    </section>
+    </div>
   );
 }

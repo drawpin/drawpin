@@ -22,8 +22,7 @@ export function CloseBoardForm({ name }: { name: string }) {
   const [typed, setTyped] = useState("");
 
   return (
-    <section className="flex flex-col gap-2">
-      <h2 className="font-black tracking-tight">Close board</h2>
+    <div className="flex flex-col gap-2">
       <p className="text-muted-foreground text-sm">
         Deletes your board and everything on it, for good.
       </p>
@@ -97,6 +96,6 @@ export function CloseBoardForm({ name }: { name: string }) {
           Close board…
         </Button>
       )}
-    </section>
+    </div>
   );
 }
