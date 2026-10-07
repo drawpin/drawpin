@@ -74,19 +74,11 @@ export default function TermsPage() {
             reporting need you to be signed in.
           </p>
           <ul className="list-disc pl-5">
-            <li>
-              One drawing a day on each board, per account and per device: a
-              second account or a second device doesn&apos;t get you a second
-              post on the same board.
-            </li>
+            <li>One drawing a day per account on each board.</li>
             <li>
               A drawing that&apos;s blocked doesn&apos;t use up your post, but
               three blocked attempts in a day stop that device posting on the
               board until the next day.
-            </li>
-            <li>
-              Captions are up to 80 characters. Only a few drawings can be
-              posted from one network in ten minutes.
             </li>
             <li>
               A week&apos;s drawings are voted on during the week after. Each
