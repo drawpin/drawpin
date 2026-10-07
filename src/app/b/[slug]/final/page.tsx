@@ -10,6 +10,7 @@ import { hand } from "@/lib/fonts";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { BoardLayout, HEADER_BUTTON, YELLOW_STRIP } from "../board-look";
 import { getBoard, requireBoard } from "../data";
+import { lateNightGate } from "../late-night/gate";
 import { sharePreview } from "../share-preview";
 import { SignInToVote } from "../vote/sign-in-to-vote";
 import {
@@ -62,6 +63,8 @@ export default async function FinalPage({
     requireBoard(slug, "/final"),
     getCustomer(admin, { check: "token" }),
   ]);
+  const gate = await lateNightGate(board, "/final");
+  if (gate) return gate;
 
   const weeks = await listWeekTimings(admin, board.id);
   const window = openFinal(weeks, board.timezone, new Date());

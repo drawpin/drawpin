@@ -145,8 +145,10 @@ export default function PrivacyPage() {
           <h2 className="text-lg font-black">Cookies</h2>
           <p>
             One cookie identifies your device so the daily limit works, and
-            signing in adds the cookies that keep you signed in. That&apos;s all
-            of them, nothing for advertising or analytics.
+            signing in adds the cookies that keep you signed in. If you continue
+            past a Late Night board&apos;s warning, one more remembers which
+            boards you chose to see, so you aren&apos;t asked again. That&apos;s
+            all of them, nothing for advertising or analytics.
           </p>
         </section>
 
