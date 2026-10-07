@@ -39,8 +39,7 @@ export function BlockedAccounts({ accounts }: { accounts: BlockedAccount[] }) {
   if (accounts.length === 0) return null;
 
   return (
-    <section className="flex flex-col gap-2">
-      <h2 className="font-black tracking-tight">Blocked accounts</h2>
+    <div className="flex flex-col gap-2">
       <p className="text-muted-foreground text-sm">
         These accounts can&apos;t post, vote or report on your board. Unblocking
         lets them back in; drawings that were removed stay removed.
@@ -50,6 +49,6 @@ export function BlockedAccounts({ accounts }: { accounts: BlockedAccount[] }) {
           <BlockedRow key={account.userId} account={account} />
         ))}
       </ul>
-    </section>
+    </div>
   );
 }

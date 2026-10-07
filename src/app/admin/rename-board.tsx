@@ -30,8 +30,7 @@ export function RenameBoard({ name }: { name: string }) {
   const changed = nameChanged(typed, name);
 
   return (
-    <section className="flex flex-col gap-2">
-      <h2 className="font-black tracking-tight">Board name</h2>
+    <div className="flex flex-col gap-2">
       <form
         action={formAction}
         // Enter on an unchanged name would save nothing.
@@ -79,6 +78,6 @@ export function RenameBoard({ name }: { name: string }) {
           </p>
         )}
       </form>
-    </section>
+    </div>
   );
 }

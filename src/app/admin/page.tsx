@@ -12,6 +12,7 @@ import { hand } from "@/lib/fonts";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { serverEnv } from "@/lib/env";
 import { slugifyVenueName, slugMatchesName } from "@/lib/slug";
+import { MODERATION_LEVEL_INFO } from "@/lib/moderation/levels";
 import { listTimeZones } from "@/lib/timezones";
 import { cn } from "@/lib/utils";
 import { clockStatus, formatBoundary } from "@/lib/venue-time";
@@ -30,6 +31,7 @@ import { JoinCode } from "./join-code";
 import { QrCard } from "./qr-card";
 import { RenameBoard } from "./rename-board";
 import { ReportedTiles } from "./reported-tiles";
+import { SettingsShelf } from "./settings-shelf";
 import { TimeZone } from "./time-zone";
 import {
   listBlockedAccounts,
@@ -51,8 +53,10 @@ const QUIET_BUTTON =
 /**
  * The owner's screen (docs/PLAN.md, Owner admin), in the boards' look (UI
  * pass, 2026-10-05): the board's blue header, the QR as a card with the ways
- * to print it, and each setting on an inked card. Reports come first when
- * there are any: they're the only part that needs the owner to do something.
+ * to print it, and what the owner uses often on inked cards. Reports come
+ * first when there are any: they're the only part that needs the owner to do
+ * something. Settings set once and rarely revisited (name, time zone, rules,
+ * pausing, blocked accounts, closing) fold into Board settings at the end.
  */
 export default async function AdminPage() {
   // The board's state changes as customers post, so never serve a cached copy.
@@ -106,6 +110,23 @@ export default async function AdminPage() {
         </>
       }
     >
+      {/* Hard to miss while it lasts: nobody can post until it's undone. */}
+      {venue.isPaused && (
+        <div className="border-foreground flex items-center justify-between gap-3 rounded-xl border-2 bg-white py-2 pr-2 pl-4 shadow-[4px_4px_0_var(--winner)]">
+          <p className="flex items-center gap-2.5 text-sm">
+            <span
+              aria-hidden
+              className="border-foreground bg-winner size-3 shrink-0 rounded-full border-2"
+            />
+            <span>
+              <span className="font-black">Board paused.</span> People
+              can&apos;t post.
+            </span>
+          </p>
+          <PauseButton paused />
+        </div>
+      )}
+
       {/* First thing on the screen when there is one: it is the only part
           that needs the owner to do something. */}
       {reported.length > 0 && (
@@ -144,70 +165,6 @@ export default async function AdminPage() {
         />
       </div>
 
-      <div className={CARD}>
-        <RenameBoard name={venue.name} />
-      </div>
-
-      {/* Each time is shown in the zone it falls in: a change's start in the
-          zone it ends, a new zone's first week in the new zone. */}
-      <div className={CARD}>
-        <TimeZone
-          zones={listTimeZones()}
-          timeZone={clock.timeZone}
-          scheduled={
-            clock.scheduled && {
-              timeZone: clock.scheduled.timeZone,
-              from: formatBoundary(clock.scheduled.from, clock.timeZone),
-            }
-          }
-          settlingUntil={
-            clock.settlingUntil &&
-            formatBoundary(clock.settlingUntil, clock.timeZone)
-          }
-          nextChangeFrom={formatBoundary(clock.nextChangeFrom, clock.timeZone)}
-        />
-      </div>
-
-      <div className={CARD}>
-        <BoardRules level={venue.moderationLevel} />
-      </div>
-
-      {/* A row, not a card's worth: it's one fact and one switch. */}
-      <section className="border-foreground flex items-center justify-between gap-3 rounded-xl border-2 bg-white py-2.5 pr-2.5 pl-4 shadow-[4px_4px_0_var(--primary)]">
-        <div className="flex min-w-0 items-center gap-3">
-          <span
-            aria-hidden
-            className={`border-foreground size-3 shrink-0 rounded-full border-2 ${venue.isPaused ? "bg-winner" : "bg-primary"}`}
-          />
-          <div className="min-w-0">
-            <h2 className="leading-tight font-black tracking-tight">
-              {venue.isPaused ? "Board paused" : "Board open"}
-            </h2>
-            <p className="text-muted-foreground text-sm leading-snug">
-              {venue.isPaused
-                ? "People can see the board but can't post."
-                : "People can post to the board."}
-            </p>
-          </div>
-        </div>
-        <form action={setBoardPaused} className="shrink-0">
-          <input
-            type="hidden"
-            name="paused"
-            value={venue.isPaused ? "false" : "true"}
-          />
-          <button
-            type="submit"
-            className={cn(
-              venue.isPaused ? INKED_BUTTON : QUIET_BUTTON,
-              "h-11 px-3.5 text-sm",
-            )}
-          >
-            {venue.isPaused ? "Resume posting" : "Pause board"}
-          </button>
-        </form>
-      </section>
-
       <section className={CARD}>
         <h2 className="font-black tracking-tight">This week&apos;s drawings</h2>
         <p className="text-muted-foreground text-sm">
@@ -217,16 +174,115 @@ export default async function AdminPage() {
         <BoardTiles tiles={tiles} />
       </section>
 
-      {blocked.length > 0 && (
-        <div className={CARD}>
-          <BlockedAccounts accounts={blocked} />
-        </div>
-      )}
+      {/* Settings an owner sets once and rarely revisits, each folded to a
+          line saying what it's set to. Closing the board is last: it can't
+          be undone. */}
+      <section
+        aria-labelledby="board-settings"
+        className="border-foreground overflow-hidden rounded-xl border-2 bg-white shadow-[4px_4px_0_var(--primary)]"
+      >
+        <h2
+          id="board-settings"
+          className="px-5 pt-5 pb-3 font-black tracking-tight"
+        >
+          Board settings
+        </h2>
 
-      {/* Last and set apart: it can't be undone. */}
-      <div className={`${CARD} shadow-[4px_4px_0_var(--destructive)]`}>
-        <CloseBoardForm name={venue.name} />
-      </div>
+        <SettingsShelf id="board-name" title="Board name" summary={venue.name}>
+          <RenameBoard name={venue.name} />
+        </SettingsShelf>
+
+        {/* Each time is shown in the zone it falls in: a change's start in the
+            zone it ends, a new zone's first week in the new zone. */}
+        <SettingsShelf
+          id="time-zone"
+          title="Time zone"
+          summary={
+            clock.scheduled
+              ? `${zoneName(clock.timeZone)}, then ${zoneName(clock.scheduled.timeZone)}`
+              : zoneName(clock.timeZone)
+          }
+        >
+          <TimeZone
+            zones={listTimeZones()}
+            timeZone={clock.timeZone}
+            scheduled={
+              clock.scheduled && {
+                timeZone: clock.scheduled.timeZone,
+                from: formatBoundary(clock.scheduled.from, clock.timeZone),
+              }
+            }
+            settlingUntil={
+              clock.settlingUntil &&
+              formatBoundary(clock.settlingUntil, clock.timeZone)
+            }
+            nextChangeFrom={formatBoundary(
+              clock.nextChangeFrom,
+              clock.timeZone,
+            )}
+          />
+        </SettingsShelf>
+
+        <SettingsShelf
+          id="board-rules"
+          title="Board rules"
+          summary={MODERATION_LEVEL_INFO[venue.moderationLevel].name}
+        >
+          <BoardRules level={venue.moderationLevel} />
+        </SettingsShelf>
+
+        <SettingsShelf
+          id="pause-board"
+          title="Pause board"
+          summary={venue.isPaused ? "Paused" : "Open"}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-muted-foreground text-sm">
+              {venue.isPaused
+                ? "People can see the board but can't post."
+                : "People can post to the board."}
+            </p>
+            <PauseButton paused={venue.isPaused} />
+          </div>
+        </SettingsShelf>
+
+        {blocked.length > 0 && (
+          <SettingsShelf
+            id="blocked-accounts"
+            title="Blocked accounts"
+            summary={String(blocked.length)}
+          >
+            <BlockedAccounts accounts={blocked} />
+          </SettingsShelf>
+        )}
+
+        <SettingsShelf id="close-board" title="Close board" danger>
+          <CloseBoardForm name={venue.name} />
+        </SettingsShelf>
+      </section>
     </BoardLayout>
+  );
+}
+
+/** A time zone as people read it: "America/New York". */
+function zoneName(zone: string): string {
+  return zone.replaceAll("_", " ");
+}
+
+/** Pauses the board, or resumes posting when it's paused. */
+function PauseButton({ paused }: { paused: boolean }) {
+  return (
+    <form action={setBoardPaused} className="shrink-0">
+      <input type="hidden" name="paused" value={paused ? "false" : "true"} />
+      <button
+        type="submit"
+        className={cn(
+          paused ? INKED_BUTTON : QUIET_BUTTON,
+          "h-11 px-3.5 text-sm",
+        )}
+      >
+        {paused ? "Resume posting" : "Pause board"}
+      </button>
+    </form>
   );
 }
