@@ -187,14 +187,14 @@ daily post too; that limit is gone (PLAN v19).
 | `device_id` | `uuid` | FK → `devices` |
 | `local_day` | `date` | the venue-local day, not a UTC day |
 | `blocked_count` | `int` | 3 blocked attempts lock the device until reset |
-| `has_posted` | `boolean` | no longer read or written; always `false`. Due to be dropped in a later migration |
+| `has_posted` | `boolean` | no longer read or written (PLAN v19); due to be dropped in a later migration |
 
 Unique on `(venue_id, device_id, local_day)`.
 
 ### `account_posts`
 The daily post limit: one per account per board per day, from any device. A
-signed-in post claims a row here. The primary key *is* the claim: an insert that conflicts means
-this account already posted to this venue today.
+signed-in post claims a row here. The primary key *is* the claim: an insert
+that conflicts means this account already posted to this venue today.
 
 | Column | Type | Notes |
 |---|---|---|
