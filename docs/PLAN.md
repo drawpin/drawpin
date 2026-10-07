@@ -1,4 +1,4 @@
-# DrawPin — Product Plan (v18, locked)
+# DrawPin — Product Plan (v19, locked)
 
 > Source of truth for v1 scope. Changes require an ADR in `docs/adr/` and a version bump here.
 
@@ -35,7 +35,7 @@ Drawing for fun needs no account. **Posting and competing do.**
 - Each tile = a drawing + optional typed caption (max 80 chars).
 - Drawing tools: pen, marker, spray, eraser, paint bucket, and shapes (line, circle, square — the line doubles as a ruler; circles and squares come out perfect, and Shift stretches them on a keyboard). Six base colours plus a colour wheel and hex field. A Snap toggle (hold still at the end of a stroke to straighten it into a line or shape) and a lasso (circle part of the drawing to move or resize it) were added with the shapes, all from the first test round's feedback. The pen draws an even line on every device by default; a Pressure switch makes its width follow a stylus's pressure, or the speed of a finger or mouse.
 - Posting needs a sign-in (ADR-007), with Google or an emailed code (ADR-010). A tile shows that account's username. A guest can draw as much as they like, but nothing they draw goes on the board.
-- **1 post per account per day and 1 per device per day** (day resets 4:00 AM venue time), so a second device doesn't buy a second post.
+- **1 post per account per board per day** (day resets 4:00 AM venue time), from any device. The device doesn't limit posting: people sharing a phone each get their own post.
 - A board shows how many artists and drawings it has had, all time. The counts are kept as tiles are posted, so they don't drop when the 30-day clean-up deletes old tiles.
 
 ### Moderation (automatic only)
@@ -74,7 +74,7 @@ Drawing for fun needs no account. **Posting and competing do.**
 - Opening the app during a final shows a "Vote for this month's super winner" prompt. When a final closes, the board reveals its finalists and crowns the super winner the same way as a week's result.
 
 ### Abuse limiting (layered)
-Account + signed device ID cookie + browser fingerprint (hashed) + IP rate limit (hashed) + Cloudflare Turnstile on post and vote. The device layers add to the account limit.
+The account is the daily post limit. Around it: signed device ID cookie + browser fingerprint (hashed) + IP rate limit (hashed) + Cloudflare Turnstile on post and vote. The device layers don't limit posts per day; they carry the 3-blocked-attempts lockout and, with the network, the burst limit.
 
 ### Owner admin (bare minimum)
 - Owners sign in by email (Supabase Auth): one email carries a code to type and a link to tap, both single-use with a short expiry, rate-limited, Turnstile on login. Customers sign in with Google or an emailed code. One account can both draw and own a board (ADR-013): Start a board and Manage my board take a signed-in account straight to its board or to setup.
@@ -167,6 +167,8 @@ v16 changes: moderation is no longer one fixed policy. Each board picks a level,
 v17 changes: one account can both draw and own a board (ADR-013); closing a board keeps the sign-in of an owner who also draws, and a drawing account that owns a board is closed from the owner screen before it can be deleted.
 
 v18 changes: a board's 8-digit code no longer changes every morning (ADR-014). Each board keeps one code until its owner makes a new one, which stops the old one at once; the code that was live when this shipped became each board's permanent code. The table tent and poster print the code, and the wrong-guess limit stays as the brute-force protection.
+
+v19 changes: the daily post limit is per account only, one post per account per board per day. The per-device daily limit is gone (it stopped people who share a phone, and the account already stops a second device buying a second post). The device is still used for the 3-blocked-attempts lockout and, with the network, the burst limit.
 
 ## Diagrams
 

@@ -21,6 +21,8 @@ import {
   YELLOW_STRIP,
 } from "./board-look";
 import { BoardTitle } from "./board-title";
+import { lateNightGate } from "./late-night/gate";
+import { BoardRulesLink } from "./rules/rules-link";
 import {
   getBoardStats,
   getLiveTiles,
@@ -78,6 +80,10 @@ export async function BoardScreen({
     requireBoard(slug, view === "vote" ? "/vote" : ""),
     getCustomer(admin, { check: "token" }),
   ]);
+  // A Late Night board shows nothing of itself until the visitor chooses to
+  // see it (ADR-012).
+  const gate = await lateNightGate(board, view === "vote" ? "/vote" : "");
+  if (gate) return gate;
 
   // Then everything that only needs the board.
   const onBoardView = view === "board";
@@ -202,6 +208,7 @@ export async function BoardScreen({
           </p>
         )}
         <AccountLine customer={customer} next={`/b/${slug}/vote`} />
+        <BoardRulesLink slug={slug} />
       </BoardLayout>
     );
   }
@@ -268,6 +275,7 @@ export async function BoardScreen({
       {/* Small print at the foot of the board: sign-in turns up on Draw and
           Vote, where it's needed, so here it's only for whoever looks. */}
       <AccountLine customer={customer} next={`/b/${slug}`} />
+      <BoardRulesLink slug={slug} />
     </BoardLayout>
   );
 }

@@ -4,6 +4,8 @@ import { useActionState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ModerationLevelPicker } from "@/components/moderation-level-picker";
+import { DEFAULT_MODERATION_LEVEL } from "@/lib/moderation/levels";
 import { createVenueAction } from "./actions";
 import type { SetupState } from "./schema";
 
@@ -55,6 +57,16 @@ export function SetupForm({ timeZones }: { timeZones: string[] }) {
         </select>
         <p className="text-muted-foreground text-xs">
           Your board&apos;s day resets at 4:00 AM in this time zone.
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <ModerationLevelPicker
+          defaultLevel={DEFAULT_MODERATION_LEVEL}
+          legend="Board rules"
+        />
+        <p className="text-muted-foreground text-xs">
+          You can change this later.
         </p>
       </div>
 

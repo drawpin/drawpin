@@ -6,6 +6,7 @@ import { z } from "zod";
 import { boardUrl } from "@/lib/board";
 import { serverEnv } from "@/lib/env";
 import { replaceJoinCode } from "@/lib/join-code/ensure";
+import type { ModerationLevel } from "@/lib/moderation/policy";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isSupportedTimeZone } from "@/lib/timezones";
@@ -13,6 +14,11 @@ import { moderateVenueName, venueNameSchema } from "@/lib/venue-name";
 import { formatBoundary, planTimeZoneChange } from "@/lib/venue-time";
 import { blockAuthor } from "./block-account";
 import { changeBoardLink } from "./change-board-link";
+import {
+  changeModerationLevel,
+  type ChangeLevelResult,
+  moderationLevelFormSchema,
+} from "./change-moderation-level";
 import { closeBoard, type CloseBoardResult } from "./close-board";
 import { removeTile } from "./remove-tile";
 import { renameVenue } from "./rename-venue";
@@ -223,6 +229,60 @@ export async function setTimeZoneAction(
   );
   revalidatePath("/admin");
   return { status: "saved" };
+}
+
+export type BoardRulesState =
+  | { status: "idle" }
+  | { status: "error"; message: string }
+  | { status: "saved"; level: ModerationLevel };
+
+/**
+ * Changes the board's moderation level (ADR-012). It applies to new posts
+ * only: what's already on the board stays, and nothing is checked again.
+ */
+export async function setModerationLevelAction(
+  _previous: BoardRulesState,
+  formData: FormData,
+): Promise<BoardRulesState> {
+  const venue = await requireOwnedVenue();
+
+  const parsed = moderationLevelFormSchema.safeParse({
+    moderationLevel: formData.get("moderationLevel"),
+  });
+  if (!parsed.success) {
+    return { status: "error", message: parsed.error.issues[0].message };
+  }
+
+  const level = parsed.data.moderationLevel;
+  let result: ChangeLevelResult;
+  try {
+    result = await changeModerationLevel(
+      venue.moderationLevel,
+      level,
+      async (next) => {
+        const { error } = await createAdminClient()
+          .from("venues")
+          .update({ moderation_level: next })
+          .eq("id", venue.id);
+        return { error };
+      },
+    );
+  } catch (error) {
+    console.error(error);
+    return {
+      status: "error",
+      message: "We couldn't change your board rules. Try again in a minute.",
+    };
+  }
+
+  if (result === "changed") {
+    // Kept so a report can be read against the rules the board had then.
+    console.info(
+      `Board moderation level changed: ${venue.id} ${venue.moderationLevel} -> ${level}`,
+    );
+    revalidatePath("/admin");
+  }
+  return { status: "saved", level };
 }
 
 const removeSchema = z.object({ tileId: z.guid() });

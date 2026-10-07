@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { moderationLevelSchema } from "@/lib/moderation/level-schema";
 import { isSupportedTimeZone } from "@/lib/timezones";
 import { venueNameSchema } from "@/lib/venue-name";
 
@@ -9,6 +10,8 @@ export const setupSchema = z.object({
   timezone: z.string().refine(isSupportedTimeZone, {
     message: "Pick your venue's time zone.",
   }),
+  // What the board's posts are checked for (ADR-012).
+  moderationLevel: moderationLevelSchema,
 });
 
 export type SetupState =

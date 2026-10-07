@@ -87,8 +87,16 @@ export async function postTileAction(
       {
         store: new SupabaseTileStore(admin),
         processImage: processTileImage,
-        moderate: (content) =>
-          moderateTile(content, { apiKey: env.OPENAI_API_KEY, blockedTerms }),
+        // The username is checked on every post as well as when it's
+        // picked, in case the word lists have grown since; moderateTile
+        // runs the blocklist on it at All Ages whatever the board's level
+        // (ADR-012).
+        moderate: (content, level) =>
+          moderateTile(
+            content,
+            { apiKey: env.OPENAI_API_KEY, blockedTerms },
+            level,
+          ),
         // Tags follow the account, so the same person gets the same tag on
         // every device.
         nameTag: (_deviceId, name) => nameTagFor(customer.id, name, secret),
