@@ -2,6 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { notFound, permanentRedirect } from "next/navigation";
 import { cache } from "react";
 import { findMovedSlug } from "@/lib/former-slugs";
+import { toModerationLevel } from "@/lib/moderation/levels";
+import type { ModerationLevel } from "@/lib/moderation/policy";
 import { createPublicClient } from "@/lib/supabase/public";
 import {
   clockFromRow,
@@ -34,6 +36,8 @@ export type Board = {
   /** The zone, and any change to it the owner has scheduled (ADR-008). */
   clock: VenueClock;
   isPaused: boolean;
+  /** What posts on the board are checked for (ADR-012). */
+  moderationLevel: ModerationLevel;
 };
 
 /**
@@ -48,7 +52,9 @@ export const getBoard = cache(async (slug: string): Promise<Board | null> => {
   const client = createPublicClient();
   const { data, error } = await client
     .from("venues")
-    .select(`id, name, slug, is_paused, ${VENUE_CLOCK_COLUMNS}`)
+    .select(
+      `id, name, slug, is_paused, moderation_level, ${VENUE_CLOCK_COLUMNS}`,
+    )
     .eq("slug", slug)
     .maybeSingle();
 
@@ -66,6 +72,7 @@ export const getBoard = cache(async (slug: string): Promise<Board | null> => {
     timezone: zoneAt(clock, new Date()),
     clock,
     isPaused: data.is_paused,
+    moderationLevel: toModerationLevel(data.moderation_level),
   };
 });
 

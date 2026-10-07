@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { connection } from "next/server";
+import { MODERATION_LEVEL_INFO } from "@/lib/moderation/levels";
 import { getCustomer } from "@/lib/customer";
 import { readDeviceId } from "@/lib/device";
 import { serverEnv } from "@/lib/env";
@@ -73,6 +75,7 @@ export default async function DrawPage({
     : customer
       ? await todaysBlocker(board)
       : null;
+  const { drawNote } = MODERATION_LEVEL_INFO[board.moderationLevel];
 
   return (
     // White, like every page; the canvas and tools carry the ink outline.
@@ -107,6 +110,20 @@ export default async function DrawPage({
               username={customer?.username ?? null}
             />
           </>
+        )}
+
+        {/* Only on a board that allows more than All Ages, so someone
+            drawing knows what may sit beside their tile (ADR-012). */}
+        {drawNote && (
+          <p className="text-muted-foreground text-center text-xs">
+            {drawNote}{" "}
+            <Link
+              href={`/b/${board.slug}/rules`}
+              className="hover:text-foreground underline underline-offset-4"
+            >
+              Board rules
+            </Link>
+          </p>
         )}
       </main>
     </div>
