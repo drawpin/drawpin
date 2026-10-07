@@ -177,7 +177,8 @@ before counting. Without it three requests arriving together each read "two
 used" and each insert, and an account ends up with more votes than it has.
 
 ### `post_attempts`
-The per-device daily posting budget.
+The per-device daily record of blocked attempts. It used to hold the device's
+daily post too; that limit is gone (PLAN v19).
 
 | Column | Type | Notes |
 |---|---|---|
@@ -186,14 +187,13 @@ The per-device daily posting budget.
 | `device_id` | `uuid` | FK → `devices` |
 | `local_day` | `date` | the venue-local day, not a UTC day |
 | `blocked_count` | `int` | 3 blocked attempts lock the device until reset |
-| `has_posted` | `boolean` | one post per device per day |
+| `has_posted` | `boolean` | no longer read or written; always `false`. Due to be dropped in a later migration |
 
 Unique on `(venue_id, device_id, local_day)`.
 
 ### `account_posts`
-The daily limit for signed-in posting. A signed-in post claims a row here as
-well as its device's row in `post_attempts`, so a second device doesn't buy a
-second post. The primary key *is* the claim: an insert that conflicts means
+The daily post limit: one per account per board per day, from any device. A
+signed-in post claims a row here. The primary key *is* the claim: an insert that conflicts means
 this account already posted to this venue today.
 
 | Column | Type | Notes |

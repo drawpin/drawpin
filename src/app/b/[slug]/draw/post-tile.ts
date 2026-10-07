@@ -48,8 +48,8 @@ export type NewTile = {
   image_path: string;
 };
 
-/** A device's posting record for one venue-local day. */
-export type DailyAttempt = { hasPosted: boolean; blockedCount: number };
+/** A device's moderation record for one venue-local day. */
+export type DailyAttempt = { blockedCount: number };
 
 /** The storage and database operations posting needs. */
 export interface TileStore {
@@ -75,18 +75,13 @@ export interface TileStore {
     venueId: string,
     bounds: WeekBounds,
   ): Promise<string | null>;
-  /** Atomically uses the device's post for the day; `false` if already used. */
-  claimDailyPost(
+  /** Whether the account has already used its post for this day. */
+  hasAccountPosted(
     venueId: string,
-    deviceId: string,
+    userId: string,
     localDay: string,
   ): Promise<boolean>;
-  releaseDailyPost(
-    venueId: string,
-    deviceId: string,
-    localDay: string,
-  ): Promise<void>;
-  /** The same claim for a signed-in account; `false` if already used. */
+  /** Atomically uses the account's post for the day; `false` if already used. */
   claimAccountPost(
     venueId: string,
     userId: string,
@@ -157,7 +152,7 @@ export type PostTileResult =
 
 /**
  * Posts a signed-in customer's tile to a venue's current week, enforcing one
- * post per device and per account per venue-local day (docs/PLAN.md, Tiles).
+ * post per account per board per venue-local day (docs/PLAN.md, Tiles).
  *
  * The order matters:
  * 1. A device already locked out by 3 blocked attempts is turned away before
@@ -170,8 +165,8 @@ export type PostTileResult =
  * 4. If moderation can't be reached, the post is refused rather than published
  *    unchecked, and the day stays available.
  * 5. The claim is a single conditional update, so two posts racing from the
- *    same device can't both win. The account's day is claimed as well, so a
- *    second device doesn't buy a second post (docs/PLAN.md, Tiles).
+ *    same account can't both win. The device plays no part: people sharing a
+ *    phone each get their own post (docs/PLAN.md, Tiles).
  * 6. If saving fails after the claim, the claim is released and any uploaded
  *    image deleted, so a server error doesn't cost the visitor their post.
  */
@@ -191,11 +186,12 @@ export async function postTile(
   // they run at once (performance pass, 2026-10-06). Their answers are still
   // read in the order below, so the reason someone hears is the same as when
   // they ran one by one.
-  const [blocked, attempt, recentFromIp] = await Promise.all([
+  const [blocked, attempt, alreadyPosted, recentFromIp] = await Promise.all([
     // Before anything is moderated or counted. The database refuses the tile
     // too; this is so the person hears it before their drawing is processed.
     store.isAccountBlocked(venue.id, input.userId),
     store.getDailyAttempt(venue.id, input.deviceId, localDay),
+    store.hasAccountPosted(venue.id, input.userId, localDay),
     input.ipHash
       ? store.countRecentPostsFromIp(
           input.ipHash,
@@ -210,7 +206,7 @@ export async function postTile(
   }
   // The claim below is what really enforces this; checking here just avoids
   // processing and moderating a drawing that can't be posted anyway.
-  if (attempt?.hasPosted) return { ok: false, reason: "already-posted" };
+  if (alreadyPosted) return { ok: false, reason: "already-posted" };
   if (recentFromIp >= BURST_POST_LIMIT) return { ok: false, reason: "burst" };
 
   let image: Buffer;
@@ -267,27 +263,12 @@ export async function postTile(
 
   if (!weekId) return { ok: false, reason: "week-closed" };
 
-  // The device's day and the account's day are claimed together; if only
-  // one claim wins, it's handed back, so neither is used up for nothing.
-  const [claimed, claimedAccount] = await Promise.all([
-    store.claimDailyPost(venue.id, input.deviceId, localDay),
-    store.claimAccountPost(venue.id, input.userId, localDay),
-  ]);
-  if (!claimed || !claimedAccount) {
-    if (claimed) {
-      await rollback(
-        () => store.releaseDailyPost(venue.id, input.deviceId, localDay),
-        deps,
-      );
-    }
-    if (claimedAccount) {
-      await rollback(
-        () => store.releaseAccountPost(venue.id, input.userId, localDay),
-        deps,
-      );
-    }
-    return { ok: false, reason: "already-posted" };
-  }
+  const claimed = await store.claimAccountPost(
+    venue.id,
+    input.userId,
+    localDay,
+  );
+  if (!claimed) return { ok: false, reason: "already-posted" };
 
   const tileId = deps.newId();
   const imagePath = `${venue.id}/${weekId}/${tileId}.webp`;
@@ -309,10 +290,6 @@ export async function postTile(
     });
   } catch (error) {
     deps.logError("Saving tile failed; releasing the daily post", error);
-    await rollback(
-      () => store.releaseDailyPost(venue.id, input.deviceId, localDay),
-      deps,
-    );
     await rollback(
       () => store.releaseAccountPost(venue.id, input.userId, localDay),
       deps,

@@ -25,34 +25,49 @@ export async function generateMetadata({
 }
 
 /**
- * Why this device can't post today, if it can't: it already posted, or
- * moderation blocked it too many times. Only a convenience so the visitor
- * isn't asked to draw for nothing; the Server Action enforces both limits.
+ * Why this account can't post today, if it can't: it already posted here, or
+ * moderation blocked this device too many times. Only a convenience so the
+ * visitor isn't asked to draw for nothing; the Server Action enforces both
+ * limits.
  */
-async function todaysBlocker(board: {
-  id: string;
-  timezone: string;
-}): Promise<string | null> {
+async function todaysBlocker(
+  board: { id: string; timezone: string },
+  userId: string,
+): Promise<string | null> {
+  const admin = createAdminClient();
+  const localDay = localDayFor(new Date(), board.timezone);
   const deviceId = await readDeviceId();
-  if (!deviceId) return null;
 
-  const { data, error } = await createAdminClient()
-    .from("post_attempts")
-    .select("has_posted, blocked_count")
-    .match({
-      venue_id: board.id,
-      device_id: deviceId,
-      local_day: localDayFor(new Date(), board.timezone),
-    })
-    .maybeSingle();
+  const [posted, attempts] = await Promise.all([
+    admin
+      .from("account_posts")
+      .select("user_id")
+      .match({ venue_id: board.id, user_id: userId, local_day: localDay })
+      .maybeSingle(),
+    deviceId
+      ? admin
+          .from("post_attempts")
+          .select("blocked_count")
+          .match({
+            venue_id: board.id,
+            device_id: deviceId,
+            local_day: localDay,
+          })
+          .maybeSingle()
+      : null,
+  ]);
 
-  if (error) throw new Error(`Could not check today's post: ${error.message}`);
-  if (!data) return null;
+  if (posted.error) {
+    throw new Error(`Could not check today's post: ${posted.error.message}`);
+  }
+  if (attempts?.error) {
+    throw new Error(`Could not check today's post: ${attempts.error.message}`);
+  }
 
-  if (data.blocked_count >= BLOCKED_ATTEMPT_LIMIT) {
+  if ((attempts?.data?.blocked_count ?? 0) >= BLOCKED_ATTEMPT_LIMIT) {
     return "Too many posts couldn't be posted today. You can try again after 4:00 AM.";
   }
-  if (data.has_posted) {
+  if (posted.data) {
     return "You've already posted today. You can post again after 4:00 AM.";
   }
   return null;
@@ -73,7 +88,7 @@ export default async function DrawPage({
   const blocked = board.isPaused
     ? "This board is paused, so posting is off right now."
     : customer
-      ? await todaysBlocker(board)
+      ? await todaysBlocker(board, customer.id)
       : null;
   const { drawNote } = MODERATION_LEVEL_INFO[board.moderationLevel];
 

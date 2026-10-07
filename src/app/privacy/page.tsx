@@ -50,14 +50,15 @@ export default function PrivacyPage() {
               with the board&apos;s link can see them.
             </li>
             <li>
-              An identifier stored in a cookie on your device, so the one
-              drawing a day limit works.
+              An identifier stored in a cookie on your device, so a device that
+              keeps getting drawings blocked can be paused for the day and posts
+              can&apos;t arrive in a flood.
             </li>
             <li>
               A <strong>hash</strong> of your IP address and of a browser
-              fingerprint, for the same limit. We never store the address or the
-              fingerprint themselves, and the hashes can&apos;t be turned back
-              into them.
+              fingerprint, for the same purpose. We never store the address or
+              the fingerprint themselves, and the hashes can&apos;t be turned
+              back into them.
             </li>
             <li>Your votes, and any drawings you report.</li>
           </ul>
@@ -144,11 +145,11 @@ export default function PrivacyPage() {
         <section className="flex flex-col gap-2">
           <h2 className="text-lg font-black">Cookies</h2>
           <p>
-            One cookie identifies your device so the daily limit works, and
-            signing in adds the cookies that keep you signed in. If you continue
-            past a Late Night board&apos;s warning, one more remembers which
-            boards you chose to see, so you aren&apos;t asked again. That&apos;s
-            all of them, nothing for advertising or analytics.
+            One cookie identifies your device so those limits work, and signing
+            in adds the cookies that keep you signed in. If you continue past a
+            Late Night board&apos;s warning, one more remembers which boards you
+            chose to see, so you aren&apos;t asked again. That&apos;s all of
+            them, nothing for advertising or analytics.
           </p>
         </section>
 
