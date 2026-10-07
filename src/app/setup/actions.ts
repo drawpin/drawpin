@@ -22,6 +22,7 @@ export async function createVenueAction(
   const parsed = setupSchema.safeParse({
     name: formData.get("name"),
     timezone: formData.get("timezone"),
+    moderationLevel: formData.get("moderationLevel"),
   });
   if (!parsed.success) {
     return { status: "error", message: parsed.error.issues[0].message };

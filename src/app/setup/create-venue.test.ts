@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import { createVenue, type InsertVenue } from "./create-venue";
 
-const input = { ownerId: "owner-1", name: "Blue Bottle", timezone: "UTC" };
+const input = {
+  ownerId: "owner-1",
+  name: "Blue Bottle",
+  timezone: "UTC",
+  moderationLevel: "standard" as const,
+};
 
 function slugsFrom(...slugs: string[]) {
   let i = 0;
@@ -28,6 +33,7 @@ describe("createVenue", () => {
       name: "Blue Bottle",
       slug: "blue-bottle-k7m2",
       timezone: "UTC",
+      moderation_level: "standard",
     });
   });
 
