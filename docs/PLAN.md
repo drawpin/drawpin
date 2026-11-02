@@ -1,9 +1,11 @@
-# DrawPin — Product Plan (v19, locked)
+# DrawPin — Product Plan (v20, locked)
 
 > Source of truth for v1 scope. Changes require an ADR in `docs/adr/` and a version bump here.
 
 ## Concept
-Free, web-based shared drawing boards for any group of people — a restaurant, a classroom, a party, a group chat. Whoever sets a board up decides what it's for. Scan a printed QR or enter an 8-digit code, Kahoot-style. No app download, and no account needed to draw for fun. Signing in with Google is what puts a drawing on the board: draw a tile, see everyone's tiles, vote for the weekly winner, and crown a monthly super winner.
+Free, web-based shared drawing boards for any group of people — a restaurant, a classroom, a party, a group chat. Whoever sets a board up decides what it's for. Scan a printed QR or enter an 8-digit code, Kahoot-style. No app download, and no account needed to draw for fun. Signing in with Google or an emailed code is what puts a drawing on the board: draw a tile, see everyone's tiles, vote for the weekly winner, and crown a monthly super winner.
+
+It's an app you come back to, not a page you land on once (ADR-015). Your boards are remembered, pinned ones first, and a sidebar on every page takes you to any of them, to your private profile hub (your drawings and wins), and to the boards you run. One account does everything: it draws, and it can run up to five boards (ADR-016).
 
 A place with tables is one kind of group and the one the product was designed around — printed codes, an owner who prints one thing and walks away — so the model keeps that shape: a board has an owner, a time zone and a code. The outward copy does not assume a business.
 
@@ -25,11 +27,17 @@ Drawing for fun needs no account. **Posting and competing do.**
 | Be voted for, and win | no | yes |
 | Vote | no | yes, from any device |
 | Report a tile | no | yes |
+| Boards remembered | on this device | on the account, with pins |
+| Profile hub | no | yes, private to them |
 
-- Customers sign in **with Google, or with a code emailed to any address** (Supabase Auth, ADR-010). Owners sign in by email too, with a code or a link (see Owner admin).
+- Everyone signs in **with Google, or with a code emailed to any address** (Supabase Auth, ADR-010), whether they draw, run boards or both (ADR-016).
 - A customer picks a username on first sign-in; usernames aren't unique, so a tile shows the same 4-digit tag as before, e.g. `Ahmad#4821`, derived from the account instead of the device.
 - Deleting an account deletes that person's tiles and votes. Hall of Fame entries stay, shown without a name.
-- A signed-in customer can save their own drawings that are still on a board as PNGs, from their account page (#57), before the 30-day clean-up removes them.
+- A signed-in customer can save their own drawings that are still on a board as PNGs, from their profile hub (#57), before the 30-day clean-up removes them.
+- **Sidebar** (ADR-015): on every page except the full-screen draw step and the print view; a drawer on phones. Signed out: join with a code, recent boards on this device, start a board, sign in. Signed in: you, home, your boards (pinned first, with status dots and an owner badge), join with a code, the boards you run and Start a board, your drawings, and the account.
+- **Profile hub** (ADR-015): private to its account, never shown to anyone else. Username and tag, joined date, username change, stats, your drawings grouped by board, a trophy shelf of wins, and delete account.
+- **Home hub** (ADR-015): "today" cards across your boards (draw today, vote on last week, the monthly final, a result to see), pinned and recent boards, join with a code, Start a board. Whether a returning signed-in visitor lands here or on the home page is one constant, `HUB_LANDING`.
+- **Your boards** (ADR-015): opening a board records it, on the account when signed in and on the device (slugs and times only) otherwise; the device's list merges into the account at sign-in. Pin up to 5, and remove one from the list until it's opened again. Pinned first, then most recent, 20 shown. A renamed board shows its new name and a closed one disappears.
 
 ### Tiles (default mode)
 - Each tile = a drawing + optional typed caption (max 80 chars).
@@ -56,7 +64,7 @@ Drawing for fun needs no account. **Posting and competing do.**
 ### Weekly cycle
 - Week runs **Monday 4:00 AM → next Monday 4:00 AM**, venue local time.
 - Week N: posting open. Then the board locks.
-- Week N+1: voting on week N's board is open all week. Opening the app shows a "Vote for last week's best" prompt.
+- Week N+1: voting on week N's board is open all week. The home hub shows a "Vote for last week's best" card for each of your boards in voting.
 - **Anyone signed in can vote** (drawing not required). 3 votes per account per week, from any device.
 - Vote rules (defaults): each vote goes on a different tile, you can't vote on your own tile, and votes are final.
 - Voting flow: pick up to 3 tiles, then cast them in one confirmation. Votes not cast yet stay available for the rest of the voting week.
@@ -77,16 +85,16 @@ Drawing for fun needs no account. **Posting and competing do.**
 The account is the daily post limit. Around it: signed device ID cookie + browser fingerprint (hashed) + IP rate limit (hashed) + Cloudflare Turnstile on post and vote. The device layers don't limit posts per day; they carry the 3-blocked-attempts lockout and, with the network, the burst limit.
 
 ### Owner admin (bare minimum)
-- Owners sign in by email (Supabase Auth): one email carries a code to type and a link to tap, both single-use with a short expiry, rate-limited, Turnstile on login. Customers sign in with Google or an emailed code. One account can both draw and own a board (ADR-013): Start a board and Manage my board take a signed-in account straight to its board or to setup.
-- **One board per owner.**
-- Setup: email → code or link → board name + time zone + moderation level → done.
-- One screen: (1) QR + the board's code (download, or print a table tent or poster in one of five looks, both showing the code), and a new code on request, (2) Pause board toggle, (3) Remove a tile, (4) reported tiles, surfaced first, (5) rename the board, (6) change the board link, (7) change the time zone, (8) block an account (ADR-008), (9) close the board (ADR-009), (10) board rules: the moderation level (ADR-012).
+- Owners sign in like everyone else, with Google or an emailed code (one email carries a code to type and a link to tap, both single-use with a short expiry, rate-limited, Turnstile on login). One account can both draw and run boards (ADR-013).
+- **Up to 5 boards per account** (ADR-016), a server-side constant the database also enforces. Start a board is in the sidebar, and hidden at the cap.
+- Setup: sign in → board name + time zone + moderation level → done. A signed-in account isn't sent through another email step.
+- Each board has its own owner screen at `/admin/[slug]`; `/admin` lists your boards and opens straight to the board when there's only one. One screen per board: (1) QR + the board's code (download, or print a table tent or poster in one of five looks, both showing the code), and a new code on request, (2) Pause board toggle, (3) Remove a tile, (4) reported tiles, surfaced first, (5) rename the board, (6) change the board link, (7) change the time zone, (8) block an account (ADR-008), (9) close the board (ADR-009), (10) board rules: the moderation level (ADR-012).
 - Renaming changes the display name only. The slug is generated once at setup, the QR encodes `/b/<slug>`, and the code is keyed by venue — so a rename reprints nothing.
 - Making a new code stops the old one at once (ADR-014), so the owner reprints the table tent or poster. The QR and the link don't change.
 - Changing the link builds a new slug from the current name, offered once a rename has left the old one behind. Every former slug redirects to the board for good and is never given to another board, so printed codes keep working.
 - Changing the time zone takes effect from the next week; the current week keeps its boundaries.
 - Blocking an account stops it posting, voting and reporting on that board, and removes its live tiles there. The owner can unblock.
-- Closing the board deletes everything on it, the Hall of Fame included, and the owner's sign-in. The owner types the board's name to confirm. Its links aren't reserved afterwards.
+- Closing a board deletes everything on it, the Hall of Fame included, and leaves the account's other boards alone. The sign-in goes only with the account's last board, and only if the account doesn't draw (ADR-009, ADR-013, ADR-016). The owner types the board's name to confirm. Its links aren't reserved afterwards.
 - Not included: analytics, branding, multiple staff logins, any other settings.
 
 ### Data retention
@@ -100,7 +108,7 @@ No charges for venues or users in v1.
 
 ## Tech stack
 - Next.js (App Router) on Vercel: customer pages, admin page, API route handlers, cron endpoints
-- Supabase: Postgres, Storage (tile images, WebP), Realtime (new/removed tiles), Auth (owners by emailed code or link, customers by Google or emailed code)
+- Supabase: Postgres, Storage (tile images, WebP), Realtime (new/removed tiles), Auth (everyone by Google or an emailed code or link)
 - OpenAI moderation endpoint (text + image), a vision model reading every drawing below Late Night (ADR-006, ADR-012), a drawing-aware nudity check (NSFWJS, ADR-005), custom blocklist
 - Email through custom SMTP (Resend), from `hello@drawpin.io`: sign-in emails and health alerts
 - Cloudflare Turnstile; FingerprintJS (open source)
@@ -109,11 +117,11 @@ No charges for venues or users in v1.
 - Scheduled jobs: Vercel Cron (daily) → 30-day cleanup, and a daily health check of the database, storage, the OpenAI key and the Turnstile secret, which emails when one fails
 
 ## Back pocket (not v1)
-Weekly prompt mode ("challenges"), live jam mode, location checks, Google
-sign-in for owners, multi-location owners, wall display.
+Weekly prompt mode ("challenges"), live jam mode, location checks, wall
+display, several owners or staff on one board, public profiles and
+following, notifications and emails (#198, #199), board discovery.
 
-Accounts open a few more: a customer's saved drawings and history (#44),
-and more ways to sign in — Facebook, Apple, passkeys (#50). Google and
+Accounts open a few more: more ways to sign in — Facebook, Apple, passkeys (#50). Google and
 emailed codes (ADR-010) are the ways in for v1; anyone who'd rather not can
 still draw as a guest. None of these are v1.
 
@@ -169,6 +177,8 @@ v17 changes: one account can both draw and own a board (ADR-013); closing a boar
 v18 changes: a board's 8-digit code no longer changes every morning (ADR-014). Each board keeps one code until its owner makes a new one, which stops the old one at once; the code that was live when this shipped became each board's permanent code. The table tent and poster print the code, and the wrong-guess limit stays as the brute-force protection.
 
 v19 changes: the daily post limit is per account only, one post per account per board per day. The per-device daily limit is gone (it stopped people who share a phone, and the account already stops a second device buying a second post). The device is still used for the 3-blocked-attempts lockout and, with the network, the burst limit.
+
+v20 changes: DrawPin becomes an app you come back to (ADR-015): a sidebar on every page, a private profile hub (#44), a home hub with today's cards, and your boards remembered automatically, on the account or on the device, with up to 5 pinned. An account can run up to 5 boards (ADR-016), each with its own owner screen; closing one leaves the others, and the sign-in goes only with the last board of an account that doesn't draw. Owners sign in with Google or an emailed code like everyone else. "One board per owner" is gone, and Google sign-in for owners and multi-location owners leave the back pocket.
 
 ## Diagrams
 

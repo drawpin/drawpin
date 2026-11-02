@@ -28,6 +28,23 @@ export async function createVenueAction(
     return { status: "error", message: parsed.error.issues[0].message };
   }
 
+  // The database allows several boards per account now (ADR-016), but the
+  // owner screen still shows one until per-board admin ships, so a second
+  // submit goes to the board it already made, as the unique key used to.
+  const { data: existing, error: existingError } = await admin
+    .from("venues")
+    .select("id")
+    .eq("owner_id", owner.id)
+    .limit(1);
+  if (existingError) {
+    console.error("createVenueAction: board check failed", existingError);
+    return {
+      status: "error",
+      message: "We couldn't create your board. Try again in a moment.",
+    };
+  }
+  if (existing.length > 0) redirect("/admin");
+
   // Anyone who can receive email reaches this form, and the name they type
   // becomes the board's heading, its page title, its link-preview title and
   // the URL itself — so it is checked here as well as in the rename form.

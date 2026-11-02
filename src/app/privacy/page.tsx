@@ -32,7 +32,11 @@ export default function PrivacyPage() {
           </h2>
           <p>
             Nothing. Without an account a drawing can&apos;t be posted, so it
-            never leaves your device.
+            never leaves your device. Your device does remember the boards you
+            open, so you can find them again: their links and when you last
+            opened each one, up to 20, in a cookie on your device. Nothing in it
+            identifies you, and when you sign in those boards are added to your
+            account&apos;s list.
           </p>
         </section>
 
@@ -61,6 +65,13 @@ export default function PrivacyPage() {
               back into them.
             </li>
             <li>Your votes, and any drawings you report.</li>
+            <li>
+              The boards you open, when you last opened each one, and which ones
+              you pin or remove from your list, so your boards are there when
+              you come back. Only you can see this list; your profile is never
+              shown to anyone else.
+            </li>
+            <li>The boards you run, if you set any up.</li>
           </ul>
         </section>
 
@@ -146,7 +157,9 @@ export default function PrivacyPage() {
           <h2 className="text-lg font-black">Cookies</h2>
           <p>
             One cookie identifies your device so those limits work, and signing
-            in adds the cookies that keep you signed in. If you continue past a
+            in adds the cookies that keep you signed in. Another lists the
+            boards you&apos;ve opened on this device while signed out: their
+            links and when you opened them, nothing more. If you continue past a
             Late Night board&apos;s warning, one more remembers which boards you
             chose to see, so you aren&apos;t asked again. That&apos;s all of
             them, nothing for advertising or analytics.
