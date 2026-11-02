@@ -1,5 +1,50 @@
 # Profiles design: review for the owner
 
+## Built: what to review before `feat/profiles` merges (2026-11-02)
+
+Everything below is built on `feat/profiles` (PRs #207 and #209–#216; draft PR #208 into `main`). Lint, typecheck, 1216 unit tests, the build and all 10 Playwright phone flows pass on the combined branch against the local Supabase.
+
+### Try it
+- **On the PC:** `git checkout feat/profiles`, `npx supabase start`, then `npx next dev`.
+- **On a phone:** the dev server blocks a phone's scripts, so serve a production build instead: `npx next build && npx next start -H 0.0.0.0`, then open `http://<PC IP>:3000`.
+- **Local test boards:** `shell-office-doodles`, `shell-friends-board`, `shell-book-club`, `shell-art-class`, and `me-test-*`.
+
+### Decisions waiting on you
+1. **Landing.** `LANDING` in `src/lib/landing.ts`, currently `"hub"`.
+   - `"hub"`: signed-in people with a username land on their hub, everyone else sees the marketing home, and `/about` shows it to anyone.
+   - `"marketing"`: everyone gets the marketing home, and the hub moves to `/home`.
+2. **Your 4-digit tag changes when you change your name.** The existing `nameTagFor(userId, name)` mixes in the name, so `Ahmad#7611` became `Ahmad H#5358`.
+   - Recommendation: base the tag on the account only, so it stays the same.
+   - That changes every existing tag once, so it's your call.
+3. **Username length.** It's 40, the same as `/welcome`. The design said 24.
+4. **Smaller design picks.** Flip any of these if you like:
+   - The sidebar shows 8 boards, and the rest are on the hub.
+   - Up to 5 boards can be pinned.
+   - Boards remembered on a signed-out device can be removed but not pinned.
+   - Delete account lives only on `/me`.
+   - Sign out is in the sidebar footer.
+   - The hub's "Manage →" goes to `/admin`.
+5. **The sign-in code copy** says it "works for 15 minutes", which matches the email template. The design said 1 hour.
+
+### Known gaps (small, fix before merge or accept)
+- **The email's link carries no return path.** `supabase/templates/magic_link.html` doesn't pass `next`, so `/auth/confirm` sends the link's tap to `/admin`. A drawer who taps the link instead of typing the code ends up on `/setup`; codes and Google are fine.
+  - Fix: add `&next={{ .RedirectTo }}` handling to the template.
+  - Then re-paste the template into both Supabase projects (Magic Link and Confirm signup).
+- **Signing in from the sidebar on the draw page doesn't keep an unposted drawing.** The Post button does.
+- **Trophies only appear once someone opens the board.** A week that closed with nobody visiting since doesn't show on `/me` until its board is opened, because winners are crowned on demand (ADR-003).
+- **The sidebar and the hub each load the account's boards,** so those reads happen twice on `/`.
+- **`/` now renders per request,** because the sidebar reads the session.
+
+### Before merging to `main`
+1. **Delete the prototypes:** `src/app/prototype/`.
+2. **Supabase → Auth → URL Configuration,** in both projects: add `https://drawpin.io/**` to the redirect allow-list. Email links now carry `?next=`.
+3. **Restore the preview project** (`drawpin-preview`; it's been timing out since 2 November, probably paused). Then apply `20261102120000_several_boards_and_board_visits.sql` there.
+4. **Push that migration to production** from the board-link checkout (`npx supabase db push`). Check it with `npx supabase migration list --linked` before merging.
+5. **Re-paste the email template** if you take the email-link fix above.
+6. **Mark PR #208 ready, then squash-merge it** once CI is green. That deploys.
+
+---
+
 The prototypes for PLAN v20 (profiles, sidebar, several boards). I picked a default wherever there was a choice, as asked in plan 4b. Each one is listed here with the alternatives, so you can flip any of them. The build spec is [profiles.md](profiles.md).
 
 **Seeing it:**
