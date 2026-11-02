@@ -33,7 +33,7 @@ function exampleTile(file: string, author: string, caption: string): Tile {
 export const HERO_EXAMPLES: Tile[] = [
   exampleTile("malfoida-lisa", "Ricky#7024", "malfoida lisa"),
   exampleTile("skyline", "Ahmad#2041", "golden hour"),
-  exampleTile("dog", "Ricky#8983", "Biscuit, 4"),
+  exampleTile("dog", "Sam#2683", "Biscuit, 4"),
 ];
 
 /**
