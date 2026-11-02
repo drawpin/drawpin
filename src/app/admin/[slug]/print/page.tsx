@@ -6,12 +6,17 @@ import { serverEnv } from "@/lib/env";
 import { ensureJoinCode } from "@/lib/join-code/ensure";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { adminPath } from "../../board-field";
-import { requireOwnedVenue } from "../../venue";
+import { getOwnedVenue } from "../../venue";
 import { LOOKS, type LookId } from "./looks";
 import { Preview, PrintButton } from "./preview";
 import { PAPER_SIZE, type Paper, type PrintFormat, Sheet } from "./sheet";
 
-export const metadata: Metadata = { title: "Print your QR code · DrawPin" };
+export async function generateMetadata({
+  params,
+}: PageProps<"/admin/[slug]/print">): Promise<Metadata> {
+  const venue = await getOwnedVenue((await params).slug, "/print");
+  return { title: `Print ${venue.name} · DrawPin` };
+}
 
 const FORMATS: { id: PrintFormat; label: string; hint: string }[] = [
   {
@@ -46,7 +51,7 @@ export default async function PrintPage({
 }: PageProps<"/admin/[slug]/print">) {
   await connection();
 
-  const venue = await requireOwnedVenue((await params).slug, "/print");
+  const venue = await getOwnedVenue((await params).slug, "/print");
   const query = await searchParams;
   const look = pick<LookId>(
     query.look,

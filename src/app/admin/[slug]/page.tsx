@@ -27,6 +27,7 @@ import { setBoardPaused, signOut } from "../actions";
 import { AdminBoardProvider, BoardIdField } from "../board-context";
 import { adminPath, LINK_CHANGED_PARAM } from "../board-field";
 import { BoardSwitcher } from "../board-switcher";
+import { loadBoardSummaries } from "../board-summaries";
 import { BlockedAccounts } from "../blocked-accounts";
 import { BoardLink } from "../board-link";
 import { BoardRules } from "../board-rules";
@@ -41,11 +42,16 @@ import {
   listBlockedAccounts,
   listBoardTiles,
   listReportedTiles,
-  requireOwnedVenue,
+  getOwnedVenue,
   SupabaseCloseBoardStore,
 } from "../venue";
 
-export const metadata: Metadata = { title: "Your board · DrawPin" };
+export async function generateMetadata({
+  params,
+}: PageProps<"/admin/[slug]">): Promise<Metadata> {
+  const venue = await getOwnedVenue((await params).slug);
+  return { title: `${venue.name} · DrawPin` };
+}
 
 /** A small inked card in the sharing column, as wide as the QR card. */
 const SMALL_CARD =
@@ -74,7 +80,7 @@ export default async function AdminPage({
 
   // Resolved from the link and checked against the signed-in account: a
   // board that isn't theirs is not found (ADR-016).
-  const venue = await requireOwnedVenue((await params).slug);
+  const venue = await getOwnedVenue((await params).slug);
   const linkChanged = (await searchParams)[LINK_CHANGED_PARAM] !== undefined;
   const clock = clockStatus(new Date(), venue.clock);
   const url = boardUrl(serverEnv().SITE_URL, venue.slug);
@@ -88,7 +94,9 @@ export default async function AdminPage({
       ensureJoinCode(admin, venue.id),
       listReportedTiles(venue.id),
       listBlockedAccounts(venue.id),
-      listOwnedBoards(venue.ownerId, supabaseMyBoardsStore(admin)),
+      listOwnedBoards(venue.ownerId, supabaseMyBoardsStore(admin)).then(
+        (boards) => loadBoardSummaries(admin, boards),
+      ),
       new SupabaseCloseBoardStore(admin).hasProfile(venue.ownerId),
     ]);
   const current = ownedBoards.find((board) => board.venueId === venue.id);
@@ -104,13 +112,16 @@ export default async function AdminPage({
               >
                 Your board
               </p>
-              {current && ownedBoards.length > 1 && (
-                <BoardSwitcher current={current} boards={ownedBoards} />
-              )}
+              {/* The global sidebar's menu button goes here once the app
+                  shell lands; this header doesn't build it. */}
             </div>
             <div className="flex flex-col gap-1">
               <h1 className="text-4xl leading-[1.02] font-black tracking-tight break-words">
-                {venue.name}
+                {current && ownedBoards.length > 1 ? (
+                  <BoardSwitcher current={current} boards={ownedBoards} />
+                ) : (
+                  venue.name
+                )}
               </h1>
               <p className="text-sm break-all text-white/80">
                 {url.replace(/^https?:\/\//, "")}

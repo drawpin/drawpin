@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { notFound, redirect } from "next/navigation";
+import { cache } from "react";
 import { requireOwner } from "@/lib/auth";
 import { findMovedSlug } from "@/lib/former-slugs";
 import { boardIdSchema, boardSlugSchema } from "@/lib/my-boards";
@@ -148,6 +149,13 @@ export async function requireOwnedVenue(
   if (result.status === "moved") redirect(adminPath(result.slug, page));
   return result.venue;
 }
+
+/**
+ * {@link requireOwnedVenue}, looked up once per request, so a page and its
+ * `generateMetadata` (which needs the board's name for the tab title) share
+ * one query instead of making two.
+ */
+export const getOwnedVenue = cache(requireOwnedVenue);
 
 /**
  * The board a Server Action is acting on, named by the form's
