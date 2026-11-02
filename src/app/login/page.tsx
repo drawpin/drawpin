@@ -10,8 +10,8 @@ export const metadata: Metadata = { title: "Sign in · DrawPin" };
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   // Anyone already signed in, to draw or to run a board, goes straight on:
-  // one account can do both (ADR-013). /admin shows their board, or sends
-  // them to set one up if they don't have one yet.
+  // one account can do both (ADR-013). /admin shows their board or boards,
+  // or sends them to set one up if they have none yet (ADR-016).
   if (await getOwner()) redirect("/admin");
 
   const { error } = await searchParams;

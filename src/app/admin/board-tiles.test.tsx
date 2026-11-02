@@ -1,6 +1,7 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { AdminBoardProvider } from "./board-context";
 import { BoardTiles } from "./board-tiles";
 import type { AdminTile, ReportedTile } from "./drawings";
 
@@ -34,7 +35,13 @@ let container: HTMLDivElement;
 let root: Root;
 
 function render(element: React.ReactNode) {
-  act(() => root.render(element));
+  act(() =>
+    root.render(
+      <AdminBoardProvider boardId="5d1c0b8e-6a3f-4c2e-8f1d-2b7a9c4e6f10">
+        {element}
+      </AdminBoardProvider>,
+    ),
+  );
 }
 
 beforeEach(() => {

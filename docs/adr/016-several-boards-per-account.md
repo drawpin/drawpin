@@ -46,9 +46,13 @@ into a second account.
 ## Consequences
 - The unique key on `venues.owner_id` is gone; a plain index keeps the
   owner's lookups and the cascade from `owners` quick.
-- Code that read "the owner's board" with `.single()` or `.maybeSingle()` on
-  `owner_id` assumes one board. Until the per-board owner screen ships,
-  `/setup` keeps sending an account that already has a board to `/admin`,
-  so no account gets a second board before the screens can show it.
+- Nothing reads "the owner's board" with `.single()` or `.maybeSingle()` on
+  `owner_id` any more. Owner pages resolve the board from the route
+  (`requireOwnedVenue` in `src/app/admin/venue.ts`), and owner Server
+  Actions from a board id in the form, checked against the signed-in
+  account (`requireOwnedVenueForAction`). A board someone else owns reads as
+  not found.
+- After a link change the owner screen moves to the new slug with the
+  board; the old admin URL redirects, like the board's own.
 - Deleting a drawing account is still refused while it owns any board
   (ADR-013); the message asks to close them first.

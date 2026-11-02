@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { CopyValue } from "@/components/copy-value";
 import { Button } from "@/components/ui/button";
 import { changeBoardLinkAction, type ChangeLinkState } from "./actions";
+import { BoardIdField } from "./board-context";
 
 const initialState: ChangeLinkState = { status: "idle" };
 
@@ -20,12 +21,18 @@ export function BoardLink({
   url,
   matchesName,
   nextUrl,
+  justChanged,
 }: {
   url: string;
   /** Whether the link already reads as the board's current name. */
   matchesName: boolean;
   /** What the new link will look like, its random ending left as dots. */
   nextUrl: string;
+  /**
+   * The link was just changed. The owner screen moves with the slug, so the
+   * page that lands says so rather than this form's state.
+   */
+  justChanged: boolean;
 }) {
   const [state, formAction, pending] = useActionState(
     changeBoardLinkAction,
@@ -46,7 +53,7 @@ export function BoardLink({
         when you rename your board.
       </p>
 
-      {state.status === "changed" && (
+      {justChanged && (
         <p role="status" className="text-muted-foreground text-sm">
           Done. The QR code above is the new one: download it and print it when
           you can. Old QR codes and links still work and bring people here.
@@ -76,6 +83,7 @@ export function BoardLink({
           action={formAction}
           className="flex flex-col gap-3 rounded-lg border p-3"
         >
+          <BoardIdField />
           <p className="text-sm">
             Your link becomes{" "}
             <span className="font-mono break-all">{nextUrl}</span>

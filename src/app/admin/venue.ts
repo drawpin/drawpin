@@ -1,6 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { requireOwner } from "@/lib/auth";
+import { findMovedSlug } from "@/lib/former-slugs";
+import { boardIdSchema, boardSlugSchema } from "@/lib/my-boards";
+import { supabaseMyBoardsStore } from "@/lib/supabase-my-boards";
 import { toModerationLevel } from "@/lib/moderation/levels";
 import type { ModerationLevel } from "@/lib/moderation/policy";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -17,6 +20,7 @@ import {
 } from "@/app/b/[slug]/tiles";
 import { broadcastToBoard, TILE_REMOVED_EVENT } from "@/lib/realtime/broadcast";
 import type { BlockStore } from "./block-account";
+import { adminPath, BOARD_ID_FIELD } from "./board-field";
 import type { CloseBoardStore } from "./close-board";
 import type { AdminTile, ReportedTile } from "./drawings";
 import type { OwnedTile, OwnerTileStore } from "./remove-tile";
@@ -33,34 +37,144 @@ export type OwnerVenue = {
   moderationLevel: ModerationLevel;
 };
 
+const OWNER_VENUE_COLUMNS = `id, owner_id, name, slug, is_paused, moderation_level, ${VENUE_CLOCK_COLUMNS}`;
+
+type OwnerVenueRow = {
+  id: string;
+  owner_id: string;
+  name: string;
+  slug: string;
+  is_paused: boolean;
+  moderation_level: string;
+  timezone: string;
+  next_timezone: string | null;
+  timezone_changes_at: string | null;
+};
+
+function toOwnerVenue(row: OwnerVenueRow): OwnerVenue {
+  return {
+    id: row.id,
+    ownerId: row.owner_id,
+    name: row.name,
+    slug: row.slug,
+    clock: clockFromRow(row),
+    isPaused: row.is_paused,
+    moderationLevel: toModerationLevel(row.moderation_level),
+  };
+}
+
+/** What finding an owner's board by its link needs from the database. */
+export interface OwnedBoardLookup {
+  /** The board with this slug now, whoever owns it. */
+  findBySlug(slug: string): Promise<OwnerVenue | null>;
+  /** The slug a board that used to have `slug` has now (ADR-008). */
+  findMovedSlug(slug: string): Promise<string | null>;
+}
+
+export type OwnedBoardResult =
+  | { status: "found"; venue: OwnerVenue }
+  | { status: "moved"; slug: string }
+  | { status: "not-found" };
+
 /**
- * The signed-in owner's venue. Redirects to `/login` when nobody is signed in
- * and to `/setup` when they haven't created a board yet, so callers can assume
- * both.
+ * Finds the board an owner page at `/admin/[slug]` is for (ADR-016).
+ *
+ * A board someone else owns reads exactly like one that doesn't exist, so
+ * the owner screen can't be used to find out which links are boards. A
+ * former slug of the account's own board says where the board is now.
  */
-export async function requireOwnedVenue(): Promise<OwnerVenue> {
+export async function resolveOwnedBoard(
+  ownerId: string,
+  slug: string,
+  lookup: OwnedBoardLookup,
+): Promise<OwnedBoardResult> {
+  if (!boardSlugSchema.safeParse(slug).success) return { status: "not-found" };
+
+  const current = await lookup.findBySlug(slug);
+  if (current) {
+    return current.ownerId === ownerId
+      ? { status: "found", venue: current }
+      : { status: "not-found" };
+  }
+
+  const moved = await lookup.findMovedSlug(slug);
+  if (!moved) return { status: "not-found" };
+  const board = await lookup.findBySlug(moved);
+  return board?.ownerId === ownerId
+    ? { status: "moved", slug: board.slug }
+    : { status: "not-found" };
+}
+
+/** {@link OwnedBoardLookup} backed by Supabase, using the service role. */
+export function supabaseOwnedBoardLookup(
+  admin: SupabaseClient,
+): OwnedBoardLookup {
+  return {
+    async findBySlug(slug) {
+      // The service role: `owner_id` isn't readable by the API roles
+      // (docs/ERD.md, Data API grants).
+      const { data, error } = await admin
+        .from("venues")
+        .select(OWNER_VENUE_COLUMNS)
+        .eq("slug", slug)
+        .maybeSingle<OwnerVenueRow>();
+      if (error) throw new Error(`Could not load venue: ${error.message}`);
+      return data ? toOwnerVenue(data) : null;
+    },
+    findMovedSlug: (slug) => findMovedSlug(admin, slug),
+  };
+}
+
+/**
+ * The board an owner page at `/admin/[slug]` is for, owned by the signed-in
+ * account. Redirects to `/login` when nobody is signed in, and to the same
+ * page at the board's current slug when `slug` is one it used to have. Not
+ * found when there's no such board or it isn't the account's.
+ *
+ * @param page - The path after the slug, e.g. `"/print"`; empty for the board.
+ */
+export async function requireOwnedVenue(
+  slug: string,
+  page = "",
+): Promise<OwnerVenue> {
   const owner = await requireOwner();
+  const result = await resolveOwnedBoard(
+    owner.id,
+    slug,
+    supabaseOwnedBoardLookup(createAdminClient()),
+  );
+
+  if (result.status === "not-found") notFound();
+  if (result.status === "moved") redirect(adminPath(result.slug, page));
+  return result.venue;
+}
+
+/**
+ * The board a Server Action is acting on, named by the form's
+ * `BOARD_ID_FIELD` (see `./board-field`), owned by the signed-in account
+ * (ADR-016).
+ *
+ * The id comes from the request, so ownership is checked here, every time.
+ * A board that isn't the account's, or was closed in another tab, sends the
+ * owner to `/admin`, which shows the boards they do have.
+ */
+export async function requireOwnedVenueForAction(
+  formData: FormData,
+): Promise<OwnerVenue> {
+  const owner = await requireOwner();
+  const id = boardIdSchema.safeParse(formData.get(BOARD_ID_FIELD));
+  if (!id.success) redirect("/admin");
 
   const { data, error } = await createAdminClient()
     .from("venues")
-    .select(
-      `id, name, slug, is_paused, moderation_level, ${VENUE_CLOCK_COLUMNS}`,
-    )
+    .select(OWNER_VENUE_COLUMNS)
+    .eq("id", id.data)
     .eq("owner_id", owner.id)
-    .maybeSingle();
+    .maybeSingle<OwnerVenueRow>();
 
   if (error) throw new Error(`Could not load venue: ${error.message}`);
-  if (!data) redirect("/setup");
-
-  return {
-    id: data.id,
-    ownerId: owner.id,
-    name: data.name,
-    slug: data.slug,
-    clock: clockFromRow(data),
-    isPaused: data.is_paused,
-    moderationLevel: toModerationLevel(data.moderation_level),
-  };
+  if (!data) redirect("/admin");
+  return toOwnerVenue(data);
 }
 
 /** How many of the board's newest tiles the owner screen shows. */
@@ -383,6 +497,10 @@ export class SupabaseCloseBoardStore implements CloseBoardStore {
       p_venue_id: venueId,
     });
     if (error) throw new Error(`closeVenue: ${error.message}`);
+  }
+
+  countOwnedBoards(ownerId: string): Promise<number> {
+    return supabaseMyBoardsStore(this.admin).countOwnedBoards(ownerId);
   }
 
   async hasProfile(ownerId: string): Promise<boolean> {

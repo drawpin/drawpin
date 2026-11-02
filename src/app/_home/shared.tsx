@@ -85,14 +85,15 @@ export function Ending() {
               Already have one? Sign in to see your code, reports and settings.
             </p>
           </div>
-          {/* Both go to the same email sign-in: it takes a new owner on to
-              set a board up, and an owner who has one straight to it. */}
+          {/* Signed out, both ask to sign in first. Signed in, Start a board
+              is setup, which also starts a second board (ADR-016), and
+              /admin goes to the owner's board, or their list of boards. */}
           <div className="flex flex-wrap gap-3">
-            <Link href="/login" className={INKED_BUTTON}>
+            <Link href="/setup" className={INKED_BUTTON}>
               Start a board
               <ArrowRightIcon weight="bold" className="size-5" />
             </Link>
-            <Link href="/login" className={`${HEADER_BUTTON} text-base`}>
+            <Link href="/admin" className={`${HEADER_BUTTON} text-base`}>
               Manage my board
             </Link>
           </div>

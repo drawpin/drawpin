@@ -5,7 +5,8 @@ import { boardUrl, createBoardQrCode } from "@/lib/board";
 import { serverEnv } from "@/lib/env";
 import { ensureJoinCode } from "@/lib/join-code/ensure";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireOwnedVenue } from "../venue";
+import { adminPath } from "../../board-field";
+import { requireOwnedVenue } from "../../venue";
 import { LOOKS, type LookId } from "./looks";
 import { Preview, PrintButton } from "./preview";
 import { PAPER_SIZE, type Paper, type PrintFormat, Sheet } from "./sheet";
@@ -40,22 +41,23 @@ function pick<T extends string>(value: unknown, options: readonly T[]): T {
  * also saves a PDF, so the output stays vector at any size.
  */
 export default async function PrintPage({
+  params,
   searchParams,
-}: PageProps<"/admin/print">) {
+}: PageProps<"/admin/[slug]/print">) {
   await connection();
 
-  const venue = await requireOwnedVenue();
-  const params = await searchParams;
+  const venue = await requireOwnedVenue((await params).slug, "/print");
+  const query = await searchParams;
   const look = pick<LookId>(
-    params.look,
+    query.look,
     LOOKS.map((each) => each.id),
   );
   const format = pick<PrintFormat>(
-    params.format,
+    query.format,
     FORMATS.map((each) => each.id),
   );
   const paper = pick<Paper>(
-    params.paper,
+    query.paper,
     PAPERS.map((each) => each.id),
   );
   const [{ svg }, code] = await Promise.all([
@@ -64,7 +66,7 @@ export default async function PrintPage({
   ]);
 
   const href = (change: Partial<Record<"look" | "format" | "paper", string>>) =>
-    `/admin/print?${new URLSearchParams({ look, format, paper, ...change })}`;
+    `${adminPath(venue.slug, "/print")}?${new URLSearchParams({ look, format, paper, ...change })}`;
   const chip = (active: boolean) =>
     `border-foreground inline-flex h-10 items-center rounded-full border-2 px-3.5 text-sm font-bold transition-colors duration-150 ease-out ${
       active ? "bg-foreground text-white" : "hover:bg-secondary bg-white"
@@ -87,7 +89,7 @@ export default async function PrintPage({
 
       <header className="flex flex-col gap-1 print:hidden">
         <Link
-          href="/admin"
+          href={adminPath(venue.slug)}
           className="text-muted-foreground text-sm underline-offset-4 hover:underline"
         >
           ← Your board
