@@ -31,12 +31,13 @@ have both: someone who draws can also own a board.
 | `created_at` | `timestamptz` | |
 
 ### `venues`
-One drawing board per owner, addressed publicly by `slug`.
+A drawing board, addressed publicly by `slug`. An account can run up to
+five (ADR-016).
 
 | Column | Type | Notes |
 |---|---|---|
 | `id` | `uuid` | PK |
-| `owner_id` | `uuid` | FK → `owners`, **unique** — one board per owner |
+| `owner_id` | `uuid` | FK → `owners`, indexed; at most five boards per owner |
 | `name` | `text` | 1–120 chars; the owner can change it, and nothing denormalizes a copy |
 | `slug` | `text` | unique, `^[a-z0-9]+(-[a-z0-9]+)*$`; never one in `former_slugs` |
 | `timezone` | `text` | IANA name, validated in the app |
@@ -54,9 +55,33 @@ runs from the change to the new zone's Monday 4:00 AM nearest a week later.
 `set_venue_clock(...)` stores a change, or cancels one, and moves that week's
 `voting_ends_at` to match in the same transaction; `service_role` only.
 
+The cap of five boards per account is enforced by a `before insert or update
+of owner_id` trigger, `venues_enforce_board_limit`, which locks the owner's
+`owners` row before counting, so two boards created at once can't both get
+past it. It raises a `check_violation` on `venues_board_limit`. Its limit must
+agree with `MAX_BOARDS_PER_ACCOUNT` in `src/lib/my-boards.ts`.
+
 `moderation_level` is what the board's drawings and captions are checked
 against (ADR-012). The owner picks it at setup and can change it; a change
 applies to new posts only, and the app decides what each level blocks.
+
+### `board_visits`
+The boards an account has opened, for its sidebar and home hub (ADR-015). A
+signed-out device keeps its own list in a cookie instead, merged in here at
+sign-in.
+
+| Column | Type | Notes |
+|---|---|---|
+| `user_id` | `uuid` | PK with `venue_id`; FK → `auth.users`, `on delete cascade` |
+| `venue_id` | `uuid` | FK → `venues`, `on delete cascade`, indexed |
+| `last_visited_at` | `timestamptz` | when the account last opened the board |
+| `pinned_at` | `timestamptz` | nullable; set while pinned, and orders the pinned boards. Up to five, checked in the app |
+| `hidden_at` | `timestamptz` | nullable; "Remove from my boards". Opening the board again clears it |
+
+"Your boards" reads an account's rows with `hidden_at` null, pinned first by
+`pinned_at`, then by `last_visited_at` descending, 20 at most; the partial
+index `board_visits_my_boards_idx` serves exactly that. A closed board's rows
+cascade away, and a renamed board shows its new name since nothing copies it.
 
 ### `former_slugs`
 Slugs a board used to have (ADR-008). Every printed QR code encodes a slug, so
@@ -335,8 +360,8 @@ original top seven with a single winner).
 `on delete restrict` is what stops the 30-day purge from deleting a winning
 tile. It's also why closing a board (ADR-009) goes through
 `close_venue(venue_id)`: it deletes the board's Hall of Fame rows first, then
-the owner row, which cascades to the venue and everything on it, in one
-transaction; `service_role` only.
+the venue, which cascades to everything on it, and the owner row only with
+the account's last board (ADR-016), in one transaction; `service_role` only.
 
 Rows are written by `finalize_week_winner(week_id)`, called the first time a
 closed week's result is needed rather than by a job (ADR-003). It takes an
@@ -387,8 +412,9 @@ so it can't be shown anywhere, including the Hall of Fame.
 
 ## Row level security
 
-RLS is on for every table, and all writes go through API routes using the
-service role key, which bypasses it. The policies only grant the reads the
+RLS is on for every table, and all writes go through the server using the
+service role key, which bypasses it. `board_visits` also has write policies,
+scoped to the account's own rows, as a backstop. The policies only grant the reads the
 public board and the owner screen need:
 
 | Table | Readable by |
@@ -396,6 +422,7 @@ public board and the owner screen need:
 | `venues`, `weeks`, `hall_of_fame`, `profiles`, `monthly_finals`, `former_slugs` | anyone |
 | `tiles` | anyone, `status = 'live'` only |
 | `owners` | the owner, their own row |
+| `board_visits` | the account, its own rows; it can insert, update and delete only those too |
 | `daily_codes` | the owner, for their own venue |
 | `devices`, `votes`, `final_votes`, `post_attempts`, `code_attempts`, `account_posts`, `tile_reports`, `venue_blocks`, `venue_tallies`, `venue_artists` | nobody (service role only) |
 
@@ -419,6 +446,8 @@ is readable, and only the server can change it (ADR-012):
 | `service_role` (server) | all | select, insert, update, delete |
 | `anon`, `authenticated` | `venues`, `weeks`, `tiles`, `hall_of_fame`, `profiles`, `monthly_finals`, `former_slugs` | select |
 | `authenticated` (owners) | `owners`, `daily_codes` | select |
+| `authenticated` | `board_visits` | select, insert, update, delete (own rows, by RLS) |
+| `anon` | `board_visits` | none |
 | `anon`, `authenticated` | `devices`, `votes`, `final_votes`, `post_attempts`, `code_attempts`, `account_posts`, `tile_reports`, `venue_blocks`, `venue_tallies`, `venue_artists` | none |
 
 Functions follow the same rule. `record_blocked_attempt(venue_id, device_id,
