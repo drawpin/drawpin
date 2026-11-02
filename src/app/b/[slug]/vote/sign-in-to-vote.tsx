@@ -2,7 +2,8 @@
 
 import { XIcon } from "@phosphor-icons/react";
 import { useState } from "react";
-import { GoogleSignIn } from "@/components/google-sign-in";
+import { SIGN_IN_PILL } from "@/components/google-sign-in";
+import { SignInButton } from "@/components/sign-in-sheet";
 import { PAPER } from "../board-look";
 import { PinnedDrawing } from "../pinned-drawing";
 import type { Tile } from "../tiles";
@@ -17,6 +18,7 @@ import { DrawingsHeading, DrawingsList } from "./drawings-list";
 export function SignInToVote({
   tiles,
   next,
+  returnTo,
   heading = <DrawingsHeading />,
   notes,
   ask = "Sign in to vote. Three votes per week!",
@@ -24,6 +26,8 @@ export function SignInToVote({
   tiles: Tile[];
   /** Where to come back to after signing in. */
   next: string;
+  /** The board's name, for the sign-in sheet's "You'll come back to …". */
+  returnTo?: string;
   /** Over the drawings; last week's by default. */
   heading?: React.ReactNode;
   /** A line under each drawing, by tile id (the monthly final's "won its week"). */
@@ -61,12 +65,13 @@ export function SignInToVote({
             <span className="text-foreground font-semibold">Want to vote?</span>{" "}
             {ask}
           </p>
-          <GoogleSignIn
+          <SignInButton
             next={next}
-            label="Sign in"
-            size="sm"
-            withEmail={false}
-          />
+            returnTo={returnTo}
+            className={`${SIGN_IN_PILL} shrink-0`}
+          >
+            Sign in
+          </SignInButton>
           <button
             type="button"
             aria-label="Not now"

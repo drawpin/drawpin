@@ -11,6 +11,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Toast } from "@base-ui/react/toast";
 import { ListIcon } from "@phosphor-icons/react";
+import type { SidebarBoard } from "@/lib/sidebar-boards";
 import { type Chrome, chromeForPath } from "./chrome";
 import { ShellToasts } from "./shell-toasts";
 
@@ -18,6 +19,14 @@ type ShellState = {
   chrome: Chrome;
   drawerOpen: boolean;
   setDrawerOpen: (open: boolean) => void;
+  /**
+   * The person's boards as changed since the server last sent them (a
+   * visit, a pin, a remove), or `null` while the server's list stands. Held
+   * here rather than in the sidebar so the board header's pin toggle and the
+   * sidebar's rows always show the same list.
+   */
+  boards: SidebarBoard[] | null;
+  setBoards: (boards: SidebarBoard[] | null) => void;
 };
 
 const ShellContext = createContext<ShellState | null>(null);
@@ -49,6 +58,7 @@ export function ShellFrame({
   const pathname = usePathname();
   const chrome = chromeForPath(pathname);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [boards, setBoards] = useState<SidebarBoard[] | null>(null);
   // Close the drawer on any navigation, including back and forward.
   const [lastPath, setLastPath] = useState(pathname);
   if (lastPath !== pathname) {
@@ -57,8 +67,8 @@ export function ShellFrame({
   }
 
   const shell = useMemo(
-    () => ({ chrome, drawerOpen, setDrawerOpen }),
-    [chrome, drawerOpen],
+    () => ({ chrome, drawerOpen, setDrawerOpen, boards, setBoards }),
+    [chrome, drawerOpen, boards],
   );
 
   if (chrome === "none") return <>{children}</>;

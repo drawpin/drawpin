@@ -6,6 +6,7 @@ import { getOwner } from "@/lib/auth";
 import { nameTagFor } from "@/lib/device-id";
 import { serverEnv } from "@/lib/env";
 import { formatMemberSince, groupDrawings } from "@/lib/profile";
+import { loginHref } from "@/lib/sign-in-routing";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { listMyDrawings } from "@/lib/supabase-my-drawings";
 import { loadProfile } from "@/lib/supabase-profile";
@@ -31,7 +32,7 @@ export default async function MePage() {
   await connection();
 
   const user = await getOwner();
-  if (!user) redirect("/login?next=/me");
+  if (!user) redirect(loginHref("/me"));
 
   const admin = createAdminClient();
   const [profile, drawings, boardsRun] = await Promise.all([

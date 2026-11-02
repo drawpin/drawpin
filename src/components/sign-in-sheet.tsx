@@ -71,8 +71,9 @@ export function SignInSheet({
 
 /**
  * A button that opens the sign-in sheet, returning to the page it was tapped
- * on (its path and search). This is what the sidebar's "Sign in" swaps in
- * for its `/login?next=…` link.
+ * on (its path and search): the "Sign in" on board pages. (The sidebar opens
+ * the sheet itself, outside its drawer, since the drawer closes as the sheet
+ * opens and would take a sheet inside it away.)
  *
  * It takes the button's look from the caller, and the page to return to is
  * read when it's tapped, so it works on any page without a `next` prop. The

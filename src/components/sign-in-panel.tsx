@@ -122,12 +122,7 @@ export function SignInPanel({
           for fun never needs it.
         </Description>
       </div>
-      <GoogleSignIn
-        next={next}
-        size="block"
-        label="Continue with Google"
-        withEmail={false}
-      />
+      <GoogleSignIn next={next} label="Continue with Google" />
       <div
         className="text-muted-foreground flex items-center gap-3 text-xs font-semibold"
         aria-hidden

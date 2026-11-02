@@ -34,15 +34,21 @@ export const INKED_BUTTON =
  * (docs/design/profiles.md, section 2), above the page's own content, so it
  * never sits beside the vote view's Sign in or crowds a page's own "Back to
  * the board". On a laptop the sidebar is the way around, and the row goes.
+ *
+ * @param menuRowEnd - The phone row's right end, such as the board's pin
+ *   toggle. It goes with the row on a laptop, so a page that wants it there
+ *   too puts it in its own header as well.
  */
 export function BoardLayout({
   header,
   children,
   narrow = false,
+  menuRowEnd,
 }: {
   header: ReactNode;
   children: ReactNode;
   narrow?: boolean;
+  menuRowEnd?: ReactNode;
 }) {
   return (
     <div className="flex flex-1 flex-col">
@@ -53,14 +59,17 @@ export function BoardLayout({
                 always beside the page, so there's no row at all. Pulled up
                 and in, so the button's tap area rather than its edge takes
                 the header's padding. */}
-            <div className="-mt-3 -ml-2 flex items-center gap-2 md:-mt-4 lg:hidden">
-              <MenuButton />
-              <Link
-                href="/"
-                className="focus-visible:ring-highlight rounded-lg px-1 text-lg font-black tracking-tighter outline-none focus-visible:ring-3"
-              >
-                Draw<span className="text-winner">Pin</span>
-              </Link>
+            <div className="-mt-3 -ml-2 flex items-center justify-between gap-2 md:-mt-4 lg:hidden">
+              <div className="flex items-center gap-2">
+                <MenuButton />
+                <Link
+                  href="/"
+                  className="focus-visible:ring-highlight rounded-lg px-1 text-lg font-black tracking-tighter outline-none focus-visible:ring-3"
+                >
+                  Draw<span className="text-winner">Pin</span>
+                </Link>
+              </div>
+              {menuRowEnd}
             </div>
             {header}
           </div>

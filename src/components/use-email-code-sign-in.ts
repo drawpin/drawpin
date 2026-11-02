@@ -15,9 +15,8 @@ import {
 const idle: EmailSignInState = { status: "idle" };
 
 /**
- * The state behind signing in with an emailed code (ADR-010), shared by the
- * small in-page form (`EmailSignIn`) and the sign-in sheet and page
- * (`SignInPanel`), so the two never drift apart.
+ * The state behind signing in with an emailed code (ADR-010), for the
+ * sign-in sheet and page (`SignInPanel`).
  *
  * The code step reopens by itself for a while after a code is sent, since a
  * phone often reloads the page while its person reads their email, and a

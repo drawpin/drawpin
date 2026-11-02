@@ -8,8 +8,10 @@ import {
 } from "@phosphor-icons/react/ssr";
 import { connection } from "next/server";
 import { AccountLine } from "@/components/account-line";
-import { GoogleSignIn } from "@/components/google-sign-in";
+import { SIGN_IN_PILL } from "@/components/google-sign-in";
+import { SignInButton } from "@/components/sign-in-sheet";
 import { getCustomer } from "@/lib/customer";
+import { supabaseMyBoardsStore } from "@/lib/supabase-my-boards";
 import { serverEnv } from "@/lib/env";
 import { openFinal } from "@/lib/monthly-final";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -22,6 +24,7 @@ import {
 } from "./board-look";
 import { BoardTitle } from "./board-title";
 import { lateNightGate } from "./late-night/gate";
+import { PinToggle } from "./pin-toggle";
 import { BoardRulesLink } from "./rules/rules-link";
 import {
   getBoardStats,
@@ -105,25 +108,46 @@ export async function BoardScreen({
   // to the tiles so their own are marked: nobody reports themselves, and
   // nobody votes for themselves later.
   const onVoteView = view === "vote" && votingWeek !== null;
-  const [votedTileIds, page, peek, votingPage, castVotes] = await Promise.all([
-    votingWeek && customer
-      ? store.listVotedTileIds(votingWeek.id, customer.id)
-      : [],
-    onBoardView && week
-      ? listLiveTiles(week.id, undefined, undefined, customer?.id ?? null)
-      : null,
-    onBoardView && votingWeek ? peekAtWeek(votingWeek.id, PEEK_COUNT) : null,
-    // The vote view's drawings and its podium's counts, in the same round.
-    onVoteView && votingWeek
-      ? listLiveTiles(votingWeek.id, undefined, undefined, customer?.id ?? null)
-      : null,
-    onVoteView && votingWeek ? store.listCastVotes(votingWeek.id) : null,
-  ]);
+  const [votedTileIds, page, peek, votingPage, castVotes, pinned] =
+    await Promise.all([
+      votingWeek && customer
+        ? store.listVotedTileIds(votingWeek.id, customer.id)
+        : [],
+      onBoardView && week
+        ? listLiveTiles(week.id, undefined, undefined, customer?.id ?? null)
+        : null,
+      onBoardView && votingWeek ? peekAtWeek(votingWeek.id, PEEK_COUNT) : null,
+      // The vote view's drawings and its podium's counts, in the same round.
+      onVoteView && votingWeek
+        ? listLiveTiles(
+            votingWeek.id,
+            undefined,
+            undefined,
+            customer?.id ?? null,
+          )
+        : null,
+      onVoteView && votingWeek ? store.listCastVotes(votingWeek.id) : null,
+      // The header's pin toggle; a nicety, so a failed read just shows "Pin".
+      customer
+        ? supabaseMyBoardsStore(admin)
+            .findVisit(customer.id, board.id)
+            .then((visit) => visit?.pinnedAt != null && visit.hiddenAt === null)
+            .catch((error: unknown) => {
+              console.error("Could not read the board's pin", error);
+              return false;
+            })
+        : false,
+    ]);
   // A signed-out visitor sees the prompt too: they can sign in from there.
   const votesLeft = VOTES_PER_WEEK - votedTileIds.length;
   const closesOn = votingWeek
     ? weekdayFor(new Date(votingWeek.votingEndsAt), board.timezone)
     : null;
+
+  // Pinning needs an account (ADR-015): a device's list has no pins.
+  const pinToggle = customer && (
+    <PinToggle venueId={board.id} pinned={pinned} />
+  );
 
   const header = (
     <>
@@ -146,14 +170,17 @@ export async function BoardScreen({
         </div>
         {view === "vote" && votingWeek && !customer && (
           <div className="shrink-0">
-            <GoogleSignIn
+            <SignInButton
               next={`/b/${slug}/vote`}
-              label="Sign in"
-              size="sm"
-              withEmail={false}
-            />
+              returnTo={board.name}
+              className={SIGN_IN_PILL}
+            >
+              Sign in
+            </SignInButton>
           </div>
         )}
+        {/* On a phone the toggle sits in the menu row above instead. */}
+        {pinToggle && <div className="hidden lg:block">{pinToggle}</div>}
       </div>
       <div className="flex items-center justify-between gap-3">
         {/* A button, not small print: winners are what the board is for.
@@ -178,7 +205,7 @@ export async function BoardScreen({
 
   if (view === "vote") {
     return (
-      <BoardLayout header={header}>
+      <BoardLayout header={header} menuRowEnd={pinToggle}>
         <VoteModeBar
           slug={slug}
           closesOn={closesOn}
@@ -195,6 +222,7 @@ export async function BoardScreen({
         {votingWeek ? (
           <VoteView
             slug={slug}
+            boardName={board.name}
             customerId={customer?.id ?? null}
             votesLeft={votesLeft}
             votedTileIds={votedTileIds}
@@ -207,7 +235,11 @@ export async function BoardScreen({
             drawings go up for voting every Monday at 4:00 AM.
           </p>
         )}
-        <AccountLine customer={customer} next={`/b/${slug}/vote`} />
+        <AccountLine
+          customer={customer}
+          next={`/b/${slug}/vote`}
+          returnTo={board.name}
+        />
         <BoardRulesLink slug={slug} />
       </BoardLayout>
     );
@@ -221,7 +253,7 @@ export async function BoardScreen({
     : null;
 
   return (
-    <BoardLayout header={header}>
+    <BoardLayout header={header} menuRowEnd={pinToggle}>
       {board.isPaused && (
         <p role="status" className="bg-secondary rounded-2xl px-4 py-3 text-sm">
           This board is paused. You can look around, but new posts are off for
@@ -274,7 +306,11 @@ export async function BoardScreen({
 
       {/* Small print at the foot of the board: sign-in turns up on Draw and
           Vote, where it's needed, so here it's only for whoever looks. */}
-      <AccountLine customer={customer} next={`/b/${slug}`} />
+      <AccountLine
+        customer={customer}
+        next={`/b/${slug}`}
+        returnTo={board.name}
+      />
       <BoardRulesLink slug={slug} />
     </BoardLayout>
   );
@@ -322,6 +358,7 @@ function VoteModeBar({
  */
 async function VoteView({
   slug,
+  boardName,
   customerId,
   votesLeft,
   votedTileIds,
@@ -329,6 +366,7 @@ async function VoteView({
   castVotes,
 }: {
   slug: string;
+  boardName: string;
   customerId: string | null;
   votesLeft: number;
   votedTileIds: string[];
@@ -380,7 +418,11 @@ async function VoteView({
         />
       ) : (
         // Signed out: tapping a drawing to vote asks them to sign in.
-        <SignInToVote tiles={page.tiles} next={`/b/${slug}/vote`} />
+        <SignInToVote
+          tiles={page.tiles}
+          next={`/b/${slug}/vote`}
+          returnTo={boardName}
+        />
       )}
     </>
   );

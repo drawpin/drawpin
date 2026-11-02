@@ -113,11 +113,15 @@ export async function pinBoardAction(
   if (!owner) return { ok: false, message: "Sign in to pin boards." };
 
   const admin = createAdminClient();
-  const result = await pinBoard(
-    owner.id,
-    parsed.data.venueId,
-    supabaseMyBoardsStore(admin),
-  );
+  const store = supabaseMyBoardsStore(admin);
+  const { venueId } = parsed.data;
+  let result = await pinBoard(owner.id, venueId, store);
+  if (result === "not-found") {
+    // The header's toggle, tapped before the page's own visit was recorded:
+    // record it, so the tap isn't lost.
+    await recordVisit(owner.id, venueId, store);
+    result = await pinBoard(owner.id, venueId, store);
+  }
   if (result === "limit-reached") {
     return { ok: false, message: PIN_LIMIT_MESSAGE };
   }

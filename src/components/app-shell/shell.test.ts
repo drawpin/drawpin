@@ -9,8 +9,9 @@ describe("chromeForPath", () => {
     ["/b/maple-street/vote", "full"],
     ["/b/maple-street/draw", "button-only"],
     ["/admin/maple-street", "full"],
-    ["/admin/print", "none"],
+    ["/admin/print", "full"],
     ["/admin/maple-street/print", "none"],
+    ["/admin/maple-street/print/", "none"],
   ])("%s gets %s", (path, chrome) => {
     expect(chromeForPath(path)).toBe(chrome);
   });

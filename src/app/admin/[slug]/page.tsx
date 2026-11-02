@@ -23,7 +23,7 @@ import {
 } from "@/app/b/[slug]/board-look";
 import { listOwnedBoards } from "@/lib/my-boards";
 import { supabaseMyBoardsStore } from "@/lib/supabase-my-boards";
-import { setBoardPaused, signOut } from "../actions";
+import { setBoardPaused } from "../actions";
 import { AdminBoardProvider, BoardIdField } from "../board-context";
 import { adminPath, LINK_CHANGED_PARAM } from "../board-field";
 import { BoardSwitcher } from "../board-switcher";
@@ -106,15 +106,12 @@ export default async function AdminPage({
       <BoardLayout
         header={
           <>
-            <div className="flex items-center justify-between gap-3">
-              <p
-                className={`${hand.className} bg-winner text-foreground w-fit -rotate-2 rounded-sm px-2.5 py-0.5 text-xl leading-tight font-bold`}
-              >
-                Your board
-              </p>
-              {/* The global sidebar's menu button goes here once the app
-                  shell lands; this header doesn't build it. */}
-            </div>
+            {/* The menu button is BoardLayout's phone row, above this. */}
+            <p
+              className={`${hand.className} bg-winner text-foreground w-fit -rotate-2 rounded-sm px-2.5 py-0.5 text-xl leading-tight font-bold`}
+            >
+              Your board
+            </p>
             <div className="flex flex-col gap-1">
               <h1 className="text-4xl leading-[1.02] font-black tracking-tight break-words">
                 {current && ownedBoards.length > 1 ? (
@@ -127,20 +124,14 @@ export default async function AdminPage({
                 {url.replace(/^https?:\/\//, "")}
               </p>
             </div>
-            <div className="flex items-center justify-between gap-3">
-              <Link href={`/b/${venue.slug}`} className={HEADER_BUTTON}>
-                <ArrowSquareOutIcon weight="bold" className="size-5" />
-                Open the board
-              </Link>
-              <form action={signOut}>
-                <button
-                  type="submit"
-                  className="focus-visible:ring-highlight h-11 rounded-xl px-3 text-sm font-semibold text-white/85 underline underline-offset-4 outline-none hover:text-white focus-visible:ring-3"
-                >
-                  Sign out
-                </button>
-              </form>
-            </div>
+            {/* Sign out is in the sidebar (docs/design/profiles.md, 5). */}
+            <Link
+              href={`/b/${venue.slug}`}
+              className={`${HEADER_BUTTON} w-fit`}
+            >
+              <ArrowSquareOutIcon weight="bold" className="size-5" />
+              Open the board
+            </Link>
           </>
         }
       >

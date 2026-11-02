@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeftIcon, CrownSimpleIcon } from "@phosphor-icons/react/ssr";
 import { connection } from "next/server";
-import { GoogleSignIn } from "@/components/google-sign-in";
+import { SIGN_IN_PILL } from "@/components/google-sign-in";
+import { SignInButton } from "@/components/sign-in-sheet";
 import { getCustomer } from "@/lib/customer";
 import { serverEnv } from "@/lib/env";
 import { openFinal } from "@/lib/monthly-final";
@@ -89,7 +90,13 @@ export default async function FinalPage({
       {/* For anyone signed out, the way in, in the corner. */}
       {finalists.length > 0 && !customer && (
         <div className="absolute top-7 right-4">
-          <GoogleSignIn next={`/b/${slug}/final`} label="Sign in" size="sm" />
+          <SignInButton
+            next={`/b/${slug}/final`}
+            returnTo={board.name}
+            className={SIGN_IN_PILL}
+          >
+            Sign in
+          </SignInButton>
         </div>
       )}
       {note && (
@@ -156,6 +163,7 @@ export default async function FinalPage({
         <SignInToVote
           tiles={finalists.map(finalistTile)}
           next={`/b/${slug}/final`}
+          returnTo={board.name}
           heading={heading}
           notes={wonItsWeekNotes(finalists)}
           ask="Sign in to vote. One vote each in the final!"
