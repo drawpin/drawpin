@@ -25,8 +25,18 @@ function GoogleMark() {
   );
 }
 
+const PILL =
+  "border-border text-foreground hover:bg-secondary focus-visible:ring-highlight inline-flex items-center gap-2 rounded-full border bg-white font-semibold shadow-[0_1px_2px_rgb(15_27_45/0.08)] transition-colors duration-150 ease-out outline-none focus-visible:ring-3 motion-reduce:transition-none";
+
+const SIZES = {
+  sm: `${PILL} h-10 px-3.5 text-sm`,
+  lg: `${PILL} h-11 px-4 text-sm`,
+  block:
+    "border-foreground text-foreground hover:bg-secondary focus-visible:ring-highlight inline-flex h-12 w-full items-center justify-center gap-2.5 rounded-xl border-2 bg-white font-bold transition-colors duration-150 ease-out outline-none focus-visible:ring-3 motion-reduce:transition-none",
+} as const;
+
 /**
- * Signs a customer in with Google so they can post, compete and vote
+ * Signs anyone in with Google so they can post, compete and vote
  * (ADR-004, ADR-007), with an emailed code underneath for anyone without a
  * Google account (ADR-010). Drawing for fun works without either.
  *
@@ -34,6 +44,9 @@ function GoogleMark() {
  * its label, so the drawings around it stay the main thing on the page.
  *
  * @param next - The page to come back to afterwards.
+ * @param size - `sm` and `lg` are the modest white pill; `block` is the
+ *   full-width inked button the sign-in sheet and page use, where Google and
+ *   the emailed code carry equal weight.
  * @param withEmail - Whether the emailed-code way in shows underneath. Off
  *   only where a form can't open, such as the vote page's header; the
  *   account line further down the same page still offers it.
@@ -46,17 +59,17 @@ export function GoogleSignIn({
 }: {
   next: string;
   label?: string;
-  size?: "sm" | "lg";
+  size?: "sm" | "lg" | "block";
   withEmail?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <form action={signInWithGoogle} className="shrink-0">
+      <form
+        action={signInWithGoogle}
+        className={size === "block" ? "w-full" : "shrink-0"}
+      >
         <input type="hidden" name="next" value={next} />
-        <button
-          type="submit"
-          className={`border-border text-foreground hover:bg-secondary focus-visible:ring-highlight inline-flex items-center gap-2 rounded-full border bg-white font-semibold shadow-[0_1px_2px_rgb(15_27_45/0.08)] transition-colors duration-150 ease-out outline-none focus-visible:ring-3 motion-reduce:transition-none ${size === "sm" ? "h-10 px-3.5 text-sm" : "h-11 px-4 text-sm"}`}
-        >
+        <button type="submit" className={SIZES[size]}>
           <GoogleMark />
           {label}
         </button>

@@ -127,7 +127,7 @@ export function supabaseOwnedBoardLookup(
 
 /**
  * The board an owner page at `/admin/[slug]` is for, owned by the signed-in
- * account. Redirects to `/login` when nobody is signed in, and to the same
+ * account. Redirects to the sign-in when nobody is signed in, and to the same
  * page at the board's current slug when `slug` is one it used to have. Not
  * found when there's no such board or it isn't the account's.
  *

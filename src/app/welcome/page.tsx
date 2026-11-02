@@ -20,7 +20,7 @@ export default async function WelcomePage({
 }: PageProps<"/welcome">) {
   await connection();
 
-  const user = await requireOwner();
+  const user = await requireOwner("/");
   const { next } = await searchParams;
   const destination = safeNextPath(typeof next === "string" ? next : null);
 

@@ -6,10 +6,10 @@ import { safeNextPath } from "@/lib/next-path";
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * Starts a customer's Google sign-in and sends them to Google.
+ * Starts a Google sign-in and sends them to Google.
  *
- * Customers sign in with Google and owners by magic link (ADR-004), so this is
- * only ever a customer's route in.
+ * Anyone signs in with Google (drawers and board owners, ADR-016); this is
+ * one of the two ways in, the other being an emailed code.
  *
  * @param formData - Carries `next`, the page to return to afterwards.
  */

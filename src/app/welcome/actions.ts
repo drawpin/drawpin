@@ -12,7 +12,7 @@ export async function chooseUsername(
   _previous: WelcomeState,
   formData: FormData,
 ): Promise<WelcomeState> {
-  const user = await requireOwner();
+  const user = await requireOwner("/");
 
   const parsed = usernameSchema.safeParse({
     username: formData.get("username"),

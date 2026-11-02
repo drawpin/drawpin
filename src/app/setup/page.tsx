@@ -22,7 +22,7 @@ export const metadata: Metadata = { title: "Set up your board · DrawPin" };
 export default async function SetupPage() {
   // The count changes with the owner's own actions; never serve a stale one.
   await connection();
-  const owner = await requireOwner();
+  const owner = await requireOwner("/setup");
 
   // The service role, after the sign-in check above: `owner_id` isn't one of
   // the venue columns signed-in users may read (docs/ERD.md, Data API
