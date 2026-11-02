@@ -3,9 +3,11 @@ import { type NextRequest, NextResponse } from "next/server";
 import { serverEnv } from "@/lib/env";
 
 /**
- * Refreshes the owner's Supabase session before owner pages render. Server
- * Components can't write cookies, so without this an expired access token
- * would never be replaced and the owner would be signed out early.
+ * Refreshes the signed-in person's Supabase session before any page renders.
+ * Server Components can't write cookies, so without this an expired access
+ * token (they last an hour) is refreshed but the rotated refresh token is
+ * lost, and the person looks signed out. Owners and customers both have
+ * accounts (ADR-007), so every page needs it.
  */
 export async function proxy(request: NextRequest) {
   const env = serverEnv();
@@ -41,7 +43,10 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Only owner routes carry a session. Customer board pages have no accounts,
-  // so they skip this round trip entirely.
-  matcher: ["/login", "/setup", "/admin/:path*"],
+  // Every route except static assets and the cron/health endpoints, which
+  // never read a session and shouldn't pay for the refresh. Route handlers
+  // that do read it (account downloads, auth callbacks) stay included.
+  matcher: [
+    "/((?!_next/static|_next/image|favicon\\.ico|api/cron|api/health|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?)$).*)",
+  ],
 };
