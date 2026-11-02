@@ -25,41 +25,41 @@ function exampleTile(file: string, author: string, caption: string): Tile {
 /**
  * The hero's drawings. Each section of the home page has its own set so the
  * same drawing never shows twice (#181): the hero's are here, the week
- * walkthrough's are `WEEK_BOARD`. `malfoida-lisa` (first, with the trophy)
- * is a real drawing from a DrawPin board, used with its maker's name and
- * caption. `skyline` and `dog` are made-up demos from Canva with invented
- * names and captions.
+ * walkthrough's are `WEEK_BOARD`. All three are real drawings from a DrawPin
+ * board, credited with their maker's name and caption as they were posted.
+ * `malfoid` was a real weekly winner, so it wears the trophy (`HERO_WINNER`).
  */
 export const HERO_EXAMPLES: Tile[] = [
-  exampleTile("malfoida-lisa", "Ricky#7024", "malfoida lisa"),
-  exampleTile("skyline", "Ahmad#2041", "golden hour"),
-  exampleTile("dog", "Sam#2683", "Biscuit, 4"),
+  exampleTile("windy-day", "Ahmad Hijazi#8620", "? Windy day"),
+  exampleTile("malfoid", "Ricky Liang#7024", "malfoid"),
+  exampleTile("rina", "myname#1363", "rina"),
 ];
+
+/** The hero drawing that wears the trophy. */
+export const HERO_WINNER = HERO_EXAMPLES[1];
 
 /**
  * The week walkthrough's board, in the order it's drawn, with the votes each
- * tile has in the voting beat. All four are real drawings from DrawPin boards,
- * credited as they were posted. The first is a real weekly winner, so it takes
+ * tile has in the voting beat. `malfoida-lisa` and `lol` are real drawings
+ * from a DrawPin board, credited as they were posted; `skyline` and `dog` are
+ * made-up demos from Canva with invented names and captions. The first takes
  * the most votes and the trophy at the end.
  */
 export const WEEK_BOARD: { tile: Tile; votes: number }[] = [
   {
-    tile: exampleTile("malfoid", "Ricky#7024", "malfoid"),
+    tile: exampleTile("malfoida-lisa", "Ricky Liang#7024", "malfoida lisa"),
     votes: 4,
   },
-  {
-    tile: exampleTile("windy-day", "Ahmad#8620", "? Windy day"),
-    votes: 2,
-  },
-  { tile: exampleTile("lol", "Bennett#9363", "LOL"), votes: 3 },
-  { tile: exampleTile("rina", "Kevin#1997", "rina"), votes: 1 },
+  { tile: exampleTile("skyline", "Ahmad#2041", "golden hour"), votes: 2 },
+  { tile: exampleTile("lol", "Bennett Marceaux#9363", "LOL"), votes: 3 },
+  { tile: exampleTile("dog", "Sam#2683", "Biscuit, 4"), votes: 1 },
 ];
 
 /** The week's winner: the most-voted tile, who gets the trophy. */
 export const WEEK_WINNER = WEEK_BOARD[0].tile;
 
 /** The tile posted in the walkthrough's first beat (it's also on the board). */
-export const WEEK_POSTED = WEEK_BOARD[3].tile;
+export const WEEK_POSTED = WEEK_BOARD[2].tile;
 
 /** The gold trophy, on a drawing's corner. */
 export function TrophyBadge({ size }: { size: number }) {
