@@ -50,10 +50,13 @@ boards with their latest tiles, join with a code and Start a board. PLAN's
 
 ### Landing
 Whether a returning signed-in visitor opening `/` lands on the hub or on the
-marketing home (with the sidebar) is one constant, `HUB_LANDING`, so the
-owner can flip it at review. The default sends returning signed-in accounts
-to the hub and everyone else to the marketing home. First-time and
-signed-out visitors always get the marketing home.
+marketing home (with the sidebar) is one constant, `LANDING` in
+`src/lib/landing.ts`, so the owner can flip it at review. The default sends
+signed-in accounts with a username to the hub (being signed in counts as
+returning; one with no boards yet gets the hub's empty state) and everyone
+else to the marketing home. The marketing home is also at `/about`, the
+sidebar's About link. With `LANDING = "marketing"`, `/` is the marketing
+home for everyone and the hub moves to `/home`, the sidebar's Home link.
 
 ### Recent and pinned boards
 - **Recorded automatically.** Opening a board (its board, draw, vote or
