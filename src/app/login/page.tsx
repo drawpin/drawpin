@@ -1,50 +1,36 @@
 import type { Metadata } from "next";
-import { CardPage } from "@/app/b/[slug]/board-look";
-import Link from "next/link";
 import { redirect } from "next/navigation";
+import { SignInPanel } from "@/components/sign-in-panel";
 import { getOwner } from "@/lib/auth";
-import { serverEnv } from "@/lib/env";
-import { LoginForm } from "./login-form";
+import { safeNextPath } from "@/lib/next-path";
 
 export const metadata: Metadata = { title: "Sign in · DrawPin" };
 
+/**
+ * The full-page sign-in, for anyone: the same content as the sign-in sheet
+ * (`SignInSheet`), for links in emails and for "Start a board" / "Manage my
+ * board". One account draws and runs boards (ADR-013, ADR-016), so there is
+ * a single way in. `?next=` is where to return to, checked as a plain path
+ * on this site.
+ */
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
-  // Anyone already signed in, to draw or to run a board, goes straight on:
-  // one account can do both (ADR-013). /admin shows their board, or sends
-  // them to set one up if they don't have one yet.
-  if (await getOwner()) redirect("/admin");
+  const { error, next: rawNext } = await searchParams;
+  const next = safeNextPath(typeof rawNext === "string" ? rawNext : null);
 
-  const { error } = await searchParams;
+  // Already signed in: nothing to do here but carry on.
+  if (await getOwner()) redirect(next);
 
   return (
-    <CardPage
-      note="For board owners"
-      title="Sign in to DrawPin"
-      intro={
-        <p>
-          Start a new board, or manage the one you have. We&apos;ll email you a
-          code and a link, no password needed.
-        </p>
-      }
-    >
-      {error === "link" && (
-        <p role="alert" className="text-destructive text-center text-sm">
-          That sign-in link didn&apos;t work. Links expire after 15 minutes and
-          work once. Request a new one below.
-        </p>
-      )}
-      <LoginForm
-        turnstileSiteKey={serverEnv().NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-      />
-      {/* Customers sign in from the board itself, so anyone who
-          lands here looking for that needs pointing back. */}
-      <p className="text-muted-foreground text-center text-sm">
-        Here to draw? You don&apos;t need this. Join a board from the{" "}
-        <Link href="/" className="underline underline-offset-4">
-          home page
-        </Link>
-        .
-      </p>
-    </CardPage>
+    <div className="flex flex-1 flex-col justify-center px-4 py-10">
+      <main className="border-foreground mx-auto flex w-full max-w-sm flex-col gap-5 rounded-2xl border-2 bg-white px-5 py-7 shadow-[6px_6px_0_var(--primary)]">
+        {error === "link" && (
+          <p role="alert" className="text-destructive text-center text-sm">
+            That sign-in link didn&apos;t work. Links expire after 15 minutes
+            and work once. Request a new code below.
+          </p>
+        )}
+        <SignInPanel next={next} variant="page" />
+      </main>
+    </div>
   );
 }

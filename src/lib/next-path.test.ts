@@ -17,6 +17,11 @@ describe("safeNextPath", () => {
     BACKSLASH_PATH,
     "javascript:alert(1)",
     "b/cafe-aaaa",
+    "/\t/evil.example",
+    "/\n/evil.example",
+    "/\r/evil.example",
+    "data:text/html,hi",
+    " //evil.example",
   ])("refuses %o", (value) => {
     expect(safeNextPath(value)).toBe("/");
   });

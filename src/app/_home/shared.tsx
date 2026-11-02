@@ -100,14 +100,17 @@ export function Ending() {
               Already have one? Sign in to see your code, reports and settings.
             </p>
           </div>
-          {/* Both go to the same email sign-in: it takes a new owner on to
+          {/* Both go to the sign-in, returning to /admin: it takes a new board runner on to
               set a board up, and an owner who has one straight to it. */}
           <div className="flex flex-wrap gap-3">
-            <Link href="/login" className={INKED_BUTTON}>
+            <Link href="/login?next=%2Fadmin" className={INKED_BUTTON}>
               Start a board
               <ArrowRightIcon weight="bold" className="size-5" />
             </Link>
-            <Link href="/login" className={`${HEADER_BUTTON} text-base`}>
+            <Link
+              href="/login?next=%2Fadmin"
+              className={`${HEADER_BUTTON} text-base`}
+            >
               Manage my board
             </Link>
           </div>

@@ -45,7 +45,10 @@ export function PosterHero() {
                 <PencilSimpleIcon weight="bold" className="size-5" />I have a
                 code
               </a>
-              <Link href="/login" className={`${HEADER_BUTTON} text-base`}>
+              <Link
+                href="/login?next=%2Fadmin"
+                className={`${HEADER_BUTTON} text-base`}
+              >
                 Start a board
               </Link>
             </div>

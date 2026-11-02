@@ -1,9 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { destinationAfterSignIn } from "../after-sign-in";
 import { parseConfirmParams } from "./params";
 
 /**
- * Completes a magic-link sign-in, then sends the owner to their board.
+ * Completes an emailed sign-in link, then sends the account on: to the page
+ * it asked to come back to when the link carries one (`next`, checked as a
+ * plain path on this site), or to the home page; the first time, through
+ * /welcome to pick a username.
  *
  * Accepts both link formats (see `ConfirmParams`): our custom template's
  * token hash, and the `?code=` redirect from Supabase's default template.
@@ -15,7 +19,7 @@ export async function GET(request: NextRequest) {
 
   if (params.kind !== "invalid") {
     const supabase = await createClient();
-    const { error } =
+    const result =
       params.kind === "code"
         ? await supabase.auth.exchangeCodeForSession(
             params.code,
@@ -26,8 +30,13 @@ export async function GET(request: NextRequest) {
             token_hash: params.tokenHash,
           });
 
-    if (!error) {
-      return NextResponse.redirect(new URL("/admin", request.url));
+    const user = result.data.user;
+    if (!result.error && user) {
+      const destination = await destinationAfterSignIn(
+        user.id,
+        request.nextUrl.searchParams.get("next"),
+      );
+      return NextResponse.redirect(new URL(destination, request.url));
     }
   }
 
