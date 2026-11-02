@@ -33,11 +33,14 @@ export function ColorPanel({
   const rgb = hexToRgb(color);
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border p-3">
+    // On short screens (phones in landscape, small laptops) the picker and
+    // spacing shrink so the panel doesn't push the colours off-screen.
+    <div className="flex flex-col gap-3 rounded-lg border p-3 [@media(max-height:760px)]:gap-2 [@media(max-height:760px)]:p-2">
       <HexColorPicker
         color={color}
         onChange={onChange}
-        style={{ width: "100%", height: 180 }}
+        className="!h-[180px] [@media(max-height:760px)]:!h-[110px]"
+        style={{ width: "100%" }}
       />
 
       <div className="flex gap-2">

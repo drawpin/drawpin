@@ -514,7 +514,11 @@ export function DrawTileForm({
 
   return (
     <>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <form
+        onSubmit={handleSubmit}
+        // Tighter on short screens so the colours stay in reach.
+        className="flex flex-col gap-4 [@media(max-height:760px)]:gap-2.5"
+      >
         <input type="hidden" name="slug" value={slug} />
         <input
           type="hidden"

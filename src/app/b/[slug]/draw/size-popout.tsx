@@ -2,6 +2,7 @@
 
 import { Popover } from "@base-ui/react/popover";
 import { useEffect, useRef, useState } from "react";
+import { parseSizeInput } from "./size-input";
 
 /** The ring that stands for the largest size, and the smallest dot, in px. */
 const RING = 26;
@@ -18,6 +19,11 @@ const CLOSE_AFTER_RELEASE_MS = 350;
  * someone draws, like a tool's tips, or once the slider is let go of.
  * Letting go means a finger or mouse lifting: arrow keys change it one step
  * at a time, so keyboard users keep it until they move on or press Escape.
+ *
+ * Under the slider, the size is also a number box for typing an exact value.
+ * A valid number applies as it's typed, an empty or partial one waits, and
+ * leaving the box shows the size in use. Typing never starts the
+ * close-after-release timer; Enter applies and closes.
  *
  * The slider is a native range stood on its end, so it keeps the keyboard,
  * screen-reader and touch behaviour of a real slider. Browsers without
@@ -49,6 +55,8 @@ export function SizePopout({
   );
   const [open, setOpen] = useState(false);
   const closeTimer = useRef<number | null>(null);
+  // What's in the number box while someone is typing; `null` shows the size.
+  const [draft, setDraft] = useState<string | null>(null);
 
   function cancelClose() {
     if (closeTimer.current !== null) clearTimeout(closeTimer.current);
@@ -110,9 +118,35 @@ export function SizePopout({
               }}
               className="accent-primary h-40 w-11 cursor-pointer [direction:rtl] [writing-mode:vertical-lr]"
             />
-            <span className="text-muted-foreground text-xs font-semibold tabular-nums">
-              {size}
-            </span>
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              maxLength={3}
+              aria-label={`${label} in pixels`}
+              value={draft ?? String(size)}
+              onFocus={(event) => {
+                cancelClose();
+                event.currentTarget.select();
+              }}
+              onChange={(event) => {
+                const text = event.target.value;
+                setDraft(text);
+                // A partial or empty value waits; a valid one applies now.
+                const typed = parseSizeInput(text, min, max);
+                if (typed !== null) onChange(typed);
+              }}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter") return;
+                event.preventDefault();
+                setDraft(null);
+                setOpen(false);
+              }}
+              // Leaving the box shows the size actually in use.
+              onBlur={() => setDraft(null)}
+              // 16px (text-base) so iOS doesn't zoom the page on focus.
+              className="border-input focus-visible:border-ring w-12 min-w-0 rounded-md border bg-transparent px-1 py-0.5 text-center text-base font-semibold tabular-nums outline-none"
+            />
           </Popover.Popup>
         </Popover.Positioner>
       </Popover.Portal>
