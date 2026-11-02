@@ -1,3 +1,4 @@
+import { ShellTopBar } from "@/components/app-shell/shell-frame";
 import { Feedback } from "./_home/feedback";
 import { PosterHero } from "./_home/poster-hero";
 import { ReviewStack } from "./_home/review-stack";
@@ -21,6 +22,7 @@ import { WeekStory } from "./_home/week-story";
 export default function Home() {
   return (
     <div className="flex flex-1 flex-col bg-white">
+      <ShellTopBar />
       <PosterHero />
       <section id="try" className="scroll-mt-4 py-14">
         <TryItPlay />

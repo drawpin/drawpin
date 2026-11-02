@@ -91,6 +91,26 @@ export function rememberDeviceBoard(
   return serializeDeviceBoards([{ slug, lastVisitedAt: now }, ...others]);
 }
 
+/**
+ * The cookie value without any entry for one board, for "Remove from my
+ * boards" signed out. Matched by board rather than slug, since the cookie may
+ * still hold a slug the board used to have.
+ *
+ * @param boardIdsBySlug - The cookie's slugs resolved to boards, current or
+ * former (`MyBoardsStore.resolveSlugs`).
+ */
+export function forgetDeviceVenue(
+  value: string | undefined,
+  boardIdsBySlug: ReadonlyMap<string, string>,
+  venueId: string,
+): string {
+  return serializeDeviceBoards(
+    parseDeviceBoards(value).filter(
+      (board) => boardIdsBySlug.get(board.slug) !== venueId,
+    ),
+  );
+}
+
 /** The cookie value without `slug`, for "Remove from my boards" signed out. */
 export function forgetDeviceBoard(
   value: string | undefined,

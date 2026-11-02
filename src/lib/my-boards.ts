@@ -219,6 +219,33 @@ export async function hideBoard(
   );
 }
 
+/**
+ * Undoes {@link hideBoard}: the board is back in the list, at the visit it
+ * had, and pinned again at `pinnedAt` if it was pinned and there's still
+ * room. @returns Whether the account had opened it.
+ */
+export async function unhideBoard(
+  userId: string,
+  venueId: string,
+  store: MyBoardsStore,
+  pinnedAt: string | null = null,
+): Promise<boolean> {
+  const id = boardIdSchema.parse(venueId);
+  const visit = await store.findVisit(userId, id);
+  if (!visit) return false;
+
+  await store.writeVisits(userId, [
+    { venueId: id, lastVisitedAt: visit.lastVisitedAt, unhide: true },
+  ]);
+  if (
+    pinnedAt !== null &&
+    (await store.countPinned(userId)) < MAX_PINNED_BOARDS
+  ) {
+    await store.setPinned(userId, id, pinnedAt);
+  }
+  return true;
+}
+
 /** A board remembered on a signed-out device. */
 export type DeviceBoard = { slug: string; lastVisitedAt: Date };
 

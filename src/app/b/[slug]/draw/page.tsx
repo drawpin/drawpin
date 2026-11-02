@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
+import { MenuButton } from "@/components/app-shell/shell-frame";
 import { MODERATION_LEVEL_INFO } from "@/lib/moderation/levels";
 import { getCustomer } from "@/lib/customer";
 import { readDeviceId } from "@/lib/device";
@@ -100,7 +101,7 @@ export default async function DrawPage({
           before leaving a drawing behind. */}
         <div className="flex items-center gap-3">
           <BackToBoard href={`/b/${slug}`} />
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h1 className="text-2xl font-extrabold tracking-tight">
               Draw a tile
             </h1>
@@ -108,6 +109,9 @@ export default async function DrawPage({
               {board.name}
             </p>
           </div>
+          {/* The only way into the sidebar here: the draw step has no
+              column and no swipe, so nothing competes with the canvas. */}
+          <MenuButton tone="white" />
         </div>
 
         {blocked ? (

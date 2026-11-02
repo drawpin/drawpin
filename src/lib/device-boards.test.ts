@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   forgetDeviceBoard,
+  forgetDeviceVenue,
   parseDeviceBoards,
   rememberDeviceBoard,
   serializeDeviceBoards,
@@ -100,6 +101,41 @@ describe("device boards cookie", () => {
 
     expect(value.split(".").slice(1)).toEqual([
       `one~${(Date.parse("2026-11-01T00:00:00Z") / 1000).toString(36)}`,
+    ]);
+  });
+});
+
+describe("removing a board and undoing it, signed out", () => {
+  const venue = "00000000-0000-4000-8000-000000000001";
+  const other = "00000000-0000-4000-8000-000000000002";
+
+  it("drops every slug the board has had, keeps the rest, and Undo restores its place", () => {
+    let value = rememberDeviceBoard(
+      undefined,
+      "old-name",
+      at("2026-10-01T08:00:00Z"),
+    );
+    value = rememberDeviceBoard(value, "book-club", at("2026-10-20T08:00:00Z"));
+    value = rememberDeviceBoard(value, "new-name", at("2026-11-01T08:00:00Z"));
+    const ids = new Map([
+      ["old-name", venue],
+      ["new-name", venue],
+      ["book-club", other],
+    ]);
+
+    const removed = forgetDeviceVenue(value, ids, venue);
+    expect(parseDeviceBoards(removed).map((board) => board.slug)).toEqual([
+      "book-club",
+    ]);
+
+    const undone = rememberDeviceBoard(
+      removed,
+      "new-name",
+      at("2026-11-01T08:00:00Z"),
+    );
+    expect(parseDeviceBoards(undone).map((board) => board.slug)).toEqual([
+      "new-name",
+      "book-club",
     ]);
   });
 });
