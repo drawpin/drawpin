@@ -19,9 +19,8 @@ const BOARD_PATH = /^\/b\/([^/]+)(\/.*)?$/;
  * date.
  */
 export function chromeForPath(pathname: string): Chrome {
-  if (pathname === "/admin/print" || pathname.startsWith("/admin/print/")) {
-    return "none";
-  }
+  // A board's print view (ADR-016). Not `/admin/print`: that's the owner
+  // screen of a board whose slug is "print".
   if (/^\/admin\/[^/]+\/print\/?$/.test(pathname)) return "none";
   if (/^\/b\/[^/]+\/draw\/?$/.test(pathname)) return "button-only";
   return "full";

@@ -9,6 +9,7 @@ import {
   SignOutIcon,
   XIcon,
 } from "@phosphor-icons/react";
+import { adminPath } from "@/app/admin/board-field";
 import { JoinForm } from "@/app/join/join-form";
 import { signOutCustomer } from "@/app/auth/customer-actions";
 import { hand } from "@/lib/fonts";
@@ -70,6 +71,11 @@ export type BoardHandlers = {
   onUnpin: (board: SidebarBoard) => void;
   onRemove: (board: SidebarBoard) => void;
   onRetry: () => void;
+  /**
+   * Opens the sign-in sheet. The sheet lives outside the drawer, which
+   * closes as it opens and would otherwise take the sheet with it.
+   */
+  onSignIn: () => void;
 };
 
 /**
@@ -152,13 +158,14 @@ export function SidebarContents({
             Sign in to keep your boards on every device, post your drawings and
             vote.
           </p>
-          {/* The sign-in sheet replaces this link (section 6). */}
-          <GuardedLink
-            href={`/login?next=${encodeURIComponent(currentPath)}`}
-            className="border-foreground bg-winner text-foreground focus-visible:ring-highlight inline-flex h-11 items-center justify-center rounded-xl border-2 font-extrabold shadow-[3px_3px_0_var(--foreground)] outline-none focus-visible:ring-3 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+          <button
+            type="button"
+            aria-haspopup="dialog"
+            onClick={handlers.onSignIn}
+            className="border-foreground bg-winner text-foreground focus-visible:ring-highlight inline-flex h-11 cursor-pointer items-center justify-center rounded-xl border-2 font-extrabold shadow-[3px_3px_0_var(--foreground)] outline-none focus-visible:ring-3 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
           >
             Sign in
-          </GuardedLink>
+          </button>
         </div>
       )}
 
@@ -236,7 +243,7 @@ export function SidebarContents({
           </div>
           <ul className="mt-1 flex flex-col">
             {runs.map((board) => {
-              const href = `/admin/${board.slug}`;
+              const href = adminPath(board.slug);
               return (
                 <li key={board.slug}>
                   <NavLink

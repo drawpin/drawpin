@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { signOutCustomer } from "@/app/auth/customer-actions";
-import { GoogleSignIn } from "@/components/google-sign-in";
+import { SIGN_IN_PILL } from "@/components/google-sign-in";
+import { SignInButton } from "@/components/sign-in-sheet";
 import type { Customer } from "@/lib/customer";
 
 /** A quiet text button with a thumb-sized target, for the line below. */
@@ -9,26 +10,32 @@ const QUIET_BUTTON =
 
 /**
  * Who's signed in, as one line of small print at the foot of the board: the
- * way in for a guest, and for a customer their drawings (to save them, or
- * delete their account, at `/account`) and the way out.
+ * way in for a guest, and for a customer their drawings (to save them, on
+ * their profile at `/me`) and the way out.
  *
  * Deliberately discreet (chosen 2026-09-28). Sign-in turns up where an
  * action needs an account, on Draw and Vote; this line is only for someone
- * who goes looking. A guest gets the Google button with the emailed-code
- * way in folded under it (ADR-010), so nobody needs a Google account.
+ * who goes looking. A guest's "Sign in" opens the sign-in sheet, with Google
+ * and an emailed code side by side (ADR-010), so nobody needs a Google
+ * account.
  */
 export function AccountLine({
   customer,
   next,
+  returnTo,
 }: {
   customer: Customer | null;
   /** Where to land after signing in or out. */
   next: string;
+  /** What `next` is called in the sign-in sheet, such as the board's name. */
+  returnTo?: string;
 }) {
   if (!customer) {
     return (
       <div className="flex justify-center">
-        <GoogleSignIn next={next} label="Sign in" size="sm" />
+        <SignInButton next={next} returnTo={returnTo} className={SIGN_IN_PILL}>
+          Sign in
+        </SignInButton>
       </div>
     );
   }
@@ -39,10 +46,7 @@ export function AccountLine({
         Signed in as{" "}
         <span className="text-foreground font-medium">{customer.username}</span>
       </span>
-      <Link
-        href={`/account?next=${encodeURIComponent(next)}`}
-        className={QUIET_BUTTON}
-      >
+      <Link href="/me#drawings" className={QUIET_BUTTON}>
         Your drawings
       </Link>
       <form action={signOutCustomer}>

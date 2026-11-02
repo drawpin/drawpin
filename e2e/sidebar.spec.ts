@@ -49,3 +49,27 @@ test("a board opened signed out is in the drawer, and Remove can be undone", asy
     (await openMenu(page)).getByRole("link", { name: new RegExp(boardName) }),
   ).toBeVisible();
 });
+
+test("Sign in in the drawer closes it and opens the sign-in sheet", async ({
+  page,
+}) => {
+  await page.goto(`/b/${slug}?from=qr`);
+  const boardName = await page.getByRole("heading", { level: 1 }).innerText();
+
+  const menu = await openMenu(page);
+  await menu.getByRole("button", { name: "Sign in" }).click();
+
+  // One dialog at a time: the drawer goes as the sheet comes.
+  await expect(menu).toBeHidden();
+  const sheet = page.getByRole("dialog", {
+    name: "Keep your boards in one place",
+  });
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByText(`come back to ${boardName}`)).toBeVisible();
+  await expect(sheet.locator("input[name=next]").first()).toHaveValue(
+    `/b/${slug}?from=qr`,
+  );
+
+  await page.keyboard.press("Escape");
+  await expect(sheet).toBeHidden();
+});

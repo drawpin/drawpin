@@ -10,12 +10,10 @@ import {
   PlusIcon,
 } from "@phosphor-icons/react/ssr";
 import { BoardLayout, INKED_BUTTON } from "@/app/b/[slug]/board-look";
-import { Button } from "@/components/ui/button";
 import { requireOwner } from "@/lib/auth";
 import { listOwnedBoards, MAX_BOARDS_PER_ACCOUNT } from "@/lib/my-boards";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { supabaseMyBoardsStore } from "@/lib/supabase-my-boards";
-import { signOut } from "./actions";
 import { adminPath } from "./board-field";
 import {
   type BoardSummary,
@@ -75,14 +73,6 @@ export default async function AdminIndexPage() {
           ))}
         </ul>
         {atCap ? <AtTheCap /> : <StartCard count={boards.length} />}
-        <div className="text-muted-foreground flex flex-wrap items-center justify-center gap-1 text-sm">
-          <span>Signed in as {owner.email}.</span>
-          <form action={signOut}>
-            <Button type="submit" variant="link" size="sm" className="h-11 p-0">
-              Sign out
-            </Button>
-          </form>
-        </div>
       </div>
     </BoardLayout>
   );

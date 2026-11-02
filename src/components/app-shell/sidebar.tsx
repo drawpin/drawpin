@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Toast } from "@base-ui/react/toast";
+import { SignInSheet } from "@/components/sign-in-sheet";
 import {
   pinBoardAction,
   removeBoardAction,
@@ -30,16 +31,27 @@ const TRY_AGAIN = "That didn't work. Try again.";
 export function Sidebar({ data }: { data: SidebarData }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { setDrawerOpen } = useShell();
+  const shell = useShell();
+  const { setDrawerOpen, setBoards } = shell;
   const toasts = Toast.useToastManager();
 
-  const [boards, setBoards] = useState(data.boards);
-  // A fresh server render (signing in or out, a refresh) replaces the list.
-  const [loaded, setLoaded] = useState(data);
-  if (loaded !== data) {
-    setLoaded(data);
-    setBoards(data.boards);
-  }
+  // The list lives in the shell, shared with the board header's pin toggle.
+  // A fresh server render (signing in or out, a refresh) replaces it. The
+  // tag keeps this sidebar from showing a list from before that render even
+  // for the one paint before the effect clears it.
+  const [changedFor, setChangedFor] = useState(data);
+  const boards =
+    shell.boards && changedFor === data ? shell.boards : data.boards;
+  useEffect(() => {
+    setBoards(null);
+  }, [data, setBoards]);
+  if (changedFor !== data && shell.boards === null) setChangedFor(data);
+
+  // The sign-in sheet hangs here, outside the drawer: the drawer closes as
+  // it opens, and would take a sheet inside it away.
+  const [signIn, setSignIn] = useState<{ next: string; open: boolean } | null>(
+    null,
+  );
 
   const slug = boardSlugFromPath(pathname);
   useEffect(() => {
@@ -54,7 +66,7 @@ export function Sidebar({ data }: { data: SidebarData }) {
     return () => {
       stale = true;
     };
-  }, [slug]);
+  }, [slug, setBoards]);
 
   /** Runs an action, taking its list, or saying why it didn't work. */
   async function run(action: Promise<SidebarActionResult>): Promise<boolean> {
@@ -77,9 +89,7 @@ export function Sidebar({ data }: { data: SidebarData }) {
     onUnpin: (board) => void run(unpinBoardAction({ venueId: board.venueId })),
     onRemove: (board) => {
       // The row leaves at once; the server's list follows.
-      setBoards((current) =>
-        current.filter((other) => other.venueId !== board.venueId),
-      );
+      setBoards(boards.filter((other) => other.venueId !== board.venueId));
       void run(removeBoardAction({ venueId: board.venueId })).then((ok) => {
         if (!ok) return;
         const id = toasts.add({
@@ -102,6 +112,12 @@ export function Sidebar({ data }: { data: SidebarData }) {
       });
     },
     onRetry: () => router.refresh(),
+    onSignIn: () => {
+      // Read at the tap, so it carries the page's search too. The drawer
+      // closes first, so the two dialogs never stack.
+      setDrawerOpen(false);
+      setSignIn({ next: `${location.pathname}${location.search}`, open: true });
+    },
   };
 
   const close = () => setDrawerOpen(false);
@@ -128,6 +144,14 @@ export function Sidebar({ data }: { data: SidebarData }) {
           />
         </LeaveGuard>
       </SidebarDrawer>
+      {signIn && (
+        <SignInSheet
+          next={signIn.next}
+          returnTo={boards.find((board) => board.slug === slug)?.name}
+          open={signIn.open}
+          onOpenChange={(open) => setSignIn({ ...signIn, open })}
+        />
+      )}
     </>
   );
 }

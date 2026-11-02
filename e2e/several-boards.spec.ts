@@ -58,7 +58,10 @@ test("one account runs two boards, switches, and closes one (ADR-016)", async ({
 
     // Two boards: /admin lists them.
     await page.goto("/admin");
-    await expect(page.getByText("2 of 5", { exact: true })).toBeVisible();
+    // In the header: the sidebar says "2 of 5" too.
+    await expect(
+      page.getByRole("banner").getByText("2 of 5", { exact: true }),
+    ).toBeVisible();
     await page.getByRole("link", { name: /^Manage Office Doodles/ }).click();
     await expect(page).toHaveURL(firstAdmin);
     await expect(page).toHaveTitle("Office Doodles · DrawPin");
