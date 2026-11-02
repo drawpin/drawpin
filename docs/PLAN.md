@@ -36,7 +36,7 @@ Drawing for fun needs no account. **Posting and competing do.**
 - A signed-in customer can save their own drawings that are still on a board as PNGs, from their profile hub (#57), before the 30-day clean-up removes them.
 - **Sidebar** (ADR-015): on every page except the full-screen draw step and the print view; a drawer on phones. Signed out: join with a code, recent boards on this device, start a board, sign in. Signed in: you, home, your boards (pinned first, with status dots and an owner badge), join with a code, the boards you run and Start a board, your drawings, and the account.
 - **Profile hub** (ADR-015): private to its account, never shown to anyone else. Username and tag, joined date, username change, stats, your drawings grouped by board, a trophy shelf of wins, and delete account.
-- **Home hub** (ADR-015): "today" cards across your boards (draw today, vote on last week, the monthly final, a result to see), pinned and recent boards, join with a code, Start a board. Whether a returning signed-in visitor lands here or on the home page is one constant, `HUB_LANDING`.
+- **Home hub** (ADR-015): "today" cards across your boards (draw today, vote on last week, the monthly final, a result to see), pinned and recent boards, join with a code, Start a board. These cards are the "Vote for last week's best" and "Vote for this month's super winner" prompts, across all your boards. A signed-in account (with a username) opening `/` lands here; everyone else gets the home page, which is also at `/about`. One constant, `LANDING` in `src/lib/landing.ts`, can send everyone to the home page instead, and the hub then moves to `/home`.
 - **Your boards** (ADR-015): opening a board records it, on the account when signed in and on the device (slugs and times only) otherwise; the device's list merges into the account at sign-in. Pin up to 5, and remove one from the list until it's opened again. Pinned first, then most recent, 20 shown. A renamed board shows its new name and a closed one disappears.
 
 ### Tiles (default mode)
@@ -79,7 +79,7 @@ Drawing for fun needs no account. **Posting and competing do.**
 - **Finalists:** that month's weekly winners, up to **4** — if there are more, the 4 with the most votes in their own weeks (ties to the earlier post).
 - **Monthly final:** opens once every week of the month has finished voting (about 2 weeks into the next month) and runs one week, Monday 4:00 AM to Monday 4:00 AM. **1 vote per account**, same rules otherwise (not your own tile, final), except that its vote counts stay hidden until it closes (ADR-011).
 - The finalist with the most final votes is the month's **super winner** (ties to the earlier post). A month with a single finalist crowns it without a vote; a final with no votes, or a month with no weekly winners, has no super winner.
-- Opening the app during a final shows a "Vote for this month's super winner" prompt. When a final closes, the board reveals its finalists and crowns the super winner the same way as a week's result.
+- During a final, the home hub shows a "The final is open" card for each of your boards running one. When a final closes, the board reveals its finalists and crowns the super winner the same way as a week's result.
 
 ### Abuse limiting (layered)
 The account is the daily post limit. Around it: signed device ID cookie + browser fingerprint (hashed) + IP rate limit (hashed) + Cloudflare Turnstile on post and vote. The device layers don't limit posts per day; they carry the 3-blocked-attempts lockout and, with the network, the burst limit.
