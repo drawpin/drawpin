@@ -40,11 +40,14 @@ export type SidebarData = {
  * page down with it.
  */
 export async function loadSidebarData(): Promise<SidebarData> {
+  // Cookies first: it's what tells `next build` the sidebar is per request.
+  // Reading env first would throw while prerendering, where no env is set.
+  const cookieStore = await cookies();
   const admin = createAdminClient();
   const userId = await getSignedInUserId();
 
   if (!userId) {
-    const value = (await cookies()).get(DEVICE_BOARDS_COOKIE)?.value;
+    const value = cookieStore.get(DEVICE_BOARDS_COOKIE)?.value;
     try {
       return {
         signedIn: false,
