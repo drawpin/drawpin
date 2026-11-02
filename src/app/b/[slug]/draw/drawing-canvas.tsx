@@ -23,6 +23,7 @@ import {
   paintOverlay,
   panBy,
   renderTile,
+  ROTATE_STEM,
   screenToTile,
   type Shape,
   type Stroke,
@@ -33,13 +34,15 @@ import {
 } from "./render";
 import { recognizeShape } from "./recognize";
 import {
-  contains,
-  type Corner,
-  handleAt,
+  angleFrom,
+  centerOf,
+  type Grab,
+  grabAt,
   moveBy,
   type Rect,
   resizeFromCorner,
   sameRect,
+  snapAngle,
 } from "./selection";
 import { pointerRole, pressedByLift } from "./pointers";
 import { isTooSmall, keepsPerfect, type Point, shapeEnd } from "./shapes";
@@ -59,10 +62,16 @@ export type DrawingCanvasHandle = {
   cancelSelection: () => boolean;
 };
 
-/** A lasso selection, plus where it was lifted from. */
+/**
+ * A lasso selection, plus where it was lifted from. It's always lifted
+ * unturned, so a turn is a change on its own.
+ */
 type Floating = Lifted & { source: Rect };
 
-/** How far from a corner handle, in CSS pixels, a finger still grabs it. */
+/**
+ * How far from a corner handle or the rotate knob, in CSS pixels, a finger
+ * still grabs it.
+ */
 const HANDLE_REACH = 22;
 
 type DrawingCanvasProps = {
@@ -180,12 +189,14 @@ export const DrawingCanvas = forwardRef<
   const snapped = useRef<"line" | "fixed" | null>(null);
   // The loop being drawn with the lasso, in tile units.
   const lassoLoop = useRef<Point[] | null>(null);
-  // A selection being moved (no corner) or resized (by a corner), measured
-  // from where the finger and the box were when it started.
+  // A selection being moved, resized (by a corner) or turned (by the knob),
+  // measured from where the finger, the box and its turn were when it
+  // started.
   const dragging = useRef<{
-    corner: Corner | null;
+    grab: Grab;
     origin: Point;
     start: Rect;
+    angle: number;
   } | null>(null);
   // In state rather than a ref: the Done and Cancel buttons show with it.
   const [floating, setFloating] = useState<Floating | null>(null);
@@ -308,18 +319,24 @@ export const DrawingCanvas = forwardRef<
       context.stroke();
       context.restore();
     }
-    if (floating) drawSelectionFrame(context, floating.target, pixel);
+    if (floating) {
+      drawSelectionFrame(context, floating.target, pixel, floating.angle);
+    }
   }, [finishedLayer, showGrid, view, floating]);
 
-  /** Puts the selection down where it is, unless it was never moved. */
+  /**
+   * Puts the selection down where it is, unless it was never moved, resized
+   * or turned.
+   */
   function putDown(): boolean {
     if (!floating) return false;
-    if (!sameRect(floating.source, floating.target)) {
+    if (!sameRect(floating.source, floating.target) || floating.angle) {
       onDraw({
         kind: "paste",
         hole: floating.hole,
         image: floating.image,
         target: floating.target,
+        ...(floating.angle ? { angle: floating.angle } : {}),
       });
     }
     setFloating(null);
@@ -624,13 +641,22 @@ export const DrawingCanvas = forwardRef<
       const [x, y] = toTilePoint(event, rect);
       const point: Point = [x, y];
       if (floating) {
-        const corner = handleAt(
+        const pixel = pixelSize(rect);
+        const angle = floating.angle ?? 0;
+        const grab = grabAt(
           floating.target,
+          angle,
           point,
-          HANDLE_REACH * pixelSize(rect),
+          HANDLE_REACH * pixel,
+          ROTATE_STEM * pixel,
         );
-        if (corner !== null || contains(floating.target, point)) {
-          dragging.current = { corner, origin: point, start: floating.target };
+        if (grab) {
+          dragging.current = {
+            grab,
+            origin: point,
+            start: floating.target,
+            angle,
+          };
           return;
         }
         // A touch outside the selection puts it down and starts a new loop.
@@ -731,10 +757,23 @@ export const DrawingCanvas = forwardRef<
     const drag = dragging.current;
     if (drag) {
       const [x, y] = toTilePoint(event, rect);
+      const { grab } = drag;
+      if (grab.kind === "rotate") {
+        // Turned by however far the finger has gone round the middle since
+        // it took hold, so grabbing the knob doesn't make the box jump.
+        const center = centerOf(drag.start);
+        const turned =
+          drag.angle +
+          angleFrom(center, [x, y]) -
+          angleFrom(center, drag.origin);
+        const angle = snapAngle(turned, event.shiftKey);
+        setFloating((current) => current && { ...current, angle });
+        return;
+      }
       const target =
-        drag.corner === null
+        grab.kind === "move"
           ? moveBy(drag.start, x - drag.origin[0], y - drag.origin[1])
-          : resizeFromCorner(drag.start, drag.corner, [x, y]);
+          : resizeFromCorner(drag.start, grab.corner, [x, y], drag.angle);
       setFloating((current) => current && { ...current, target });
       return;
     }

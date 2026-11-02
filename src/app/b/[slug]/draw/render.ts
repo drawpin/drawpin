@@ -1,6 +1,11 @@
 import { getStroke } from "perfect-freehand";
 import { floodFill } from "./flood-fill";
-import { type Rect, selectionBounds, whiteToAlpha } from "./selection";
+import {
+  centerOf,
+  type Rect,
+  selectionBounds,
+  whiteToAlpha,
+} from "./selection";
 import { boxBetween, type Point, type ShapeGeometry } from "./shapes";
 import { strokeToSvgPath } from "./stroke-path";
 
@@ -147,13 +152,19 @@ export type Shape = {
 /**
  * Part of the drawing lifted with the lasso: the loop it came from, the
  * pixels inside it (with the paper made see-through), and the box they sit
- * in now. Moved and resized as a picture, so strokes, fills and eraser marks
- * travel together exactly as they looked.
+ * in now. Moved, resized and turned as a picture, so strokes, fills and
+ * eraser marks travel together exactly as they looked.
  */
 export type Lifted = {
   hole: Point[];
   image: HTMLCanvasElement;
   target: Rect;
+  /**
+   * How far the pixels are turned about the middle of `target`, in radians,
+   * clockwise on screen. Absent is unturned, as every paste was before the
+   * lasso could rotate.
+   */
+  angle?: number;
 };
 
 /**
@@ -170,7 +181,7 @@ export type Scene = {
   ops: DrawOp[];
   /** What's being drawn right now, if anything: a stroke or a shape. */
   active: Stroke | Shape | null;
-  /** A lasso selection being moved or resized, if there is one. */
+  /** A lasso selection being moved, resized or turned, if there is one. */
   floating?: Lifted | null;
   /** Drawn over the drawing, and never part of the exported tile. */
   showGrid: boolean;
@@ -343,42 +354,75 @@ function drawLifted(context: CanvasRenderingContext2D, lifted: Lifted) {
   context.closePath();
   context.fill();
   const { x, y, width, height } = lifted.target;
-  context.drawImage(lifted.image, x, y, width, height);
+  if (lifted.angle) {
+    // Turned about its middle: the same box, drawn round the origin.
+    const [cx, cy] = centerOf(lifted.target);
+    context.translate(cx, cy);
+    context.rotate(lifted.angle);
+    context.drawImage(lifted.image, -width / 2, -height / 2, width, height);
+  } else {
+    context.drawImage(lifted.image, x, y, width, height);
+  }
   context.restore();
 }
 
 /**
- * The dashed box and corner handles round a lasso selection. Only ever drawn
- * on screen, and in screen pixels however far in someone has zoomed, so the
- * handles stay the size of a fingertip.
+ * How far above a selection the rotate knob sits, in CSS pixels: clear of
+ * the top corners' handles, close enough to read as part of the box.
+ */
+export const ROTATE_STEM = 28;
+
+/**
+ * The dashed box, corner handles and rotate knob round a lasso selection,
+ * turned with it. Only ever drawn on screen, and in screen pixels however far
+ * in someone has zoomed, so the handles stay the size of a fingertip.
  *
  * @param pixel - How many tile units one CSS pixel covers right now.
+ * @param angle - How far the selection is turned, in radians.
  */
 export function drawSelectionFrame(
   context: CanvasRenderingContext2D,
   target: Rect,
   pixel: number,
+  angle = 0,
 ): void {
-  const { x, y, width, height } = target;
+  const { width, height } = target;
+  const [cx, cy] = centerOf(target);
   const handle = 12 * pixel;
+  // Drawn round the middle of the box, so one turn of the context turns all
+  // of it.
+  const left = -width / 2;
+  const top = -height / 2;
 
   context.save();
+  context.translate(cx, cy);
+  context.rotate(angle);
   context.lineWidth = 1.5 * pixel;
   context.strokeStyle = "#111827";
   context.setLineDash([6 * pixel, 4 * pixel]);
-  context.strokeRect(x, y, width, height);
+  context.strokeRect(left, top, width, height);
 
   context.setLineDash([]);
+  const knobY = top - ROTATE_STEM * pixel;
+  context.beginPath();
+  context.moveTo(0, top);
+  context.lineTo(0, knobY);
+  context.stroke();
+
   context.fillStyle = PAPER;
-  for (const [cx, cy] of [
-    [x, y],
-    [x + width, y],
-    [x + width, y + height],
-    [x, y + height],
+  for (const [hx, hy] of [
+    [left, top],
+    [-left, top],
+    [-left, -top],
+    [left, -top],
   ]) {
-    context.fillRect(cx - handle / 2, cy - handle / 2, handle, handle);
-    context.strokeRect(cx - handle / 2, cy - handle / 2, handle, handle);
+    context.fillRect(hx - handle / 2, hy - handle / 2, handle, handle);
+    context.strokeRect(hx - handle / 2, hy - handle / 2, handle, handle);
   }
+  context.beginPath();
+  context.arc(0, knobY, handle / 2, 0, Math.PI * 2);
+  context.fill();
+  context.stroke();
   context.restore();
 }
 
