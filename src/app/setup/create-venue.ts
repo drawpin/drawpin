@@ -1,4 +1,5 @@
 import type { ModerationLevel } from "@/lib/moderation/policy";
+import { MAX_BOARDS_PER_ACCOUNT } from "@/lib/my-boards";
 import { createBoardSlug } from "@/lib/slug";
 
 /** The subset of a Postgres error returned by supabase-js that this needs. */
@@ -16,15 +17,35 @@ export type InsertVenue = (
   row: VenueRow,
 ) => Promise<{ error: InsertError | null }>;
 
+export type CreateVenueResult =
+  { status: "created"; slug: string } | { status: "limit-reached" };
+
+/** What to tell an account that already runs as many boards as it can. */
+export const BOARD_LIMIT_MESSAGE = `You run ${MAX_BOARDS_PER_ACCOUNT} boards, the most an account can. Close one to start another.`;
+
 const UNIQUE_VIOLATION = "23505";
+const CHECK_VIOLATION = "23514";
 const MAX_SLUG_ATTEMPTS = 5;
 
 /**
- * Creates the owner's venue, retrying with a fresh slug suffix if the slug is
- * already taken.
+ * The refusal from `venues_enforce_board_limit` (ADR-016). PostgREST passes
+ * on its message but not the constraint name it raises with, and the slug's
+ * check constraint is a check violation too, so the message tells them apart.
+ */
+function isBoardLimit(error: InsertError): boolean {
+  return (
+    error.code === CHECK_VIOLATION &&
+    /can run at most \d+ boards/.test(error.message)
+  );
+}
+
+/**
+ * Creates a board for the owner, retrying with a fresh slug suffix if the
+ * slug is already taken.
  *
- * @returns `"created"`, or `"already-exists"` if this owner already has a
- * venue (one board per owner — e.g. the setup form was submitted twice).
+ * @returns The new board's slug, or `"limit-reached"` if the account already
+ * runs {@link MAX_BOARDS_PER_ACCOUNT} boards: the database holds the cap
+ * even when a check before this was raced past (e.g. two tabs at once).
  * @throws {Error} On any other database error, or if no free slug was found.
  */
 export async function createVenue(
@@ -36,25 +57,24 @@ export async function createVenue(
   },
   insert: InsertVenue,
   makeSlug: (name: string) => string = createBoardSlug,
-): Promise<"created" | "already-exists"> {
+): Promise<CreateVenueResult> {
   for (let attempt = 0; attempt < MAX_SLUG_ATTEMPTS; attempt++) {
+    const slug = makeSlug(input.name);
     const { error } = await insert({
       owner_id: input.ownerId,
       name: input.name,
-      slug: makeSlug(input.name),
+      slug,
       timezone: input.timezone,
       moderation_level: input.moderationLevel,
     });
 
-    if (!error) return "created";
-
-    if (error.code === UNIQUE_VIOLATION) {
-      if (error.message.includes("venues_owner_id_key")) {
-        return "already-exists";
-      }
-      if (error.message.includes("venues_slug_key")) {
-        continue;
-      }
+    if (!error) return { status: "created", slug };
+    if (isBoardLimit(error)) return { status: "limit-reached" };
+    if (
+      error.code === UNIQUE_VIOLATION &&
+      error.message.includes("venues_slug_key")
+    ) {
+      continue;
     }
 
     throw new Error(`Could not create venue: ${error.message}`);

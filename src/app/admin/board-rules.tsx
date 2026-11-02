@@ -5,6 +5,7 @@ import { ModerationLevelPicker } from "@/components/moderation-level-picker";
 import { MODERATION_LEVEL_INFO } from "@/lib/moderation/levels";
 import type { ModerationLevel } from "@/lib/moderation/policy";
 import { type BoardRulesState, setModerationLevelAction } from "./actions";
+import { BoardIdField } from "./board-context";
 import { SAVE_BUTTON } from "./inline-save";
 
 const initialState: BoardRulesState = { status: "idle" };
@@ -43,6 +44,7 @@ export function BoardRules({ level }: { level: ModerationLevel }) {
         }}
         className="flex flex-col gap-2"
       >
+        <BoardIdField />
         {/* Remounts after a save, so it shows what was saved. */}
         <ModerationLevelPicker
           key={level}

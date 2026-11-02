@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { CopyValue } from "@/components/copy-value";
 import { Button } from "@/components/ui/button";
 import { newJoinCodeAction, type NewCodeState } from "./actions";
+import { BoardIdField } from "./board-context";
 
 const initialState: NewCodeState = { status: "idle" };
 
@@ -17,8 +18,8 @@ const initialState: NewCodeState = { status: "idle" };
 export function JoinCode({ code }: { code: string }) {
   const [confirming, setConfirming] = useState(false);
   const [state, formAction, pending] = useActionState(
-    async (): Promise<NewCodeState> => {
-      const result = await newJoinCodeAction();
+    async (_previous: NewCodeState, formData: FormData) => {
+      const result = await newJoinCodeAction(formData);
       if (result.status === "changed") setConfirming(false);
       return result;
     },
@@ -69,6 +70,7 @@ export function JoinCode({ code }: { code: string }) {
           action={formAction}
           className="flex flex-col gap-3 rounded-lg border p-3"
         >
+          <BoardIdField />
           <p className="text-sm">Your board gets a new 8-digit code.</p>
           <ul className="text-muted-foreground list-disc pl-4 text-sm">
             <li>

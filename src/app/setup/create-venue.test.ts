@@ -26,7 +26,7 @@ describe("createVenue", () => {
 
     await expect(
       createVenue(input, insert, slugsFrom("blue-bottle-k7m2")),
-    ).resolves.toBe("created");
+    ).resolves.toEqual({ status: "created", slug: "blue-bottle-k7m2" });
 
     expect(insert).toHaveBeenCalledWith({
       owner_id: "owner-1",
@@ -49,21 +49,37 @@ describe("createVenue", () => {
         insert,
         slugsFrom("blue-bottle-aaaa", "blue-bottle-bbbb"),
       ),
-    ).resolves.toBe("created");
+    ).resolves.toEqual({ status: "created", slug: "blue-bottle-bbbb" });
 
     expect(insert).toHaveBeenCalledTimes(2);
     expect(insert.mock.calls[1][0].slug).toBe("blue-bottle-bbbb");
   });
 
-  it("reports an existing venue instead of failing", async () => {
-    const insert = vi
-      .fn<InsertVenue>()
-      .mockResolvedValue(duplicate("venues_owner_id_key"));
+  it("reports the board cap instead of failing (ADR-016)", async () => {
+    // As PostgREST returns the venues_enforce_board_limit refusal.
+    const insert = vi.fn<InsertVenue>().mockResolvedValue({
+      error: { code: "23514", message: "An account can run at most 5 boards" },
+    });
 
-    await expect(createVenue(input, insert)).resolves.toBe("already-exists");
+    await expect(createVenue(input, insert)).resolves.toEqual({
+      status: "limit-reached",
+    });
     expect(insert).toHaveBeenCalledTimes(1);
   });
 
+  it("doesn't mistake the slug's check constraint for the cap", async () => {
+    const insert = vi.fn<InsertVenue>().mockResolvedValue({
+      error: {
+        code: "23514",
+        message:
+          'new row for relation "venues" violates check constraint "venues_slug_check"',
+      },
+    });
+
+    await expect(createVenue(input, insert)).rejects.toThrow(
+      /venues_slug_check/,
+    );
+  });
   it("gives up after repeated slug collisions", async () => {
     const insert = vi
       .fn<InsertVenue>()

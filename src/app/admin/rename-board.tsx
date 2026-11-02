@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { renameBoardAction, type RenameBoardState } from "./actions";
+import { BoardIdField } from "./board-context";
 import { INLINE_SAVE_ROOM, InlineSave } from "./inline-save";
 import { nameChanged } from "./name-changed";
 
@@ -39,6 +40,7 @@ export function RenameBoard({ name }: { name: string }) {
         }}
         className="flex flex-col gap-2"
       >
+        <BoardIdField />
         <Label htmlFor="venue-name" className="sr-only">
           Board name
         </Label>

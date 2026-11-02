@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowRightIcon } from "@phosphor-icons/react";
 import { HEADER_BUTTON, INKED_BUTTON } from "../b/[slug]/board-look";
@@ -60,20 +59,6 @@ export const WEEK_WINNER = WEEK_BOARD[0].tile;
 /** The tile posted in the walkthrough's first beat (it's also on the board). */
 export const WEEK_POSTED = WEEK_BOARD[2].tile;
 
-/** The gold trophy, on a drawing's corner. */
-export function TrophyBadge({ size }: { size: number }) {
-  return (
-    <Image
-      src="/trophies/gold.webp"
-      alt=""
-      width={size}
-      height={size}
-      unoptimized
-      className="absolute -right-3 -bottom-3 rotate-6 drop-shadow-[2px_2px_0_rgb(15_27_45/0.25)]"
-    />
-  );
-}
-
 /**
  * The home page's short ending: open a board with a code, start a board or
  * manage one, and the owner's story (`Story`).
@@ -100,17 +85,15 @@ export function Ending() {
               Already have one? Sign in to see your code, reports and settings.
             </p>
           </div>
-          {/* Both go to the sign-in, returning to /admin: it takes a new board runner on to
-              set a board up, and an owner who has one straight to it. */}
+          {/* Signed out, both ask to sign in first. Signed in, Start a board
+              is setup, which also starts a second board (ADR-016), and
+              /admin goes to the owner's board, or their list of boards. */}
           <div className="flex flex-wrap gap-3">
-            <Link href="/login?next=%2Fadmin" className={INKED_BUTTON}>
+            <Link href="/setup" className={INKED_BUTTON}>
               Start a board
               <ArrowRightIcon weight="bold" className="size-5" />
             </Link>
-            <Link
-              href="/login?next=%2Fadmin"
-              className={`${HEADER_BUTTON} text-base`}
-            >
+            <Link href="/admin" className={`${HEADER_BUTTON} text-base`}>
               Manage my board
             </Link>
           </div>

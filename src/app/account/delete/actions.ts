@@ -3,6 +3,8 @@
 import { redirect } from "next/navigation";
 import { getCustomer } from "@/lib/customer";
 import { deleteAccount } from "@/lib/delete-account";
+import { ownedBoardCount } from "@/lib/my-boards";
+import { supabaseMyBoardsStore } from "@/lib/supabase-my-boards";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseDeleteAccountStore } from "@/lib/supabase-delete-account-store";
@@ -10,39 +12,34 @@ import { SupabaseDeleteAccountStore } from "@/lib/supabase-delete-account-store"
 export type DeleteAccountState =
   { status: "idle" } | { status: "error"; message: string };
 
+const OWNS_BOARDS_MESSAGE =
+  "You also run boards with this account. Close them first from Manage my board, then delete your account.";
+
 /**
  * Deletes the signed-in customer's DrawPin account, then signs them out
  * (docs/PLAN.md, Accounts).
  *
- * One account can draw and own a board (ADR-013), and deleting the sign-in
- * would take the board with it (its owner row cascades from it). So an
- * account that owns a board is asked to close the board first, from the
- * owner screen (ADR-009), rather than losing it here by surprise.
+ * One account can draw and own boards (ADR-013, ADR-016), and deleting the
+ * sign-in would take every board with it (the owner row cascades from it).
+ * So an account that owns any board is asked to close them first, from the
+ * owner screen (ADR-009), rather than losing them here by surprise.
  */
 export async function deleteAccountAction(): Promise<DeleteAccountState> {
   const admin = createAdminClient();
   const customer = await getCustomer(admin);
   if (!customer) redirect("/");
 
-  const { data: board, error: boardError } = await admin
-    .from("venues")
-    .select("id")
-    .eq("owner_id", customer.id)
-    .maybeSingle();
-  if (boardError) {
-    console.error("deleteAccountAction: board check failed", boardError);
+  let boards: number;
+  try {
+    boards = await ownedBoardCount(customer.id, supabaseMyBoardsStore(admin));
+  } catch (error) {
+    console.error("deleteAccountAction: board check failed", error);
     return {
       status: "error",
       message: "We couldn't delete your account. Try again in a minute.",
     };
   }
-  if (board) {
-    return {
-      status: "error",
-      message:
-        "You also run a board with this account. Close it first from Manage my board, then delete your account.",
-    };
-  }
+  if (boards > 0) return { status: "error", message: OWNS_BOARDS_MESSAGE };
 
   try {
     await deleteAccount(customer.id, {

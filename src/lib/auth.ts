@@ -1,5 +1,6 @@
 import { isAuthSessionMissingError, type User } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
+import { loginHref } from "@/lib/sign-in-routing";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -47,11 +48,14 @@ export async function getOwner(): Promise<User | null> {
 }
 
 /**
- * Returns the signed-in owner, redirecting to `/login` if there isn't one.
- * Use at the top of every owner-only page and Server Action.
+ * Returns the signed-in account, redirecting to the sign-in if there is none.
+ * Use at the top of every signed-in-only page and Server Action.
+ *
+ * @param next - Where the sign-in returns to. Defaults to `/admin`, which
+ *   suits the owner pages; other pages pass their own.
  */
-export async function requireOwner(): Promise<User> {
+export async function requireOwner(next = "/admin"): Promise<User> {
   const owner = await getOwner();
-  if (!owner) redirect("/login");
+  if (!owner) redirect(loginHref(next));
   return owner;
 }

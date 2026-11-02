@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { hand } from "@/lib/fonts";
 import { PinnedDrawing } from "../b/[slug]/pinned-drawing";
-import { TrophyBadge, WEEK_BOARD, WEEK_POSTED, WEEK_WINNER } from "./shared";
+import { TrophyBadge } from "@/components/trophy-badge";
+import { WEEK_BOARD, WEEK_POSTED, WEEK_WINNER } from "./shared";
 
 /** The week, in four beats: what's said, and what the phone shows. */
 const BEATS = [

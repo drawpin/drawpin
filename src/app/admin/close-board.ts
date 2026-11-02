@@ -4,15 +4,26 @@ export interface CloseBoardStore {
   listImagePaths(venueId: string): Promise<string[]>;
   /** @throws {Error} If any of them couldn't be deleted. */
   deleteImages(paths: string[]): Promise<void>;
-  /** Deletes the board and everything on it, in one transaction. */
+  /**
+   * Deletes the board and everything on it, in one transaction, and the
+   * owner row with the account's last board (ADR-016).
+   */
   closeVenue(venueId: string): Promise<void>;
+  /** How many boards the account still runs. */
+  countOwnedBoards(ownerId: string): Promise<number>;
   /** Whether the owner's account also draws (has a profile, ADR-013). */
   hasProfile(ownerId: string): Promise<boolean>;
   /** Deletes the owner's sign-in. */
   deleteLogin(ownerId: string): Promise<void>;
 }
 
-export type CloseBoardResult = "closed" | "name-mismatch";
+/**
+ * - `closed`: the board is gone; the account and its sign-in stay.
+ * - `closed-account`: it was the last board of an account that doesn't
+ *   draw, so its sign-in was deleted too.
+ * - `name-mismatch`: nothing happened.
+ */
+export type CloseBoardResult = "closed" | "closed-account" | "name-mismatch";
 
 export type CloseBoardDeps = {
   store: CloseBoardStore;
@@ -23,16 +34,20 @@ export type CloseBoardDeps = {
 const IMAGE_BATCH = 100;
 
 /**
- * Closes an owner's board for good (ADR-009): every drawing and image, every
- * week, vote and report, the Hall of Fame, its links, and the owner's
- * login, unless that account also draws (ADR-013): then only the board goes,
- * and the person keeps their drawings, votes and sign-in.
+ * Closes one of an owner's boards for good (ADR-009): every drawing and
+ * image, every week, vote and report, the Hall of Fame and its links. The
+ * account's other boards are untouched (ADR-016).
+ *
+ * The owner's sign-in goes too only when nothing else needs it: this was the
+ * account's last board, and the account doesn't draw (ADR-013). Deleting it
+ * otherwise would cascade through the owner row to every other board, or
+ * take the person's drawings and votes with it.
  *
  * The owner types the board's name to confirm, so it can't happen by a stray
  * tap. Images go first: if Storage fails, nothing else has been touched and
  * the owner can simply try again, rather than leaving files behind that no
- * row points to any more. The login goes last and isn't fatal; without its
- * owner row it no longer opens anything.
+ * row points to any more. The login goes last and isn't fatal; without an
+ * owner row or a profile it no longer opens anything.
  */
 export async function closeBoard(
   venue: { id: string; name: string; ownerId: string },
@@ -49,18 +64,21 @@ export async function closeBoard(
   await deps.store.closeVenue(venue.id);
 
   try {
-    // One account can draw and own a board (ADR-013). Deleting the sign-in
-    // would take the drawing account with it, so it stays when there is one.
+    // Counted after the close, so a board started meanwhile in another tab
+    // still keeps the sign-in.
+    if ((await deps.store.countOwnedBoards(venue.ownerId)) > 0) return "closed";
     if (await deps.store.hasProfile(venue.ownerId)) return "closed";
     await deps.store.deleteLogin(venue.ownerId);
+    return "closed-account";
   } catch (error) {
+    // Keeping the sign-in is the safe side: the person can still close
+    // anything that's left, or delete the account themselves.
     deps.logError(
-      "Closed the board but couldn't delete the owner's login",
+      "Closed the board but couldn't check or delete the owner's login",
       error,
     );
+    return "closed";
   }
-
-  return "closed";
 }
 
 /** Typed confirmation: forgiving about case and spacing, nothing else. */

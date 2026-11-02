@@ -4,7 +4,8 @@ import Link from "next/link";
 import { PencilSimpleIcon } from "@phosphor-icons/react";
 import { HEADER_BUTTON, INKED_BUTTON } from "../b/[slug]/board-look";
 import { PinnedDrawing } from "../b/[slug]/pinned-drawing";
-import { HERO_EXAMPLES, HERO_WINNER, TrophyBadge } from "./shared";
+import { TrophyBadge } from "@/components/trophy-badge";
+import { HERO_EXAMPLES, HERO_WINNER } from "./shared";
 
 /**
  * Where each drawing is pinned on the poster, desktop only: overlapping the
@@ -45,10 +46,7 @@ export function PosterHero() {
                 <PencilSimpleIcon weight="bold" className="size-5" />I have a
                 code
               </a>
-              <Link
-                href="/login?next=%2Fadmin"
-                className={`${HEADER_BUTTON} text-base`}
-              >
+              <Link href="/setup" className={`${HEADER_BUTTON} text-base`}>
                 Start a board
               </Link>
             </div>
