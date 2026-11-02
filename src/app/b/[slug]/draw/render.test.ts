@@ -467,6 +467,13 @@ describe("a lasso paste", () => {
     // The stem runs up from the middle of the top edge to the knob.
     expect(calls).toContain("moveTo(0,-20)");
     expect(calls).toContain(`lineTo(0,${-20 - ROTATE_STEM})`);
-    expect(calls).toContain(`arc(0,${-20 - ROTATE_STEM},6,0,${Math.PI * 2})`);
+    expect(calls).toContain(`arc(0,${-20 - ROTATE_STEM},11,0,${Math.PI * 2})`);
+    // Inside the knob, a turning arrow: a part-circle round the same centre.
+    const arrow = calls.filter(
+      (call) =>
+        call.startsWith(`arc(0,${-20 - ROTATE_STEM},`) &&
+        !call.endsWith(`,0,${Math.PI * 2})`),
+    );
+    expect(arrow).toHaveLength(1);
   });
 });

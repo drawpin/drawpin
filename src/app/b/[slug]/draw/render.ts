@@ -419,11 +419,50 @@ export function drawSelectionFrame(
     context.fillRect(hx - handle / 2, hy - handle / 2, handle, handle);
     context.strokeRect(hx - handle / 2, hy - handle / 2, handle, handle);
   }
+  // The knob is bigger than the corner handles and carries a turning arrow,
+  // so it reads as "rotate" rather than as one more handle.
+  const knob = KNOB_RADIUS * pixel;
   context.beginPath();
-  context.arc(0, knobY, handle / 2, 0, Math.PI * 2);
+  context.arc(0, knobY, knob, 0, Math.PI * 2);
   context.fill();
   context.stroke();
+  drawRotateArrow(context, 0, knobY, knob * 0.55, pixel);
   context.restore();
+}
+
+/** The rotate knob's radius, in CSS pixels: big enough to hold its arrow. */
+const KNOB_RADIUS = 11;
+
+/**
+ * A clockwise turning arrow: most of a circle, with an arrowhead where it
+ * ends, centred on (`x`, `y`). Uses the stroke colour already set.
+ */
+function drawRotateArrow(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  radius: number,
+  pixel: number,
+): void {
+  const start = -Math.PI / 2 + 0.5;
+  const end = -Math.PI / 2 + Math.PI * 1.75;
+  context.lineWidth = 1.75 * pixel;
+  context.beginPath();
+  context.arc(x, y, radius, start, end);
+  context.stroke();
+
+  // The head points along the circle at its end, clockwise.
+  const tipX = x + radius * Math.cos(end);
+  const tipY = y + radius * Math.sin(end);
+  const along = end + Math.PI / 2;
+  const head = 3.5 * pixel;
+  context.beginPath();
+  for (const side of [-1, 1]) {
+    const back = along + Math.PI + side * 0.6;
+    context.moveTo(tipX, tipY);
+    context.lineTo(tipX + head * Math.cos(back), tipY + head * Math.sin(back));
+  }
+  context.stroke();
 }
 
 function drawOp(context: CanvasRenderingContext2D, op: DrawOp) {
