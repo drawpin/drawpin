@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowRightIcon } from "@phosphor-icons/react";
 import { HEADER_BUTTON, INKED_BUTTON } from "../b/[slug]/board-look";
@@ -59,20 +58,6 @@ export const WEEK_WINNER = WEEK_BOARD[0].tile;
 
 /** The tile posted in the walkthrough's first beat (it's also on the board). */
 export const WEEK_POSTED = WEEK_BOARD[2].tile;
-
-/** The gold trophy, on a drawing's corner. */
-export function TrophyBadge({ size }: { size: number }) {
-  return (
-    <Image
-      src="/trophies/gold.webp"
-      alt=""
-      width={size}
-      height={size}
-      unoptimized
-      className="absolute -right-3 -bottom-3 rotate-6 drop-shadow-[2px_2px_0_rgb(15_27_45/0.25)]"
-    />
-  );
-}
 
 /**
  * The home page's short ending: open a board with a code, start a board or
