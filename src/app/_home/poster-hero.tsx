@@ -4,7 +4,7 @@ import Link from "next/link";
 import { PencilSimpleIcon } from "@phosphor-icons/react";
 import { HEADER_BUTTON, INKED_BUTTON } from "../b/[slug]/board-look";
 import { PinnedDrawing } from "../b/[slug]/pinned-drawing";
-import { HERO_EXAMPLES, TrophyBadge } from "./shared";
+import { HERO_EXAMPLES, HERO_WINNER, TrophyBadge } from "./shared";
 
 /**
  * Where each drawing is pinned on the poster, desktop only: overlapping the
@@ -56,7 +56,11 @@ export function PosterHero() {
                   <PinnedDrawing
                     tile={tile}
                     index={index}
-                    badge={index === 0 ? <TrophyBadge size={40} /> : undefined}
+                    badge={
+                      tile === HERO_WINNER ? (
+                        <TrophyBadge size={40} />
+                      ) : undefined
+                    }
                   />
                 </li>
               ))}
