@@ -32,7 +32,7 @@ function exampleTile(file: string, author: string, caption: string): Tile {
 export const HERO_EXAMPLES: Tile[] = [
   exampleTile("windy-day", "Ahmad Hijazi#8620", "? Windy day"),
   exampleTile("malfoid", "Ricky Liang#7024", "malfoid"),
-  exampleTile("rina", "myname#1363", "rina"),
+  exampleTile("rina", "Mirina#1363", "rina"),
 ];
 
 /** The hero drawing that wears the trophy. */
@@ -40,19 +40,18 @@ export const HERO_WINNER = HERO_EXAMPLES[1];
 
 /**
  * The week walkthrough's board, in the order it's drawn, with the votes each
- * tile has in the voting beat. `malfoida-lisa` and `lol` are real drawings
- * from a DrawPin board, credited as they were posted; `skyline` and `dog` are
- * made-up demos from Canva with invented names and captions. The first takes
- * the most votes and the trophy at the end.
+ * tile has in the voting beat. All four are real drawings from a DrawPin
+ * board, credited as they were posted. The first takes the most votes and the
+ * trophy at the end.
  */
 export const WEEK_BOARD: { tile: Tile; votes: number }[] = [
   {
     tile: exampleTile("malfoida-lisa", "Ricky Liang#7024", "malfoida lisa"),
     votes: 4,
   },
-  { tile: exampleTile("skyline", "Ahmad#2041", "golden hour"), votes: 2 },
+  { tile: exampleTile("mr-hijazi", "Kevin A.#7495", "mr hijazi"), votes: 2 },
   { tile: exampleTile("lol", "Bennett Marceaux#9363", "LOL"), votes: 3 },
-  { tile: exampleTile("dog", "Sam#2683", "Biscuit, 4"), votes: 1 },
+  { tile: exampleTile("no-tung", "Fitz#2944", "No tung?"), votes: 1 },
 ];
 
 /** The week's winner: the most-voted tile, who gets the trophy. */
