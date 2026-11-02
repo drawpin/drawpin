@@ -1,5 +1,37 @@
 import { describe, expect, it } from "vitest";
-import { historyShortcut, isTypingTarget } from "./shortcuts";
+import {
+  disarmsColorPicker,
+  historyShortcut,
+  isTypingTarget,
+} from "./shortcuts";
+
+describe("disarmsColorPicker", () => {
+  function inDom(html: string, selector: string) {
+    document.body.innerHTML = html;
+    return document.querySelector(selector);
+  }
+
+  it("leaves the canvas alone so it can pick the colour", () => {
+    expect(disarmsColorPicker(inDom("<canvas></canvas>", "canvas"))).toBe(
+      false,
+    );
+  });
+
+  it("leaves the picker button and its icon alone so its toggle works", () => {
+    const html = "<button data-eyedropper><svg></svg></button>";
+    expect(disarmsColorPicker(inDom(html, "button"))).toBe(false);
+    expect(disarmsColorPicker(inDom(html, "svg"))).toBe(false);
+  });
+
+  it("disarms on other controls and the page background", () => {
+    expect(disarmsColorPicker(inDom("<button>Pen</button>", "button"))).toBe(
+      true,
+    );
+    expect(disarmsColorPicker(document.body)).toBe(true);
+    expect(disarmsColorPicker(document)).toBe(true);
+    expect(disarmsColorPicker(null)).toBe(true);
+  });
+});
 
 /** A key press with no modifiers, overridden per test. */
 function press(key: string, modifiers: Partial<KeyboardEvent> = {}) {
