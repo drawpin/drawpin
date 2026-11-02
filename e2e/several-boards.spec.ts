@@ -46,10 +46,7 @@ test("one account runs two boards, switches, and closes one (ADR-016)", async ({
     const firstAdmin = page.url();
     // With one board there's nothing to switch to.
     await expect(
-      page.getByRole("navigation", {
-        name: "Your boards",
-        includeHidden: true,
-      }),
+      page.getByRole("button", { name: "Office Doodles" }),
     ).toHaveCount(0);
 
     await page.goto("/setup");
@@ -61,16 +58,18 @@ test("one account runs two boards, switches, and closes one (ADR-016)", async ({
 
     // Two boards: /admin lists them.
     await page.goto("/admin");
-    await expect(page.getByText("You run 2 of 5 boards.")).toBeVisible();
-    await page.getByRole("link", { name: "Office Doodles" }).click();
+    await expect(page.getByText("2 of 5", { exact: true })).toBeVisible();
+    await page.getByRole("link", { name: /^Manage Office Doodles/ }).click();
     await expect(page).toHaveURL(firstAdmin);
+    await expect(page).toHaveTitle("Office Doodles · DrawPin");
 
-    // The switcher goes to the other board.
-    await page.locator("summary", { hasText: "Switch board" }).click();
-    await page
-      .getByRole("navigation", { name: "Your boards" })
-      .getByRole("link", { name: "Friends Sketches" })
-      .click();
+    // The switcher goes to the other board, and Escape closes it.
+    await page.getByRole("button", { name: "Office Doodles" }).click();
+    await expect(page.getByText("Switch board · 2 of 5")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByText("Switch board · 2 of 5")).toBeHidden();
+    await page.getByRole("button", { name: "Office Doodles" }).click();
+    await page.getByRole("menuitemradio", { name: "Friends Sketches" }).click();
     await expect(
       page.getByRole("heading", { level: 1, name: "Friends Sketches" }),
     ).toBeVisible();
