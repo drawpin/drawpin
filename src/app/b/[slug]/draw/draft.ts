@@ -9,8 +9,8 @@ import { type DrawOp, fillAt, liftSelection } from "./render";
  * put in `sessionStorage` on the way out and replayed on the way back.
  *
  * Steps, never pixels. Strokes and shapes are kept as they are. A fill keeps
- * only where it was tapped, and a lasso move only its loop and where it was
- * put down; both are worked out again from the steps before them. Nothing
+ * only where it was tapped, and a lasso move only its loop and where (and how
+ * far turned) it was put down; both are worked out again from the steps before them. Nothing
  * restored here can put a picture on the canvas that wasn't drawn with the
  * tools, and everything read back is validated first: storage belongs to the
  * browser, not to us.
@@ -78,6 +78,8 @@ const pasteStep = z.object({
     width: z.number().finite().positive().max(10_000),
     height: z.number().finite().positive().max(10_000),
   }),
+  // Absent in drafts from before the lasso could rotate: unturned.
+  angle: z.number().finite().min(-Math.PI).max(Math.PI).optional(),
 });
 
 const draftSchema = z.object({
@@ -94,7 +96,13 @@ export function toSteps(ops: DrawOp[]): DraftStep[] {
   return ops.map((op): DraftStep => {
     if (op.kind === "fill") return { kind: "fill", color: op.color, at: op.at };
     if (op.kind === "paste") {
-      return { kind: "paste", hole: op.hole, target: op.target };
+      return {
+        kind: "paste",
+        hole: op.hole,
+        target: op.target,
+        // Left out unturned, so a draft reads the same as before rotation.
+        ...(op.angle ? { angle: op.angle } : {}),
+      };
     }
     return op;
   });
@@ -112,7 +120,14 @@ export function fromSteps(steps: DraftStep[]): DrawOp[] {
       if (fill) ops.push(fill);
     } else if (step.kind === "paste") {
       const lifted = liftSelection(ops, step.hole);
-      if (lifted) ops.push({ kind: "paste", ...lifted, target: step.target });
+      if (lifted) {
+        ops.push({
+          kind: "paste",
+          ...lifted,
+          target: step.target,
+          ...(step.angle ? { angle: step.angle } : {}),
+        });
+      }
     } else {
       ops.push(step);
     }

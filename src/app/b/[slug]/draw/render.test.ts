@@ -4,10 +4,14 @@ import {
   backingSizeFor,
   brushWidthOnScreen,
   clampView,
+  type DrawOp,
+  drawSelectionFrame,
   drawShape,
   MAX_ZOOM,
+  paintOps,
   panBy,
   pixelToHex,
+  ROTATE_STEM,
   type Shape,
   screenToTile,
   sprayDots,
@@ -360,5 +364,116 @@ describe("drawShape", () => {
 
     expect(context.strokeStyle).toBe("#ef4444");
     expect(context.lineWidth).toBe(12);
+  });
+});
+
+describe("a lasso paste", () => {
+  /** A stand-in canvas that records what it's asked to draw. */
+  function recorder() {
+    const calls: string[] = [];
+    const record =
+      (name: string) =>
+      (...args: unknown[]): void => {
+        calls.push(`${name}(${args.join(",")})`);
+      };
+    const context = {
+      fillStyle: "",
+      strokeStyle: "",
+      lineWidth: 0,
+      save: record("save"),
+      restore: record("restore"),
+      beginPath: record("beginPath"),
+      moveTo: record("moveTo"),
+      lineTo: record("lineTo"),
+      closePath: record("closePath"),
+      fill: record("fill"),
+      fillRect: record("fillRect"),
+      strokeRect: record("strokeRect"),
+      stroke: record("stroke"),
+      arc: record("arc"),
+      setLineDash: record("setLineDash"),
+      translate: record("translate"),
+      rotate: record("rotate"),
+      drawImage: (_image: unknown, ...args: unknown[]) => {
+        calls.push(`drawImage(image,${args.join(",")})`);
+      },
+    };
+    return {
+      context: context as unknown as CanvasRenderingContext2D,
+      calls,
+    };
+  }
+
+  const paste = {
+    kind: "paste",
+    hole: [
+      [10, 10],
+      [60, 10],
+      [10, 50],
+    ],
+    image: {} as HTMLCanvasElement,
+    target: { x: 100, y: 200, width: 80, height: 40 },
+  } satisfies DrawOp;
+
+  it("draws an unturned paste exactly as before the lasso could rotate", () => {
+    const { context, calls } = recorder();
+    paintOps(context, [paste]);
+
+    // Paper, then the hole covered, then the pixels in their box — nothing
+    // moved or turned on the way.
+    expect(calls).toEqual([
+      "fillRect(0,0,768,768)",
+      "save()",
+      "beginPath()",
+      "moveTo(10,10)",
+      "lineTo(60,10)",
+      "lineTo(10,50)",
+      "closePath()",
+      "fill()",
+      "drawImage(image,100,200,80,40)",
+      "restore()",
+    ]);
+  });
+
+  it("treats a turn of 0 as no turn", () => {
+    const { context, calls } = recorder();
+    paintOps(context, [{ ...paste, angle: 0 }]);
+
+    expect(calls).toContain("drawImage(image,100,200,80,40)");
+    expect(calls.some((call) => call.startsWith("rotate"))).toBe(false);
+  });
+
+  it("turns a rotated paste about the middle of its box", () => {
+    const { context, calls } = recorder();
+    paintOps(context, [{ ...paste, angle: Math.PI / 2 }]);
+
+    const turn = calls.indexOf("translate(140,220)");
+    expect(turn).toBeGreaterThan(-1);
+    expect(calls.slice(turn, turn + 3)).toEqual([
+      "translate(140,220)",
+      `rotate(${Math.PI / 2})`,
+      "drawImage(image,-40,-20,80,40)",
+    ]);
+    // Inside save/restore, so the turn doesn't carry into later steps.
+    expect(calls.at(-1)).toBe("restore()");
+  });
+
+  it("turns the selection frame and its knob with the selection", () => {
+    const { context, calls } = recorder();
+    drawSelectionFrame(context, paste.target, 1, 0.5);
+
+    expect(calls.slice(1, 3)).toEqual(["translate(140,220)", "rotate(0.5)"]);
+    expect(calls).toContain("strokeRect(-40,-20,80,40)");
+    // The stem runs up from the middle of the top edge to the knob.
+    expect(calls).toContain("moveTo(0,-20)");
+    expect(calls).toContain(`lineTo(0,${-20 - ROTATE_STEM})`);
+    expect(calls).toContain(`arc(0,${-20 - ROTATE_STEM},11,0,${Math.PI * 2})`);
+    // Inside the knob, a turning arrow: a part-circle round the same centre.
+    const arrow = calls.filter(
+      (call) =>
+        call.startsWith(`arc(0,${-20 - ROTATE_STEM},`) &&
+        !call.endsWith(`,0,${Math.PI * 2})`),
+    );
+    expect(arrow).toHaveLength(1);
   });
 });

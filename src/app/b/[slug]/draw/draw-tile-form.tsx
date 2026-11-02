@@ -102,7 +102,7 @@ const RAIL_TOOLS: RailTool[] = [
     id: "lasso",
     label: "Lasso",
     icon: LassoIcon,
-    tip: "Draw a loop round part of your drawing, then drag it or its corners.",
+    tip: "Draw a loop round part of your drawing, then drag it to move it, a corner to resize it, or the knob on top to turn it.",
   },
 ];
 
