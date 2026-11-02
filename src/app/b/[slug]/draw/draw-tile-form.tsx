@@ -44,7 +44,11 @@ import { BASE_COLORS, parseRecents, withRecent } from "./palette";
 import type { Brush } from "./render";
 import type { PostTileState } from "./schema";
 import { type ShapeKind, SHAPES } from "./shapes";
-import { historyShortcut, isTypingTarget } from "./shortcuts";
+import {
+  disarmsColorPicker,
+  historyShortcut,
+  isTypingTarget,
+} from "./shortcuts";
 import { saveDraft, takeDraft } from "./draft";
 import { GuestPostButton } from "./guest-post-button";
 import { DrawSettings } from "./draw-settings";
@@ -240,6 +244,25 @@ export function DrawTileForm({
   const [panelOpen, setPanelOpen] = useState(false);
   // The colour picker: armed, the next tap on the drawing takes its colour.
   const [pickingColor, setPickingColor] = useState(false);
+  // Armed is a one-shot: a press anywhere else, or Escape, puts it away so it
+  // can't stay on and surprise the next tap. The canvas is left out so its own
+  // handler can still take the colour, and the button is left out so its
+  // onClick toggle doesn't fight this listener (it would re-arm).
+  useEffect(() => {
+    if (!pickingColor) return;
+    const disarm = (event: Event) => {
+      if (disarmsColorPicker(event.target)) setPickingColor(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setPickingColor(false);
+    };
+    document.addEventListener("pointerdown", disarm);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", disarm);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [pickingColor]);
   const [pickedSize, setSize] = useState<number | null>(null);
   const [pickedEraserSize, setEraserSize] = useState<number | null>(null);
   const [pickedGrid, setShowGrid] = useState<boolean | null>(null);
@@ -696,6 +719,7 @@ export function DrawTileForm({
                   aria-label="Pick a colour from your drawing"
                   title="Pick a colour from your drawing"
                   aria-pressed={pickingColor}
+                  data-eyedropper
                   disabled={ops.length === 0}
                   onClick={() => {
                     setPanelOpen(false);

@@ -47,3 +47,14 @@ export function isTypingTarget(target: EventTarget | null): boolean {
     target instanceof HTMLInputElement && TEXT_INPUT_TYPES.has(target.type)
   );
 }
+
+/**
+ * Whether a press should turn the colour picker off. Presses on the canvas
+ * (which takes the colour itself) and on the picker button (whose own click
+ * toggles it) are left alone; anything else, including the page background,
+ * puts it away.
+ */
+export function disarmsColorPicker(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return true;
+  return target.closest("canvas, [data-eyedropper]") === null;
+}
