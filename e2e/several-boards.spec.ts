@@ -46,7 +46,10 @@ test("one account runs two boards, switches, and closes one (ADR-016)", async ({
     const firstAdmin = page.url();
     // With one board there's nothing to switch to.
     await expect(
-      page.getByRole("navigation", { name: "Your boards", includeHidden: true }),
+      page.getByRole("navigation", {
+        name: "Your boards",
+        includeHidden: true,
+      }),
     ).toHaveCount(0);
 
     await page.goto("/setup");
