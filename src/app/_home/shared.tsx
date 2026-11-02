@@ -9,25 +9,57 @@ import { JoinForm } from "../join/join-form";
 import { Story } from "./story";
 import { CARD_TITLE } from "./type";
 
+/** An example tile from `public/examples/<file>.webp`. */
+function exampleTile(file: string, author: string, caption: string): Tile {
+  return {
+    id: `example-${file}`,
+    author,
+    caption,
+    isGuest: false,
+    isOwn: false,
+    imageUrl: `/examples/${file}.webp`,
+    createdAt: "",
+  };
+}
+
 /**
- * Example drawings (made in Canva, public/examples), each showing a tool
- * people get: the spray can, the pressure pen, shapes and the fill bucket.
- * The names and captions are made up.
+ * The hero's drawings. Each section of the home page has its own set so the
+ * same drawing never shows twice (#181): the hero's are here, the week
+ * walkthrough's are `WEEK_BOARD`. `malfoida-lisa` (first, with the trophy)
+ * is a real drawing from a DrawPin board, used with its maker's name and
+ * caption. `skyline` and `dog` are made-up demos from Canva with invented
+ * names and captions.
  */
-export const EXAMPLE: Tile[] = [
-  ["skyline", "Ahmad#2041", "golden hour"],
-  ["dog", "Ricky#8983", "Biscuit, 4"],
-  ["latte", "Kevin#1997", "monday fuel"],
-  ["lake", "Sam#2683", "weekend plans"],
-].map(([file, author, caption]) => ({
-  id: `example-${file}`,
-  author,
-  caption,
-  isGuest: false,
-  isOwn: false,
-  imageUrl: `/examples/${file}.webp`,
-  createdAt: "",
-}));
+export const HERO_EXAMPLES: Tile[] = [
+  exampleTile("malfoida-lisa", "Ricky#7024", "malfoida lisa"),
+  exampleTile("skyline", "Ahmad#2041", "golden hour"),
+  exampleTile("dog", "Sam#2683", "Biscuit, 4"),
+];
+
+/**
+ * The week walkthrough's board, in the order it's drawn, with the votes each
+ * tile has in the voting beat. All four are real drawings from DrawPin boards,
+ * credited as they were posted. The first is a real weekly winner, so it takes
+ * the most votes and the trophy at the end.
+ */
+export const WEEK_BOARD: { tile: Tile; votes: number }[] = [
+  {
+    tile: exampleTile("malfoid", "Ricky#7024", "malfoid"),
+    votes: 4,
+  },
+  {
+    tile: exampleTile("windy-day", "Ahmad#8620", "? Windy day"),
+    votes: 2,
+  },
+  { tile: exampleTile("lol", "Bennett#9363", "LOL"), votes: 3 },
+  { tile: exampleTile("rina", "Kevin#1997", "rina"), votes: 1 },
+];
+
+/** The week's winner: the most-voted tile, who gets the trophy. */
+export const WEEK_WINNER = WEEK_BOARD[0].tile;
+
+/** The tile posted in the walkthrough's first beat (it's also on the board). */
+export const WEEK_POSTED = WEEK_BOARD[3].tile;
 
 /** The gold trophy, on a drawing's corner. */
 export function TrophyBadge({ size }: { size: number }) {
