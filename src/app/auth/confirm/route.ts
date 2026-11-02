@@ -6,7 +6,7 @@ import { parseConfirmParams } from "./params";
 /**
  * Completes an emailed sign-in link, then sends the account on: to the page
  * it asked to come back to when the link carries one (`next`, checked as a
- * plain path on this site), or to the home page; the first time, through
+ * plain path on this site), or to /admin (which routes board runners); the first time, through
  * /welcome to pick a username.
  *
  * Accepts both link formats (see `ConfirmParams`): our custom template's
@@ -35,6 +35,9 @@ export async function GET(request: NextRequest) {
       const destination = await destinationAfterSignIn(
         user.id,
         request.nextUrl.searchParams.get("next"),
+        // The template's own link carries no `next`: it is the board
+        // runner's link, and /admin routes them (list, one board, or setup).
+        "/admin",
       );
       return NextResponse.redirect(new URL(destination, request.url));
     }
