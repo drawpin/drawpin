@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
-import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { AppShell } from "@/components/app-shell/app-shell";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -68,17 +68,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
-        {children}
-        {/* Both pages have to be reachable from anywhere on the site: Google
-            asks for them when publishing the sign-in (issue #63). */}
-        <footer className="text-muted-foreground flex justify-center gap-4 px-4 py-6 text-xs">
-          <Link href="/privacy" className="underline underline-offset-4">
-            Privacy
-          </Link>
-          <Link href="/terms" className="underline underline-offset-4">
-            Terms
-          </Link>
-        </footer>
+        {/* The sidebar carries About, Terms and Privacy on every page, which
+            Google asks for when publishing the sign-in (issue #63). */}
+        <AppShell>{children}</AppShell>
         {/* Real visitors' load times, by page and device, in the Vercel
             dashboard (performance pass, 2026-10-06). It records timings
             only, no personal data, and reports nothing outside Vercel. */}

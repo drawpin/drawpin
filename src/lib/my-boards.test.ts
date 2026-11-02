@@ -14,6 +14,7 @@ import {
   pinBoard,
   planMerge,
   recordVisit,
+  unhideBoard,
   unpinBoard,
   type VisitWrite,
 } from "./my-boards";
@@ -272,6 +273,49 @@ describe("hideBoard", () => {
 
   it("does nothing for a board the account never opened", async () => {
     expect(await hideBoard(USER, boardId(1), store)).toBe(false);
+  });
+});
+
+describe("unhideBoard", () => {
+  it("puts a removed board back, pinned where it was", async () => {
+    await recordVisit(
+      USER,
+      boardId(1),
+      store,
+      new Date("2026-11-01T08:00:00Z"),
+    );
+    await pinBoard(USER, boardId(1), store, new Date("2026-11-01T09:00:00Z"));
+    const pinnedAt = store.visits.get(boardId(1))!.pinnedAt;
+    await hideBoard(USER, boardId(1), store);
+
+    expect(await unhideBoard(USER, boardId(1), store, pinnedAt)).toBe(true);
+    expect(store.visits.get(boardId(1))).toMatchObject({
+      hiddenAt: null,
+      pinnedAt,
+      lastVisitedAt: "2026-11-01T08:00:00.000Z",
+    });
+  });
+
+  it("leaves it unpinned when the pins filled up meanwhile", async () => {
+    for (let n = 1; n <= MAX_PINNED_BOARDS + 1; n++) {
+      await recordVisit(USER, boardId(n), store);
+    }
+    await pinBoard(USER, boardId(1), store);
+    const pinnedAt = store.visits.get(boardId(1))!.pinnedAt;
+    await hideBoard(USER, boardId(1), store);
+    for (let n = 2; n <= MAX_PINNED_BOARDS + 1; n++) {
+      await pinBoard(USER, boardId(n), store);
+    }
+
+    await unhideBoard(USER, boardId(1), store, pinnedAt);
+    expect(store.visits.get(boardId(1))).toMatchObject({
+      hiddenAt: null,
+      pinnedAt: null,
+    });
+  });
+
+  it("does nothing for a board the account never opened", async () => {
+    expect(await unhideBoard(USER, boardId(1), store)).toBe(false);
   });
 });
 
