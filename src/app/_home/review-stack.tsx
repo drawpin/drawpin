@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useState } from "react";
 import { pinStyle } from "@/components/pin";
 import { hand } from "@/lib/fonts";
@@ -17,7 +16,8 @@ const PILE = [
 /**
  * What people say, as notes pinned in a pile (chosen from prototypes on
  * 2026-10-05, "Shuffle"): one from a restaurant, an office and a friend
- * group, no star ratings. Tapping the top note sends it to the back, like
+ * group, no star ratings and no drawings, each signed with who said it.
+ * Tapping the top note sends it to the back, like
  * flicking through a stack, and the next one comes up.
  */
 export function ReviewStack() {
@@ -51,18 +51,8 @@ export function ReviewStack() {
                 <span className="text-foreground text-xl leading-snug font-bold text-pretty md:text-2xl">
                   &ldquo;{quote.text}&rdquo;
                 </span>
-                <span className="flex items-center gap-3">
-                  <Image
-                    src={quote.drawing}
-                    alt=""
-                    width={64}
-                    height={64}
-                    unoptimized
-                    className="border-foreground/15 size-14 rounded-md border object-cover"
-                  />
-                  <span className="text-muted-foreground text-base font-semibold">
-                    {quote.who}
-                  </span>
+                <span className="text-muted-foreground text-base font-semibold">
+                  — {quote.who}
                 </span>
               </button>
             </li>

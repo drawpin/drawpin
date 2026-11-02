@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { hand } from "@/lib/fonts";
 import { PinnedDrawing } from "../b/[slug]/pinned-drawing";
-import { EXAMPLE, TrophyBadge } from "./shared";
+import { TrophyBadge, WEEK_BOARD, WEEK_POSTED, WEEK_WINNER } from "./shared";
 
 /** The week, in four beats: what's said, and what the phone shows. */
 const BEATS = [
@@ -19,7 +19,7 @@ function Screen({ beat }: { beat: number }) {
     return (
       <div className="motion-safe:animate-fade-up flex flex-col items-center gap-3 pt-6">
         <div className="w-40">
-          <PinnedDrawing tile={EXAMPLE[1]} index={0} />
+          <PinnedDrawing tile={WEEK_POSTED} index={0} />
         </div>
         <span className="bg-winner border-foreground rounded-full border-2 px-3 py-1 text-sm font-black">
           Posted!
@@ -30,7 +30,7 @@ function Screen({ beat }: { beat: number }) {
   if (beat === 1) {
     return (
       <ul className="grid grid-cols-2 gap-x-3 gap-y-7 pt-5">
-        {EXAMPLE.map((tile, index) => (
+        {WEEK_BOARD.map(({ tile }, index) => (
           <li
             key={tile.id}
             className="motion-safe:animate-drop-in"
@@ -45,15 +45,18 @@ function Screen({ beat }: { beat: number }) {
   if (beat === 2) {
     return (
       <ul className="grid grid-cols-2 gap-x-3 gap-y-7 pt-5">
-        {EXAMPLE.map((tile, index) => (
+        {WEEK_BOARD.map(({ tile, votes }, index) => (
           <li key={tile.id} className="relative">
-            <PinnedDrawing tile={tile} index={index} picked={index === 0} />
+            <PinnedDrawing
+              tile={tile}
+              index={index}
+              picked={tile === WEEK_WINNER}
+            />
             <span
               className="motion-safe:animate-fade-up border-foreground bg-winner absolute -top-2 -right-1 z-20 rounded-full border-2 px-2 text-xs font-black"
               style={{ animationDelay: `${index * 150}ms` }}
             >
-              {[4, 2, 3, 1][index]}{" "}
-              {[4, 2, 3, 1][index] === 1 ? "vote" : "votes"}
+              {votes} {votes === 1 ? "vote" : "votes"}
             </span>
           </li>
         ))}
@@ -64,7 +67,7 @@ function Screen({ beat }: { beat: number }) {
     <div className="motion-safe:animate-fade-up flex flex-col items-center gap-4 pt-6">
       <div className="w-40">
         <PinnedDrawing
-          tile={EXAMPLE[0]}
+          tile={WEEK_WINNER}
           index={0}
           badge={<TrophyBadge size={56} />}
         />
