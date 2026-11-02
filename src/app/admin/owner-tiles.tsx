@@ -18,6 +18,7 @@ import {
   removeTileAction,
   type RemoveTileState,
 } from "./actions";
+import { BoardIdField } from "./board-context";
 import { type OwnerDrawing, reportLine } from "./drawings";
 import { Flag } from "./flag";
 import { columnCount, visibleRowsHeight } from "./tile-grid";
@@ -183,6 +184,7 @@ function OwnerTile({
                 {canKeep && (
                   <form action={keep}>
                     <input type="hidden" name="tileId" value={tile.id} />
+                    <BoardIdField />
                     <button type="submit" disabled={keeping} className={KEEP}>
                       {keeping ? "Keeping…" : "Keep it"}
                     </button>
@@ -194,6 +196,7 @@ function OwnerTile({
             {asking === "remove" && (
               <form action={remove} className="flex flex-col gap-1">
                 <input type="hidden" name="tileId" value={tile.id} />
+                <BoardIdField />
                 <p className="text-center text-sm font-bold">
                   Remove this drawing?
                 </p>
@@ -204,6 +207,7 @@ function OwnerTile({
             {asking === "block" && (
               <form action={block} className="flex flex-col gap-1">
                 <input type="hidden" name="tileId" value={tile.id} />
+                <BoardIdField />
                 <p className="px-1 text-xs leading-snug">
                   <span className="font-bold">
                     Block {tile.author ?? "this account"}?
