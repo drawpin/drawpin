@@ -19,6 +19,7 @@ const SCREENS: [string, string][] = [
   ["Board admin with switcher", "/prototype/profiles/admin/board?switch=1"],
   ["Sign-in sheet", "/prototype/profiles/sign-in"],
   ["Sign-in sheet, code step", "/prototype/profiles/sign-in?step=code"],
+  ["Home: menu button and logo placement", "/prototype/topbar"],
 ];
 
 /**
