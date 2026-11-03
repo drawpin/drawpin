@@ -37,7 +37,7 @@ Everything below is built on `feat/profiles` (PRs #207 and #209–#216; draft PR
 
 ### Before merging to `main`
 1. **Delete the prototypes:** `src/app/prototype/`.
-2. **Supabase → Auth → URL Configuration,** in both projects: add `https://drawpin.io/**` to the redirect allow-list. Email links now carry `?next=`.
+2. ~~**Supabase → Auth → URL Configuration**~~: already fine, checked 2026-11-02. Production allows `https://drawpin.io/**` and preview allows `https://*-ahmaddhijazi-gmailcoms-projects.vercel.app/**`, so the `?next=` the email links now carry passes in both.
 3. **Restore the preview project** (`drawpin-preview`; it's been timing out since 2 November, probably paused). Then apply `20261102120000_several_boards_and_board_visits.sql` there.
 4. **Push that migration to production** from the board-link checkout (`npx supabase db push`). Check it with `npx supabase migration list --linked` before merging.
 5. **Re-paste the email template** if you take the email-link fix above.
