@@ -1,60 +1,86 @@
 "use client";
 
 import type { ReactNode } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { pinStyle } from "@/components/pin";
 
-/** A flat push pin, drawn like the drawings' pins, standing upright-ish. */
-export function PinGlyph({
-  className = "",
-  fill = "#ffca39",
+/**
+ * The owner's logo, cut out of its white ground (public/brand/, from the
+ * 2250px original): `wordmark.webp` without the pen's line, and
+ * `wordmark-line.webp` with it. Both are 964px wide and share their top, so
+ * the line version stacks exactly under the plain one.
+ */
+const PLAIN = { src: "/brand/wordmark.webp", width: 964, height: 291 };
+const LINED = { src: "/brand/wordmark-line.webp", width: 964, height: 333 };
+
+/**
+ * The logo. `line` adds the pen's line, drawn in from left to right on load
+ * (the pen writing it); `ink` gives it an ink shadow, which brings back its
+ * 3D on the blue poster, where its own blue depth disappears.
+ */
+export function Wordmark({
+  className,
+  line = false,
+  ink = false,
+  priority = false,
 }: {
-  className?: string;
-  fill?: string;
+  /** Sets the size, by width (`w-40`) or height. */
+  className: string;
+  line?: boolean;
+  ink?: boolean;
+  priority?: boolean;
 }) {
+  const shadow = ink ? "[filter:drop-shadow(3px_3px_0_#0f1b2d)]" : "";
+  if (!line) {
+    return (
+      <Image
+        {...PLAIN}
+        alt="DrawPin"
+        priority={priority}
+        className={`h-auto ${shadow} ${className}`}
+      />
+    );
+  }
   return (
-    <svg viewBox="-2 0 26 30" aria-hidden className={className}>
-      <g
-        transform="translate(-10 -2) rotate(30 13 31)"
-        stroke="#0f1b2d"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-        fill={fill}
-      >
-        <path d="M13 23v8" strokeLinecap="round" />
-        <rect x="4" y="19" width="18" height="5" rx="2.5" />
-        <path d="M10 19.5v-10h6v10" />
-        <rect x="6" y="4" width="14" height="6" rx="3" />
-        <path
-          d="M11.8 11.5v5.5"
-          stroke="white"
-          strokeWidth="1.3"
-          strokeLinecap="round"
-          strokeOpacity="0.8"
-        />
-      </g>
-    </svg>
+    <span className={`relative inline-block ${shadow} ${className}`}>
+      <Image
+        {...LINED}
+        alt=""
+        aria-hidden
+        priority={priority}
+        className="logo-line block h-auto w-full"
+      />
+      <Image
+        {...PLAIN}
+        alt="DrawPin"
+        priority={priority}
+        className="absolute inset-x-0 top-0 h-auto w-full"
+      />
+    </span>
   );
 }
 
-/** Where a brand treatment sits: on the blue poster or the white sidebar. */
+/** Where a treatment sits: the blue poster, or the white sidebar card. */
 export type Surface = "poster" | "sidebar";
 
 export type LogoVariant = {
   name: string;
-  /** The poster's headline, when the variant changes it. */
+  /** Replaces the poster's headline block (the h1), when it changes. */
   headline?: ReactNode;
-  /** Drawn inside the poster's (or sidebar card's) frame, before content. */
+  /** On the page, above the frame. */
+  above?: (surface: Surface) => ReactNode;
+  /** Inside the frame, before its content. */
   inside?: (surface: Surface) => ReactNode;
-  /** Positioned on the frame itself (overlapping its edge). */
+  /** Positioned on the frame itself, overlapping its edge. */
   onFrame?: (surface: Surface) => ReactNode;
-  /** Wraps the frame, for variants that change the frame's shape. */
+  /** Wraps the frame, for a variant that changes the frame's shape. */
   frame?: (surface: Surface, card: ReactNode) => ReactNode;
   /** Extra top padding inside the frame, to clear something on its edge. */
   framePad?: Partial<Record<Surface, string>>;
-  /** Which side of the poster's top the phone's menu button takes. */
-  menuSide: "left" | "right";
-  /** Whether the frame draws its own offset shadow. */
+  /** The phone's menu button: in the poster's top row, or beside `above`. */
+  menu: "poster" | "page";
+  /** The frame draws its own offset shadow (the tab's single silhouette). */
   ownShadow?: boolean;
 };
 
@@ -63,99 +89,108 @@ const HOME =
 
 /* ---------------------------------------------------------------- 1 */
 
-/** "Pin it" with a push pin for its full stop, stuck into the line. */
-function PinStop({ size }: { size: string }) {
-  return (
-    <span className="relative inline-block w-[0.42em] align-baseline">
-      <PinGlyph
-        className={`absolute bottom-[-0.02em] left-[-0.06em] ${size}`}
-      />
-    </span>
-  );
-}
+/**
+ * 1. Masthead: the logo on the white page, where it was designed, at a size
+ * that owns the top of the page, with the pen drawing its line on load. The
+ * poster starts under it. On a laptop it heads the sidebar column the same
+ * way, above the card rather than in it.
+ */
+const masthead: LogoVariant = {
+  name: "Masthead",
+  menu: "page",
+  above: (surface) =>
+    surface === "poster" ? (
+      <Link href="/" aria-label="DrawPin home" className={`${HOME} lg:hidden`}>
+        <Wordmark line priority className="w-48" />
+      </Link>
+    ) : (
+      <Link href="/" aria-label="DrawPin home" className={`${HOME} mb-4 ml-2`}>
+        <Wordmark line priority className="w-52" />
+      </Link>
+    ),
+};
+
+/* ---------------------------------------------------------------- 2 */
 
 /**
- * 1. Headline: the slogan is the logo. No name tag anywhere: "Draw it. Pin
- * it." with a real pin for the last full stop, big on the poster and small
- * at the top of the sidebar.
+ * 2. Hero: the logo is the headline. It leads the poster big, with an ink
+ * shadow so its 3D reads on the blue, and "Draw it. Pin it." becomes the
+ * line under it. On a laptop the sidebar keeps a small one at its top.
  */
-const headline: LogoVariant = {
-  name: "Headline",
-  menuSide: "right",
+const hero: LogoVariant = {
+  name: "Hero",
+  menu: "poster",
   headline: (
     <>
-      Draw it.
-      <br />
-      <span className="text-winner">
-        Pin it
-        <PinStop size="h-[0.55em] w-[0.5em]" />
+      <span className="sr-only">DrawPin: </span>
+      <Wordmark
+        line
+        ink
+        priority
+        className="block w-[min(100%,22rem)] md:w-[30rem]"
+      />
+      <span className="mt-5 block text-[clamp(2.5rem,9vw,4.5rem)] leading-[0.9]">
+        Draw it. <span className="text-winner">Pin it.</span>
       </span>
     </>
   ),
   inside: (surface) =>
     surface === "sidebar" ? (
-      <Link href="/" aria-label="DrawPin home" className={`${HOME} w-fit pl-2`}>
-        <span className="block text-[1.7rem] leading-[0.9] font-black tracking-tighter">
-          Draw it.
-          <br />
-          <span className="text-primary">
-            Pin it
-            <PinStop size="h-[0.6em] w-[0.55em]" />
-          </span>
-        </span>
+      <Link href="/" aria-label="DrawPin home" className={`${HOME} ml-2 w-fit`}>
+        <Wordmark priority className="w-40" />
       </Link>
     ) : null,
 };
 
-/* ---------------------------------------------------------------- 2 */
+/* ---------------------------------------------------------------- 3 */
 
-/** The name on a scrap of paper, pinned over the frame's top edge. */
-function PinnedTag({ surface }: { surface: Surface }) {
+/** The logo on a white sticker, pinned over the frame's top edge. */
+function Sticker({ surface }: { surface: Surface }) {
   return (
     <Link
       href="/"
       aria-label="DrawPin home"
-      className={`absolute z-20 ${surface === "poster" ? "-top-5 left-5 lg:hidden" : "-top-5 left-6"} ${HOME}`}
+      className={`absolute -top-6 z-20 ${surface === "poster" ? "left-4 lg:hidden" : "left-5"} ${HOME}`}
     >
       <span
         style={pinStyle("#ffca39", 150)}
-        className="pinned pin-pop border-foreground relative block -rotate-3 border-2 bg-white px-3 pt-2 pb-1.5 text-2xl leading-none font-black tracking-tighter text-[#0f1b2d] shadow-[3px_3px_0_var(--foreground)]"
+        className="pinned pin-pop border-foreground relative block -rotate-2 rounded-md border-2 bg-white px-2.5 pt-2.5 pb-1.5 shadow-[3px_3px_0_var(--foreground)]"
       >
-        Draw<span className="text-primary">Pin</span>
+        <Wordmark priority className="w-36" />
       </span>
     </Link>
   );
 }
 
 /**
- * 2. Pinned tag: the name is a thing on the wall, like the drawings. A white
- * paper tag pinned over the top edge of the poster, and of the sidebar on a
- * laptop, half on and half off.
+ * 3. Sticker: the logo on its own white paper (so its 3D shows as designed),
+ * pinned over the top edge of the poster, and of the sidebar on a laptop,
+ * like the drawings.
  */
-const tag: LogoVariant = {
-  name: "Pinned tag",
-  menuSide: "right",
-  onFrame: (surface) => <PinnedTag surface={surface} />,
-  framePad: { sidebar: "pt-10" },
+const sticker: LogoVariant = {
+  name: "Sticker",
+  menu: "poster",
+  onFrame: (surface) => <Sticker surface={surface} />,
+  framePad: { sidebar: "pt-16" },
 };
 
-/* ---------------------------------------------------------------- 3 */
+/* ---------------------------------------------------------------- 4 */
 
 /**
- * 3. Tab: the name is part of the frame's shape. The poster (and the sidebar
- * card) grows a folder tab from its top edge, same fill and ink line, one
- * silhouette with one shadow.
+ * 4. Tab: a white tab grows out of the frame's top edge with the logo in it,
+ * one silhouette with one shadow. White, so the logo sits on the ground it
+ * was made for.
  */
 const tab: LogoVariant = {
   name: "Tab",
-  menuSide: "right",
+  menu: "poster",
   ownShadow: true,
   frame: (surface, card) => {
-    const blue = surface === "poster";
+    const poster = surface === "poster";
     return (
       <div
         className={
-          blue
+          poster
             ? "[filter:drop-shadow(6px_6px_0_var(--foreground))]"
             : "flex flex-1 flex-col [filter:drop-shadow(6px_6px_0_var(--primary))]"
         }
@@ -163,9 +198,9 @@ const tab: LogoVariant = {
         <Link
           href="/"
           aria-label="DrawPin home"
-          className={`border-foreground relative z-10 -mb-[2px] ml-4 w-fit ${blue ? "inline-flex lg:hidden" : "inline-flex"} rounded-t-xl border-2 border-b-0 px-4 pt-1.5 pb-[6px] text-xl leading-none font-black tracking-tighter outline-none focus-visible:underline ${blue ? "bg-primary text-white" : "bg-white text-[#0f1b2d]"}`}
+          className={`border-foreground relative z-10 -mb-[2px] ml-4 w-fit rounded-t-xl border-2 border-b-0 bg-white px-3 pt-2 pb-[6px] outline-none focus-visible:underline ${poster ? "flex lg:hidden" : "flex"}`}
         >
-          Draw<span className={blue ? "text-winner" : "text-primary"}>Pin</span>
+          <Wordmark priority className="w-32" />
         </Link>
         {card}
       </div>
@@ -173,82 +208,4 @@ const tab: LogoVariant = {
   },
 };
 
-/* ---------------------------------------------------------------- 4 */
-
-/** A round rubber stamp: the name around the rim, a pin in the middle. */
-function Stamp({ size }: { size: number }) {
-  return (
-    <svg
-      viewBox="0 0 100 100"
-      width={size}
-      height={size}
-      role="img"
-      aria-label="DrawPin"
-      className="logo-stamp -rotate-12"
-    >
-      <defs>
-        <path id="rim" d="M50 50 m-35 0 a35 35 0 1 1 70 0 a35 35 0 1 1 -70 0" />
-      </defs>
-      <circle
-        cx="50"
-        cy="50"
-        r="47"
-        fill="#ffca39"
-        stroke="#0f1b2d"
-        strokeWidth="3"
-      />
-      <circle
-        cx="50"
-        cy="50"
-        r="25"
-        fill="white"
-        stroke="#0f1b2d"
-        strokeWidth="2.5"
-      />
-      <text
-        fill="#0f1b2d"
-        fontSize="12.5"
-        fontWeight="900"
-        letterSpacing="1.2"
-        style={{ fontFamily: "var(--font-geist-sans)" }}
-      >
-        <textPath href="#rim">DRAWPIN · DRAW IT · PIN IT ·</textPath>
-      </text>
-      <g transform="translate(36 33) scale(1.05)">
-        <g
-          transform="translate(-10 -2) rotate(30 13 31)"
-          stroke="#0f1b2d"
-          strokeWidth="1.6"
-          strokeLinejoin="round"
-          fill="#004aad"
-        >
-          <path d="M13 23v8" strokeLinecap="round" />
-          <rect x="4" y="19" width="18" height="5" rx="2.5" />
-          <path d="M10 19.5v-10h6v10" />
-          <rect x="6" y="4" width="14" height="6" rx="3" />
-        </g>
-      </g>
-    </svg>
-  );
-}
-
-/**
- * 4. Stamp: the name is an emblem pressed onto the corner of the frame, a
- * yellow rubber stamp with the name around the rim and a pin in the middle.
- */
-const stamp: LogoVariant = {
-  name: "Stamp",
-  menuSide: "left",
-  onFrame: (surface) => (
-    <Link
-      href="/"
-      aria-label="DrawPin home"
-      className={`absolute z-20 rounded-full ${surface === "poster" ? "-top-4 -right-2 lg:hidden" : "-top-5 -left-4"} ${HOME}`}
-    >
-      <Stamp size={surface === "poster" ? 92 : 84} />
-    </Link>
-  ),
-  framePad: { sidebar: "pt-16" },
-};
-
-export const VARIANTS: LogoVariant[] = [headline, tag, tab, stamp];
+export const VARIANTS: LogoVariant[] = [masthead, hero, sticker, tab];

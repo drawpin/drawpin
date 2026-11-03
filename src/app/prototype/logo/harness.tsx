@@ -108,6 +108,21 @@ function PosterMenuButton() {
   );
 }
 
+/** The phone's menu button on the white page, inked like the cards. */
+function PageMenuButton() {
+  const { setDrawerOpen } = useShell();
+  return (
+    <button
+      type="button"
+      aria-label="Open menu"
+      onClick={() => setDrawerOpen(true)}
+      className="border-foreground hover:bg-secondary focus-visible:ring-highlight inline-flex size-11 shrink-0 items-center justify-center rounded-xl border-2 bg-white shadow-[3px_3px_0_var(--foreground)] outline-none focus-visible:ring-3 lg:hidden"
+    >
+      <ListIcon weight="bold" className="size-6" />
+    </button>
+  );
+}
+
 const SPOTS = [
   "md:absolute md:top-10 md:right-[4%] md:w-40 md:rotate-2",
   "md:absolute md:top-[44%] md:right-[22%] md:w-40 md:-rotate-1",
@@ -144,15 +159,21 @@ function Framed({
 
 function Poster({ variant }: { variant: LogoVariant }) {
   const pad = variant.framePad?.poster ?? "pt-5";
-  const menu = (
-    <div
-      className={`flex lg:hidden ${variant.menuSide === "right" ? "justify-end" : "justify-start"} -mx-2 -mb-2`}
-    >
-      <PosterMenuButton />
-    </div>
-  );
+  const menu =
+    variant.menu === "poster" ? (
+      <div className="-mx-2 -mb-2 flex justify-end lg:hidden">
+        <PosterMenuButton />
+      </div>
+    ) : null;
+  const above = variant.above?.("poster");
   return (
     <div className="mx-auto w-full max-w-7xl px-3 pt-6 md:px-6">
+      {above && (
+        <div className="mb-4 flex items-center justify-between gap-3 px-1 lg:hidden">
+          {above}
+          {variant.menu === "page" && <PageMenuButton />}
+        </div>
+      )}
       <Framed
         variant={variant}
         surface="poster"
@@ -163,7 +184,9 @@ function Poster({ variant }: { variant: LogoVariant }) {
         >
           {menu}
           {variant.inside?.("poster")}
-          <h1 className="relative z-10 text-[clamp(4rem,14vw,10rem)] leading-[0.86] font-black tracking-tighter">
+          <h1
+            className={`relative z-10 font-black tracking-tighter ${variant.headline ? "" : "text-[clamp(4rem,14vw,10rem)] leading-[0.86]"}`}
+          >
             {variant.headline ?? (
               <>
                 Draw it.
@@ -211,6 +234,7 @@ function MockSidebar({ variant }: { variant: LogoVariant }) {
   // `lg:flex`, not the real column's `lg:block`, which this page hides.
   return (
     <aside className="sticky top-0 hidden h-dvh w-80 shrink-0 flex-col py-6 pl-6 lg:flex">
+      {variant.above?.("sidebar")}
       <Framed
         variant={variant}
         surface="sidebar"
@@ -277,7 +301,9 @@ function MockSidebar({ variant }: { variant: LogoVariant }) {
  */
 export function LogoHarness({ initial }: { initial: number }) {
   // The page reads ?v= on the server, so a reload keeps the pick.
-  const [current, setCurrent] = useState(initial);
+  const [current, setCurrent] = useState(
+    initial >= 0 && initial < VARIANTS.length ? initial : 0,
+  );
   const [mountKey, setMountKey] = useState(0);
 
   const pick = useCallback((index: number) => {

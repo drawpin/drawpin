@@ -98,20 +98,19 @@
   top: 24px;
 }
 
-/* Variant motion (not picker chrome). The stamp pressed onto the paper:
-   in from a little larger, settling at its tilt. */
-@keyframes logo-stamp {
+/* Variant motion (not picker chrome). The pen drawing its line under the
+   logo once on load: the lined image is revealed left to right, ending at
+   the pen's tip. A one-off brand moment, so it can take its time. */
+@keyframes logo-line {
   from {
-    opacity: 0;
-    scale: 1.25;
+    clip-path: inset(0 100% 0 0);
   }
   to {
-    opacity: 1;
-    scale: 1;
+    clip-path: inset(0 0 0 0);
   }
 }
 @media (prefers-reduced-motion: no-preference) {
-  .logo-stamp {
-    animation: logo-stamp 220ms cubic-bezier(0.23, 1, 0.32, 1) 120ms both;
+  .logo-line {
+    animation: logo-line 700ms cubic-bezier(0.23, 1, 0.32, 1) 250ms both;
   }
 }

@@ -1,5 +1,4 @@
 import { LogoHarness } from "./harness";
-import { VARIANTS } from "./variants";
 
 /**
  * TEMPORARY prototype (2026-11-02): how the DrawPin logo sits on the site,
@@ -10,7 +9,7 @@ import { VARIANTS } from "./variants";
 export default async function LogoPrototype({
   searchParams,
 }: PageProps<"/prototype/logo">) {
-  const v = Number((await searchParams).v);
-  const initial = v >= 1 && v <= VARIANTS.length ? v - 1 : 0;
-  return <LogoHarness initial={initial} />;
+  // The harness clamps it: the variant list lives on the client.
+  const v = Number((await searchParams).v) || 1;
+  return <LogoHarness initial={v - 1} />;
 }
