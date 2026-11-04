@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Ending } from "../../_home/shared";
+import { LogoSticker } from "../logo/sticker";
 import {
   BlueMenuButton,
   CornerMenuButton,
@@ -19,7 +20,8 @@ const VARIANTS = {
 type Variant = keyof typeof VARIANTS;
 
 const LOGOS: Record<LogoKind, string> = {
-  text: "1. Type (today)",
+  sticker: "Sticker (picked)",
+  text: "1. Type (old)",
   wordmark: "2. Brand wordmark",
   icon: "3. App icon + type",
   pin: "4. Type + push pin",
@@ -28,8 +30,9 @@ const LOGOS: Record<LogoKind, string> = {
 /**
  * TEMPORARY prototype (2026-11-02): where the phone's menu button and the
  * logo go on the home page, instead of a row of their own above the poster.
- * `?v=a|b|c|d` picks the placement, `&logo=text|wordmark|icon|pin` the logo.
- * The real sidebar and drawer are used, so the button really opens it.
+ * `?v=a|b|c|d` picks the placement, `&logo=` the logo (Sticker, picked
+ * 2026-11-03, is the default: pinned over the poster's top edge). The real
+ * sidebar and drawer are used, so the button really opens it.
  * Deleted with the rest of /prototype before feat/profiles merges.
  */
 export default async function TopbarPrototype({
@@ -43,7 +46,12 @@ export default async function TopbarPrototype({
   const logo: LogoKind =
     typeof query.logo === "string" && query.logo in LOGOS
       ? (query.logo as LogoKind)
-      : "text";
+      : "sticker";
+  // The sticker sits on the poster's edge, so it leaves the rows; the
+  // other logos sit in a row like before.
+  const pinned = logo === "sticker";
+  const sticker = pinned ? <LogoSticker /> : undefined;
+  const inline = pinned ? null : <Logo kind={logo} tone="blue" />;
 
   let poster;
   let bar = null;
@@ -53,10 +61,13 @@ export default async function TopbarPrototype({
       // The same row the board pages already have inside their blue header.
       poster = (
         <ProtoPoster
+          sticker={sticker}
           top={
-            <div className="-ml-2 flex items-center gap-2 lg:hidden">
+            <div
+              className={`-ml-2 flex items-center gap-2 lg:hidden ${pinned ? "-mr-2 justify-end" : ""}`}
+            >
               <BlueMenuButton />
-              <Logo kind={logo} tone="blue" />
+              {inline}
             </div>
           }
         />
@@ -65,12 +76,9 @@ export default async function TopbarPrototype({
     case "b":
       poster = (
         <ProtoPoster
+          sticker={sticker}
           corner={<CornerMenuButton />}
-          top={
-            <div className="-ml-1 lg:hidden">
-              <Logo kind={logo} tone="blue" />
-            </div>
-          }
+          top={inline && <div className="-ml-1 lg:hidden">{inline}</div>}
         />
       );
       break;
@@ -97,11 +105,8 @@ export default async function TopbarPrototype({
       floating = <FloatingMenuButton />;
       poster = (
         <ProtoPoster
-          top={
-            <div className="-ml-1 lg:hidden">
-              <Logo kind={logo} tone="blue" />
-            </div>
-          }
+          sticker={sticker}
+          top={inline && <div className="-ml-1 lg:hidden">{inline}</div>}
         />
       );
       break;
@@ -115,7 +120,7 @@ export default async function TopbarPrototype({
 
       <section className="mx-auto mt-8 flex w-full max-w-6xl flex-col gap-3 px-5">
         <p className="bg-attention w-fit rounded-md px-2 py-0.5 text-sm font-bold">
-          Prototype: pick a placement and a logo
+          Prototype: pick where the menu button goes
         </p>
         <p className="text-muted-foreground text-sm">
           On a laptop the sidebar column replaces all of this, so look at it on

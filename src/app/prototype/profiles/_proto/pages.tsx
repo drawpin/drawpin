@@ -19,6 +19,7 @@ import { HEADER_BUTTON, INKED_BUTTON } from "../../../b/[slug]/board-look";
 import { PinnedDrawing } from "../../../b/[slug]/pinned-drawing";
 import { NOTE } from "../../../_home/type";
 import { BOARD_TILES } from "./data";
+import { LogoSticker } from "../../logo/sticker";
 import { MenuButton } from "./shell";
 
 /**
@@ -35,17 +36,18 @@ export function ShellHeader({
   aside?: ReactNode;
 }) {
   return (
-    <div className="w-full px-3 pt-3 md:px-6 md:pt-6">
-      <header className="bg-primary text-primary-foreground border-foreground rounded-2xl border-2 shadow-[6px_6px_0_var(--foreground)]">
+    <div className="w-full px-3 pt-9 md:px-6 lg:pt-6">
+      <header className="bg-primary text-primary-foreground border-foreground relative rounded-2xl border-2 shadow-[6px_6px_0_var(--foreground)]">
+        {/* On a phone the logo is a sticker pinned over the top edge; on a
+            laptop it's on the sidebar card instead. */}
+        <LogoSticker
+          href="/prototype/profiles/hub"
+          className="absolute -top-6 left-4 lg:hidden"
+        />
         <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-4 px-5 py-6 md:px-8 md:py-8">
-          <div className="-mx-1 -mt-2 flex items-center justify-between gap-3 lg:hidden">
-            <div className="flex items-center gap-2">
-              <MenuButton />
-              <span className="text-lg font-black tracking-tighter">
-                Draw<span className="text-winner">Pin</span>
-              </span>
-            </div>
+          <div className="-mx-1 -mt-2 flex items-center justify-end gap-2 lg:hidden">
             {aside}
+            <MenuButton />
           </div>
           {aside && (
             <div className="absolute top-6 right-6 hidden lg:block">

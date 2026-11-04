@@ -9,8 +9,9 @@ import { TrophyBadge } from "@/components/trophy-badge";
 import { HEADER_BUTTON, INKED_BUTTON } from "../../b/[slug]/board-look";
 import { PinnedDrawing } from "../../b/[slug]/pinned-drawing";
 import { HERO_EXAMPLES, HERO_WINNER } from "../../_home/shared";
+import { LogoSticker } from "../logo/sticker";
 
-export type LogoKind = "text" | "wordmark" | "icon" | "pin";
+export type LogoKind = "sticker" | "text" | "wordmark" | "icon" | "pin";
 type Tone = "blue" | "white";
 
 /** A small flat push pin, the same drawing as the drawings' pins. */
@@ -35,6 +36,8 @@ function PinGlyph({ className = "" }: { className?: string }) {
 
 /** The logo options, each on blue (inside the poster) or on white. */
 export function Logo({ kind, tone }: { kind: LogoKind; tone: Tone }) {
+  // The picked direction: the owner's logo on pinned white paper.
+  if (kind === "sticker") return <LogoSticker size="w-28" />;
   const word =
     tone === "blue" ? (
       <>
@@ -168,27 +171,41 @@ export function FloatingMenuButton() {
 }
 
 /**
- * A copy of the home page's poster with two slots: `top`, a row inside the
- * poster above the headline, and `corner`, something positioned on it.
+ * A copy of the home page's poster with three slots: `top`, a row inside the
+ * poster above the headline; `corner`, something positioned on it; and
+ * `sticker`, the logo sticker pinned over its top edge on a phone (outside
+ * the poster, which clips).
  */
 export function ProtoPoster({
   top,
   corner,
+  sticker,
 }: {
   top?: ReactNode;
   corner?: ReactNode;
+  sticker?: ReactNode;
 }) {
   const SPOTS = [
     "md:absolute md:top-10 md:right-[4%] md:w-40 md:rotate-2",
     "md:absolute md:top-[44%] md:right-[22%] md:w-40 md:-rotate-1",
     "md:absolute md:bottom-6 md:right-[3%] md:w-40 md:rotate-1",
   ];
+  // With a sticker and no top row, the headline starts below the part of
+  // the sticker that's on the poster.
+  const pad = top ? "pt-4" : sticker ? "pt-12 lg:pt-8" : "pt-8";
   return (
-    <div className="mx-auto w-full max-w-7xl px-3 pt-3 md:px-6 md:pt-6">
+    <div
+      className={`relative mx-auto w-full max-w-7xl px-3 md:px-6 ${sticker ? "pt-9 lg:pt-6" : "pt-3 md:pt-6"}`}
+    >
+      {sticker && (
+        <div className="absolute top-3 left-7 z-20 md:left-10 lg:hidden">
+          {sticker}
+        </div>
+      )}
       <header className="bg-primary text-primary-foreground border-foreground relative overflow-hidden rounded-2xl border-2 shadow-[6px_6px_0_var(--foreground)]">
         {corner}
         <div
-          className={`relative mx-auto flex w-full max-w-6xl flex-col gap-6 px-5 pb-10 md:min-h-[28rem] md:justify-center ${top ? "pt-4" : "pt-8"}`}
+          className={`relative mx-auto flex w-full max-w-6xl flex-col gap-6 px-5 pb-10 md:min-h-[28rem] md:justify-center ${pad}`}
         >
           {top}
           <h1 className="relative z-10 text-[clamp(4rem,14vw,10rem)] leading-[0.86] font-black tracking-tighter">

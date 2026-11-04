@@ -30,6 +30,7 @@ import {
   XIcon,
 } from "@phosphor-icons/react";
 import { hand } from "@/lib/fonts";
+import { LogoSticker } from "../../logo/sticker";
 import { BOARD_CAP, type BoardStatus, ME, type ProtoBoard } from "./data";
 
 export type Variant = "a" | "b" | "c";
@@ -302,16 +303,14 @@ export function SidebarContents({
 
   return (
     <nav aria-label="DrawPin" className="flex min-h-full flex-col gap-5 p-3">
-      <div className="flex items-center justify-between gap-2 pl-2">
-        <Link
-          href="/prototype/profiles/hub"
-          className="focus-visible:ring-highlight rounded-lg text-2xl font-black tracking-tighter outline-none focus-visible:ring-3"
-        >
-          Draw
-          <span className={tone === "blue" ? "text-winner" : "text-primary"}>
-            Pin
-          </span>
-        </Link>
+      {/* The logo is a sticker: pinned over the column card's top edge (the
+          column draws it; this keeps its space), or atop the drawer. */}
+      <div
+        className={`flex items-start justify-between gap-2 pl-2 ${onClose ? "pt-3" : "h-8"}`}
+      >
+        {onClose && (
+          <LogoSticker href="/prototype/profiles/hub" className="block" />
+        )}
         {onClose && (
           <button
             type="button"
@@ -608,18 +607,30 @@ export function AppShell({
 
   return (
     <OpenContext.Provider value={() => setOpen(true)}>
+      {/* This shell brings its own sidebar, so hide the real app's column. */}
+      <style>
+        {"aside.sticky.lg\\:block:not([data-proto]){display:none!important}"}
+      </style>
       <div className="flex flex-1">
         {persistent && (
           <aside
-            className={`sticky top-0 hidden h-dvh shrink-0 py-6 pl-6 lg:block ${variant === "c" ? "w-[6.5rem]" : "w-80"}`}
+            data-proto
+            className={`sticky top-0 hidden h-dvh shrink-0 pb-6 pl-6 lg:block ${variant === "c" ? "w-[6.5rem] pt-6" : "w-80 pt-9"}`}
           >
             {variant === "c" ? (
               <BoardRail {...sidebar} />
             ) : (
               <div
-                className={`h-full overflow-y-auto overscroll-contain rounded-2xl border-2 ${panel} ${tone === "blue" ? "shadow-[6px_6px_0_var(--foreground)]" : "shadow-[6px_6px_0_var(--primary)]"}`}
+                className={`relative h-full rounded-2xl border-2 ${panel} ${tone === "blue" ? "shadow-[6px_6px_0_var(--foreground)]" : "shadow-[6px_6px_0_var(--primary)]"}`}
               >
-                <SidebarContents {...sidebar} tone={tone} />
+                {/* Outside the scroller, so it can overlap the card's edge. */}
+                <LogoSticker
+                  href="/prototype/profiles/hub"
+                  className="absolute -top-6 left-5"
+                />
+                <div className="h-full overflow-y-auto overscroll-contain rounded-[14px]">
+                  <SidebarContents {...sidebar} tone={tone} />
+                </div>
               </div>
             )}
           </aside>
