@@ -1,288 +1,184 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import {
   ArrowSquareOutIcon,
-  DownloadSimpleIcon,
-  PrinterIcon,
+  FlagIcon,
+  GearSixIcon,
+  PlusIcon,
 } from "@phosphor-icons/react/ssr";
-import { connection } from "next/server";
-import { boardUrl, createBoardQrCode } from "@/lib/board";
-import { ensureJoinCode } from "@/lib/join-code/ensure";
-import { hand } from "@/lib/fonts";
+import { BoardLayout, INKED_BUTTON } from "@/app/b/[slug]/board-look";
+import { requireOwner } from "@/lib/auth";
+import { listOwnedBoards, MAX_BOARDS_PER_ACCOUNT } from "@/lib/my-boards";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { serverEnv } from "@/lib/env";
-import { slugifyVenueName, slugMatchesName } from "@/lib/slug";
-import { MODERATION_LEVEL_INFO } from "@/lib/moderation/levels";
-import { listTimeZones } from "@/lib/timezones";
-import { cn } from "@/lib/utils";
-import { clockStatus, formatBoundary } from "@/lib/venue-time";
+import { supabaseMyBoardsStore } from "@/lib/supabase-my-boards";
+import { adminPath } from "./board-field";
 import {
-  BoardLayout,
-  HEADER_BUTTON,
-  INKED_BUTTON,
-} from "../b/[slug]/board-look";
-import { setBoardPaused, signOut } from "./actions";
-import { BlockedAccounts } from "./blocked-accounts";
-import { BoardLink } from "./board-link";
-import { BoardRules } from "./board-rules";
-import { BoardTiles } from "./board-tiles";
-import { CloseBoardForm } from "./close-board-form";
-import { JoinCode } from "./join-code";
-import { QrCard } from "./qr-card";
-import { RenameBoard } from "./rename-board";
-import { SettingsShelf } from "./settings-shelf";
-import { TimeZone } from "./time-zone";
-import {
-  listBlockedAccounts,
-  listBoardTiles,
-  listReportedTiles,
-  requireOwnedVenue,
-} from "./venue";
+  type BoardSummary,
+  drawingsLine,
+  loadBoardSummaries,
+  startCardLine,
+} from "./board-summaries";
+import { adminDestination } from "./destination";
 
-export const metadata: Metadata = { title: "Your board · DrawPin" };
+export const metadata: Metadata = { title: "Boards you run · DrawPin" };
 
-/** A small inked card in the sharing column, as wide as the QR card. */
-const SMALL_CARD =
-  "border-foreground flex flex-col rounded-xl border-2 bg-white p-4 shadow-[4px_4px_0_var(--primary)]";
-
-/** A light, secondary button on the cards. */
-const QUIET_BUTTON =
-  "border-foreground hover:bg-secondary focus-visible:ring-highlight inline-flex h-12 items-center justify-center gap-2 rounded-xl border-2 bg-white px-4 text-sm font-bold outline-none focus-visible:ring-3";
+/** The tilt each overlapping thumbnail leans at, as on the design. */
+const TILTS = [-4, 2, -1];
 
 /**
- * The owner's screen (docs/PLAN.md, Owner admin), in the boards' look (UI
- * pass, 2026-10-05): the board's blue header, then two columns on a laptop.
- * One is for sharing the board: the QR card with the ways to print it, the
- * board's code and its link. The other is the week's drawings, with reported
- * ones flagged among them and a line at the top when there are any, since
- * they're the only part that needs the owner to do something. Settings set
- * once and rarely revisited (name, time zone, rules, pausing, blocked
- * accounts, closing) fold into Board settings under the drawings.
+ * `/admin`, where every "Manage my board" link and every sign-in lands
+ * (ADR-016). Signed out, it's the sign-in; with no board, setup; with one,
+ * that board's owner screen. Only an account with several boards sees this
+ * page (docs/design/profiles.md, Board runner): a card for each board it
+ * runs, oldest first, then Start a board while there's room, or why there
+ * isn't.
  */
-export default async function AdminPage() {
-  // The board's state changes as customers post, so never serve a cached copy.
+export default async function AdminIndexPage() {
+  // Boards come and go with the owner's own actions; never serve a stale list.
   await connection();
 
-  const venue = await requireOwnedVenue();
-  const clock = clockStatus(new Date(), venue.clock);
-  const url = boardUrl(serverEnv().SITE_URL, venue.slug);
-  const [qr, tiles, code, reported, blocked] = await Promise.all([
-    createBoardQrCode(url),
-    listBoardTiles(venue.id),
-    // Created on the first view, so it exists before anyone is told it
-    // (ADR-003). It stays until the owner makes a new one (ADR-014).
-    ensureJoinCode(createAdminClient(), venue.id),
-    listReportedTiles(venue.id),
-    listBlockedAccounts(venue.id),
-  ]);
+  const owner = await requireOwner();
+  const admin = createAdminClient();
+  const destination = adminDestination(
+    await listOwnedBoards(owner.id, supabaseMyBoardsStore(admin)),
+  );
+  if (destination.kind === "redirect") redirect(destination.to);
+
+  const boards = await loadBoardSummaries(admin, destination.boards);
+  const atCap = boards.length >= MAX_BOARDS_PER_ACCOUNT;
 
   return (
     <BoardLayout
       header={
-        <>
-          <p
-            className={`${hand.className} bg-winner text-foreground w-fit -rotate-2 rounded-sm px-2.5 py-0.5 text-xl leading-tight font-bold`}
-          >
-            Your board
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-bold text-white/85">
+            {boards.length} of {MAX_BOARDS_PER_ACCOUNT}
           </p>
-          <div className="flex flex-col gap-1">
-            <h1 className="text-4xl leading-[1.02] font-black tracking-tight break-words">
-              {venue.name}
-            </h1>
-            <p className="text-sm break-all text-white/80">
-              {url.replace(/^https?:\/\//, "")}
-            </p>
-          </div>
-          <div className="flex items-center justify-between gap-3">
-            <Link href={`/b/${venue.slug}`} className={HEADER_BUTTON}>
-              <ArrowSquareOutIcon weight="bold" className="size-5" />
-              Open the board
-            </Link>
-            <form action={signOut}>
-              <button
-                type="submit"
-                className="focus-visible:ring-highlight h-11 rounded-xl px-3 text-sm font-semibold text-white/85 underline underline-offset-4 outline-none hover:text-white focus-visible:ring-3"
-              >
-                Sign out
-              </button>
-            </form>
-          </div>
-        </>
+          <h1 className="text-4xl leading-[1.02] font-black tracking-tight">
+            Boards you run
+          </h1>
+          <p className="max-w-md text-white/85">
+            Each board has its own code, drawings and settings.
+          </p>
+        </div>
       }
     >
-      {/* Hard to miss while it lasts: nobody can post until it's undone. */}
-      {venue.isPaused && (
-        <div className="border-foreground flex items-center justify-between gap-3 rounded-xl border-2 bg-white py-2 pr-2 pl-4 shadow-[4px_4px_0_var(--winner)]">
-          <p className="flex items-center gap-2.5 text-sm">
-            <span
-              aria-hidden
-              className="border-foreground bg-winner size-3 shrink-0 rounded-full border-2"
-            />
-            <span>
-              <span className="font-black">Board paused.</span> People
-              can&apos;t post.
-            </span>
-          </p>
-          <PauseButton paused />
-        </div>
-      )}
-
-      {/* A phone gets one column, the sharing pieces first. On a laptop
-          they are a column as wide as the printed card, beside the drawings.
-          It stays in view while they scroll only on a screen tall enough to
-          show all of it; on a shorter one, sticking would hide its end. */}
-      <div className="grid items-start gap-8 lg:grid-cols-[18rem_minmax(0,1fr)]">
-        <aside
-          aria-label="Share your board"
-          className="mx-auto flex w-full max-w-sm flex-col gap-5 lg:max-w-none lg:[@media(min-height:72rem)]:sticky lg:[@media(min-height:72rem)]:top-6"
-        >
-          <QrCard name={venue.name} url={url} svg={qr.svg} code={code} />
-          <div className="flex flex-col gap-2.5">
-            <Link href="/admin/print" className={INKED_BUTTON}>
-              <PrinterIcon weight="bold" className="size-5" />
-              Print a table card or poster
-            </Link>
-            <a
-              href={qr.pngDataUrl}
-              download={`drawpin-${venue.slug}-qr.png`}
-              className={QUIET_BUTTON}
-            >
-              <DownloadSimpleIcon weight="bold" className="size-5" />
-              QR only
-            </a>
-          </div>
-
-          <div className={SMALL_CARD}>
-            <JoinCode code={code} />
-          </div>
-
-          <div className={SMALL_CARD}>
-            <BoardLink
-              url={url}
-              matchesName={slugMatchesName(venue.slug, venue.name)}
-              nextUrl={`${new URL("/b/", serverEnv().SITE_URL)}${slugifyVenueName(venue.name)}-····`}
-            />
-          </div>
-        </aside>
-
-        <div className="flex min-w-0 flex-col gap-8">
-          <BoardTiles tiles={tiles} reported={reported} />
-
-          {/* Settings an owner sets once and rarely revisits, each folded to a
-              line saying what it's set to. Closing the board is last: it can't
-              be undone. */}
-          <section
-            aria-labelledby="board-settings"
-            className="border-foreground overflow-hidden rounded-xl border-2 bg-white shadow-[4px_4px_0_var(--primary)]"
-          >
-            <h2
-              id="board-settings"
-              className="px-5 pt-5 pb-3 font-black tracking-tight"
-            >
-              Board settings
-            </h2>
-
-            <SettingsShelf
-              id="board-name"
-              title="Board name"
-              summary={venue.name}
-            >
-              <RenameBoard name={venue.name} />
-            </SettingsShelf>
-
-            {/* Each time is shown in the zone it falls in: a change's start in the
-                zone it ends, a new zone's first week in the new zone. */}
-            <SettingsShelf
-              id="time-zone"
-              title="Time zone"
-              summary={
-                clock.scheduled
-                  ? `${zoneName(clock.timeZone)}, then ${zoneName(clock.scheduled.timeZone)}`
-                  : zoneName(clock.timeZone)
-              }
-            >
-              <TimeZone
-                zones={listTimeZones()}
-                timeZone={clock.timeZone}
-                scheduled={
-                  clock.scheduled && {
-                    timeZone: clock.scheduled.timeZone,
-                    from: formatBoundary(clock.scheduled.from, clock.timeZone),
-                  }
-                }
-                settlingUntil={
-                  clock.settlingUntil &&
-                  formatBoundary(clock.settlingUntil, clock.timeZone)
-                }
-                nextChangeFrom={formatBoundary(
-                  clock.nextChangeFrom,
-                  clock.timeZone,
-                )}
-              />
-            </SettingsShelf>
-
-            <SettingsShelf
-              id="board-rules"
-              title="Board rules"
-              summary={MODERATION_LEVEL_INFO[venue.moderationLevel].name}
-            >
-              <BoardRules level={venue.moderationLevel} />
-            </SettingsShelf>
-
-            <SettingsShelf
-              id="pause-board"
-              title="Pause board"
-              summary={venue.isPaused ? "Paused" : "Open"}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-muted-foreground text-sm">
-                  {venue.isPaused
-                    ? "People can see the board but can't post."
-                    : "People can post to the board."}
-                </p>
-                <PauseButton paused={venue.isPaused} />
-              </div>
-            </SettingsShelf>
-
-            {blocked.length > 0 && (
-              <SettingsShelf
-                id="blocked-accounts"
-                title="Blocked accounts"
-                summary={String(blocked.length)}
-              >
-                <BlockedAccounts accounts={blocked} />
-              </SettingsShelf>
-            )}
-
-            <SettingsShelf id="close-board" title="Close board" danger>
-              <CloseBoardForm name={venue.name} />
-            </SettingsShelf>
-          </section>
-        </div>
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+        <ul aria-label="Boards you run" className="flex flex-col gap-5">
+          {boards.map((board) => (
+            <RunCard key={board.venueId} board={board} />
+          ))}
+        </ul>
+        {atCap ? <AtTheCap /> : <StartCard count={boards.length} />}
       </div>
     </BoardLayout>
   );
 }
 
-/** A time zone as people read it: "America/New York". */
-function zoneName(zone: string): string {
-  return zone.replaceAll("_", " ");
+/** One board the account runs: its name, link, week and the way in. */
+function RunCard({ board }: { board: BoardSummary }) {
+  return (
+    <li className="border-foreground flex flex-col gap-4 rounded-xl border-2 bg-white p-4 shadow-[5px_5px_0_var(--primary)] sm:flex-row sm:items-center">
+      {board.thumbnails.length > 0 && (
+        <span className="flex -space-x-3" aria-hidden>
+          {board.thumbnails.map((url, index) => (
+            <Image
+              key={url}
+              src={url}
+              alt=""
+              width={56}
+              height={56}
+              unoptimized
+              className="border-foreground size-14 rounded-md border-2 bg-white object-cover"
+              style={{ rotate: `${TILTS[index] ?? 0}deg` }}
+            />
+          ))}
+        </span>
+      )}
+      <div className="min-w-0 flex-1">
+        <h2 className="text-xl leading-tight font-black tracking-tight break-words">
+          {board.name}
+        </h2>
+        <p className="text-muted-foreground text-sm break-all">
+          drawpin.io/b/{board.slug}
+        </p>
+        <p className="mt-1.5 flex flex-wrap items-center gap-2 text-sm font-semibold">
+          {board.isPaused ? (
+            <span className="flex items-center gap-1.5">
+              <span
+                aria-hidden
+                className="border-foreground bg-winner size-2.5 rounded-full border-2"
+              />
+              Paused
+            </span>
+          ) : (
+            <span>{drawingsLine(board.drawingsThisWeek)}</span>
+          )}
+          {board.reported > 0 && (
+            <span className="border-foreground bg-attention inline-flex items-center gap-1 rounded-md border-2 px-1.5 text-xs font-bold">
+              <FlagIcon weight="fill" aria-hidden className="size-3" />
+              {board.reported} reported
+            </span>
+          )}
+        </p>
+      </div>
+      <div className="flex gap-2">
+        <Link
+          href={adminPath(board.slug)}
+          className={`${INKED_BUTTON} h-11 flex-1 px-4 text-[15px] sm:flex-none`}
+        >
+          <GearSixIcon weight="bold" aria-hidden className="size-5" />
+          Manage
+          <span className="sr-only"> {board.name}</span>
+        </Link>
+        <Link
+          href={`/b/${board.slug}`}
+          aria-label={`Open ${board.name}`}
+          className="border-foreground hover:bg-secondary focus-visible:ring-highlight inline-flex size-11 shrink-0 items-center justify-center rounded-xl border-2 bg-white outline-none focus-visible:ring-3"
+        >
+          <ArrowSquareOutIcon weight="bold" aria-hidden className="size-5" />
+        </Link>
+      </div>
+    </li>
+  );
 }
 
-/** Pauses the board, or resumes posting when it's paused. */
-function PauseButton({ paused }: { paused: boolean }) {
+/** The dashed card that starts another board, while the account has room. */
+function StartCard({ count }: { count: number }) {
   return (
-    <form action={setBoardPaused} className="shrink-0">
-      <input type="hidden" name="paused" value={paused ? "false" : "true"} />
-      <button
-        type="submit"
-        className={cn(
-          paused ? INKED_BUTTON : QUIET_BUTTON,
-          "h-11 px-3.5 text-sm",
-        )}
-      >
-        {paused ? "Resume posting" : "Pause board"}
-      </button>
-    </form>
+    <Link
+      href="/setup"
+      className="border-foreground hover:bg-secondary focus-visible:ring-highlight flex min-h-11 items-center gap-4 rounded-xl border-2 border-dashed bg-white px-5 py-5 outline-none focus-visible:ring-3"
+    >
+      <span className="border-foreground bg-winner flex size-12 shrink-0 items-center justify-center rounded-xl border-2 shadow-[3px_3px_0_var(--foreground)]">
+        <PlusIcon weight="bold" aria-hidden className="size-6" />
+      </span>
+      <span>
+        <span className="block text-lg font-black tracking-tight">
+          Start a board
+        </span>
+        <span className="text-muted-foreground block text-sm">
+          {startCardLine(count)}
+        </span>
+      </span>
+    </Link>
+  );
+}
+
+/** Why there's no Start a board at the cap, and what to do about it. */
+function AtTheCap() {
+  return (
+    <div className="border-foreground/40 text-muted-foreground flex flex-col gap-1 rounded-xl border-2 border-dashed px-5 py-5">
+      <p className="text-foreground font-black">
+        You run {MAX_BOARDS_PER_ACCOUNT} boards, the most one account can.
+      </p>
+      <p className="text-sm">
+        To start another, close one you don&apos;t use any more. You can close a
+        board from its settings.
+      </p>
+    </div>
   );
 }

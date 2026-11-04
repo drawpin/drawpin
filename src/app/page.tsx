@@ -1,46 +1,22 @@
-import { Feedback } from "./_home/feedback";
-import { PosterHero } from "./_home/poster-hero";
-import { ReviewStack } from "./_home/review-stack";
-import { Ending } from "./_home/shared";
-import { TryItPlay } from "./_home/try-it";
-import { NOTE, SECTION_TITLE } from "./_home/type";
-import { WeekStory } from "./_home/week-story";
+import { LANDING, landingFor } from "@/lib/landing";
+import { HomeHub, loadHubViewer } from "./_hub/home-hub";
+import { MarketingHome } from "./_home/marketing-home";
 
 /**
- * The home page (UI pass, chosen from prototypes on 2026-10-05, "All
- * three"): three answers to "why start?" in the order a visitor needs them.
- * The poster lands the idea in one glance; trying it gets them drawing on the
- * spot, and shows their drawing winning; and the week shows what happens
- * next, from the first drawing to the winner's trophy. Then what people
- * using it say, the code, starting a board, the owner's own story, and
- * last a place to send ideas and bugs.
- *
- * White under the blue hero, not the boards' blue-grey tint: straight from
- * the deep blue, the tint read as a muddy change of colour.
+ * `/`: the home hub for a signed-in account with a name, the marketing home
+ * for everyone else. `LANDING` in src/lib/landing.ts switches the hub off,
+ * and then nobody's session is read here at all.
  */
-export default function Home() {
-  return (
-    <div className="flex flex-1 flex-col bg-white">
-      <PosterHero />
-      <section id="try" className="scroll-mt-4 py-14">
-        <TryItPlay />
-      </section>
-      <section className="flex flex-col gap-4 py-6">
-        <div className="mx-auto flex w-full max-w-6xl flex-col items-start gap-4 px-5">
-          <p className={NOTE}>Then, every week</p>
-          <h2 className={SECTION_TITLE}>A week on a board.</h2>
-        </div>
-        <WeekStory />
-      </section>
-      <section className="flex flex-col gap-6 py-10">
-        <div className="mx-auto flex w-full max-w-6xl flex-col items-start gap-4 px-5">
-          <p className={NOTE}>From real boards</p>
-          <h2 className={SECTION_TITLE}>What people say.</h2>
-        </div>
-        <ReviewStack />
-      </section>
-      <Ending />
-      <Feedback />
-    </div>
-  );
+export default async function Home() {
+  if (LANDING === "marketing") return <MarketingHome />;
+
+  const viewer = await loadHubViewer();
+  const landing = landingFor({
+    signedIn: viewer.userId !== null,
+    hasUsername: viewer.username !== null,
+  });
+  if (landing === "hub" && viewer.userId && viewer.username) {
+    return <HomeHub userId={viewer.userId} name={viewer.username} />;
+  }
+  return <MarketingHome />;
 }

@@ -1,11 +1,12 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { serverEnv } from "@/lib/env";
 import { safeNextPath } from "@/lib/next-path";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { TURNSTILE_FIELD } from "@/lib/turnstile/field";
 import { checkTurnstile } from "@/lib/turnstile/guard";
+import { destinationAfterSignIn } from "./after-sign-in";
 import { codeSchema, emailSchema } from "./email-sign-in-schema";
 
 export type EmailSignInState =
@@ -14,12 +15,15 @@ export type EmailSignInState =
   | { status: "sent"; email: string };
 
 /**
- * Emails a customer a sign-in code (ADR-010). A code rather than a
- * link, because the in-app browser a QR scan opens loses the session when a
- * link opens somewhere else; the code is typed on the page they're on.
+ * Emails anyone a sign-in code (ADR-010, ADR-016): drawers and board owners
+ * share one sign-in. A code rather than a link, because the in-app browser a
+ * QR scan opens loses the session when a link opens somewhere else; the code
+ * is typed on the page they're on. The email carries a link too, which comes
+ * back to `next`.
  *
  * Signing in with a new address creates the account, then /welcome asks for
- * a username, the same as after Google.
+ * a username (unless they're headed for the owner screens), the same as after
+ * Google.
  */
 export async function sendEmailCode(
   _previous: EmailSignInState,
@@ -36,31 +40,18 @@ export async function sendEmailCode(
   const challenge = await checkTurnstile(formData.get(TURNSTILE_FIELD));
   if (challenge) return { status: "error", message: challenge };
 
-  // An account is an owner or a customer, never both (ADR-004).
-  const { data: owner, error: ownerError } = await createAdminClient()
-    .from("owners")
-    .select("id")
-    .ilike("email", email)
-    .maybeSingle();
-  if (ownerError) {
-    console.error("sendEmailCode: owner lookup failed", ownerError);
-    return {
-      status: "error",
-      message: "We couldn't send the email. Try again in a moment.",
-    };
-  }
-  if (owner) {
-    return {
-      status: "error",
-      message:
-        "That email is a board owner's sign-in. To draw, use a different email or Google.",
-    };
-  }
+  const raw = formData.get("next");
+  const next = safeNextPath(typeof raw === "string" ? raw : null);
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithOtp({
     email,
-    options: { shouldCreateUser: true },
+    options: {
+      shouldCreateUser: true,
+      // Where the email's link (not its code) comes back to. Must be in the
+      // project's allowed redirect URLs.
+      emailRedirectTo: `${new URL("/auth/confirm", serverEnv().SITE_URL)}?next=${encodeURIComponent(next)}`,
+    },
   });
 
   if (error) {
@@ -81,8 +72,8 @@ export async function sendEmailCode(
 }
 
 /**
- * Checks the code and signs the customer in on this device, then returns
- * them where they were, or to /welcome to pick a username the first time.
+ * Checks the code and signs the account in on this device, then returns it
+ * where it was, or to /welcome to pick a username the first time.
  */
 export async function verifyEmailCode(
   _previous: EmailSignInState,
@@ -125,14 +116,5 @@ export async function verifyEmailCode(
     };
   }
 
-  const { data: profile, error: profileError } = await createAdminClient()
-    .from("profiles")
-    .select("id")
-    .eq("id", data.user.id)
-    .maybeSingle();
-  if (profileError) {
-    throw new Error(`Could not load profile: ${profileError.message}`);
-  }
-
-  redirect(profile ? next : `/welcome?next=${encodeURIComponent(next)}`);
+  redirect(await destinationAfterSignIn(data.user.id, next));
 }

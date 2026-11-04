@@ -25,7 +25,6 @@ import {
   SprayBottleIcon,
   SquareIcon,
 } from "@phosphor-icons/react";
-import { signInWithGoogle } from "@/app/auth/sign-in";
 import { Button } from "@/components/ui/button";
 import { hand } from "@/lib/fonts";
 import { Input } from "@/components/ui/input";
@@ -158,9 +157,6 @@ const ASSIST_STORAGE_KEY = "drawpin:snap-assist";
 const PRESSURE_STORAGE_KEY = "drawpin:pen-pressure";
 
 const initialState: PostTileState = { status: "idle" };
-
-/** The guest's sign-in form, outside the drawing's form. */
-const SIGN_IN_FORM_ID = "draw-sign-in";
 
 /** How long the brush stays shown on the canvas after its size last changed. */
 const SIZE_PREVIEW_MS = 800;
@@ -822,10 +818,10 @@ export function DrawTileForm({
                 Post my tile
               </Button>
             ) : (
-              // A guest can't post: the button turns into sign-in, and the
+              // A guest can't post: the button opens the sign-in sheet, and the
               // drawing is kept for the trip (draft.ts).
               <GuestPostButton
-                formId={SIGN_IN_FORM_ID}
+                next={`/b/${slug}/draw`}
                 disabled={!hydrated || pending}
                 onAsk={() => {
                   if (ops.length === 0) {
@@ -893,13 +889,6 @@ export function DrawTileForm({
           </>
         )}
       </form>
-      {/* Outside the drawing's form, which can't contain another one; the
-        guest's Post button submits it through its form attribute. */}
-      {!username && (
-        <form id={SIGN_IN_FORM_ID} action={signInWithGoogle} hidden>
-          <input type="hidden" name="next" value={`/b/${slug}/draw`} />
-        </form>
-      )}
     </>
   );
 }

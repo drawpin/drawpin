@@ -5,6 +5,7 @@ import { CaretDownIcon } from "@phosphor-icons/react";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { setTimeZoneAction, type TimeZoneState } from "./actions";
+import { BoardIdField } from "./board-context";
 import { INLINE_SAVE_ROOM, InlineSave } from "./inline-save";
 
 const initialState: TimeZoneState = { status: "idle" };
@@ -48,6 +49,7 @@ export function TimeZone({
   return (
     <div className="flex flex-col gap-2">
       <form action={formAction} className="flex flex-col gap-2">
+        <BoardIdField />
         <Label htmlFor="board-timezone" className="sr-only">
           Time zone
         </Label>

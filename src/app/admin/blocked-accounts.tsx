@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { type BlockState, unblockAccountAction } from "./actions";
+import { BoardIdField } from "./board-context";
 import type { BlockedAccount } from "./venue";
 
 const initialState: BlockState = { status: "idle" };
@@ -19,6 +20,7 @@ function BlockedRow({ account }: { account: BlockedAccount }) {
         action={formAction}
         className="flex items-center justify-between gap-2"
       >
+        <BoardIdField />
         <input type="hidden" name="userId" value={account.userId} />
         <span className="min-w-0 truncate text-sm">{account.name}</span>
         <Button type="submit" variant="outline" size="sm" disabled={pending}>

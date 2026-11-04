@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  hasSeenReveal as seen,
+  markRevealSeen as markSeen,
+} from "@/lib/reveal-seen";
 import { type Leader, Podium } from "../vote/podium";
 import type { PodiumEntry, Reveal } from "./data";
 
@@ -14,23 +18,6 @@ const FORMER_MEMBER = "A former member";
  * doesn't give the result away (the top step's scribble ends about here).
  */
 const NAME_AFTER_MS = 1800;
-
-/** Whether this device has seen a result. Storage can be unavailable. */
-function seen(id: string): boolean {
-  try {
-    return localStorage.getItem(`drawpin:reveal:${id}`) === "1";
-  } catch {
-    return false;
-  }
-}
-
-function markSeen(id: string) {
-  try {
-    localStorage.setItem(`drawpin:reveal:${id}`, "1");
-  } catch {
-    // Without storage it simply plays again next visit.
-  }
-}
 
 /**
  * What a result does on its first render in this browser: play if it's new

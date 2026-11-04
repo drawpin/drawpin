@@ -136,13 +136,64 @@ describe("owners", () => {
 });
 
 describe("venues", () => {
-  it("allows only one board per owner", async () => {
+  /** Adds `count` more boards to an owner, each with a fresh slug. */
+  async function addBoards(ownerId: string, count: number) {
+    for (let i = 0; i < count; i++) {
+      await db.query(
+        `insert into venues (owner_id, name, slug, timezone)
+         values ($1, 'Another board', $2, 'UTC')`,
+        [ownerId, `another-${crypto.randomUUID().slice(0, 8)}`],
+      );
+    }
+  }
+
+  it("lets an account run up to five boards (ADR-016)", async () => {
     const { ownerId } = await seedBoard();
 
+    await addBoards(ownerId, 4);
+
+    const result = await db.query<{ count: number }>(
+      `select count(*)::int as count from venues where owner_id = $1`,
+      [ownerId],
+    );
+    expect(result.rows[0]?.count).toBe(5);
+  });
+
+  it("refuses a sixth board", async () => {
+    const { ownerId } = await seedBoard();
+    await addBoards(ownerId, 4);
+
+    await expect(addBoards(ownerId, 1)).rejects.toThrow(/at most 5 boards/);
+  });
+
+  it("refuses moving a board to an account already at the cap", async () => {
+    const full = await seedBoard();
+    await addBoards(full.ownerId, 4);
+    const other = await seedBoard();
+
     await expect(
-      db.exec(`insert into venues (owner_id, name, slug, timezone)
-               values ('${ownerId}', 'Second Cafe', 'second-cafe', 'UTC');`),
-    ).rejects.toThrow();
+      db.query(`update venues set owner_id = $1 where id = $2`, [
+        full.ownerId,
+        other.venueId,
+      ]),
+    ).rejects.toThrow(/at most 5 boards/);
+  });
+
+  it("counts each account's boards separately", async () => {
+    const full = await seedBoard();
+    await addBoards(full.ownerId, 4);
+    const other = await seedBoard();
+
+    await expect(addBoards(other.ownerId, 1)).resolves.toBeUndefined();
+  });
+
+  it("frees a place under the cap when a board closes", async () => {
+    const { ownerId, venueId } = await seedBoard();
+    await addBoards(ownerId, 4);
+
+    await db.query(`select close_venue($1)`, [venueId]);
+
+    await expect(addBoards(ownerId, 1)).resolves.toBeUndefined();
   });
 
   it("rejects a slug that isn't url-safe", async () => {
@@ -1627,7 +1678,14 @@ describe("data API grants", () => {
     "venue_tallies",
     "venue_artists",
   ];
-  const allTables = [...allPublicTables, ...ownerTables, ...privateTables];
+  // Each signed-in account's own rows, narrowed by RLS (ADR-015).
+  const accountTables = ["board_visits"];
+  const allTables = [
+    ...allPublicTables,
+    ...ownerTables,
+    ...privateTables,
+    ...accountTables,
+  ];
 
   it.each(allTables)("lets the server read and write %s", async (table) => {
     expect(await privileges("service_role", table)).toEqual([
@@ -1688,6 +1746,19 @@ describe("data API grants", () => {
     expect(await privileges("anon", table)).toEqual([]);
     expect(await privileges("authenticated", table)).toEqual([]);
   });
+
+  it.each(accountTables)(
+    "lets only signed-in accounts read and write %s",
+    async (table) => {
+      expect(await privileges("anon", table)).toEqual([]);
+      expect(await privileges("authenticated", table)).toEqual([
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+      ]);
+    },
+  );
 
   it("covers every public table", async () => {
     const result = await db.query<{ tablename: string }>(
@@ -2308,6 +2379,23 @@ describe("close_venue", () => {
     ).not.toContain(0);
   });
 
+  it("leaves the owner's other boards, and the owner row with them", async () => {
+    const closing = await seedFullBoard();
+    const kept = crypto.randomUUID();
+    await db.query(
+      `insert into venues (id, owner_id, name, slug, timezone)
+       values ($1, $2, 'Kept', $3, 'UTC')`,
+      [kept, closing.ownerId, `kept-${kept.slice(0, 8)}`],
+    );
+
+    await db.query(`select close_venue($1)`, [closing.venueId]);
+
+    const left = await leftFor(kept, closing.ownerId);
+    expect(left.venues).toBe(1);
+    expect(left.owners).toBe(1);
+    expect((await leftFor(closing.venueId, closing.ownerId)).venues).toBe(0);
+  });
+
   it("leaves the accounts that drew on it", async () => {
     const { venueId, userId } = await seedFullBoard();
 
@@ -2345,6 +2433,174 @@ describe("close_venue", () => {
     } finally {
       await db.exec("reset role");
     }
+  });
+});
+
+describe("board_visits", () => {
+  /** A signed-in account, with no visits yet. */
+  async function seedAccount() {
+    const userId = crypto.randomUUID();
+    await db.query(`insert into auth.users (id, email) values ($1, $2)`, [
+      userId,
+      `${userId}@example.com`,
+    ]);
+    return userId;
+  }
+
+  /** Runs `body` as the API role, signed in as `userId` (or as nobody). */
+  async function as<T>(
+    role: "anon" | "authenticated",
+    userId: string | null,
+    body: () => Promise<T>,
+  ): Promise<T> {
+    await db.query(`select set_config('request.jwt.claim.sub', $1, false)`, [
+      userId ?? "",
+    ]);
+    await db.exec(`set role ${role}`);
+    try {
+      return await body();
+    } finally {
+      await db.exec("reset role");
+      await db.query(`select set_config('request.jwt.claim.sub', '', false)`);
+    }
+  }
+
+  it("lets an account record, read, pin and remove its own visits", async () => {
+    const { venueId } = await seedBoard();
+    const userId = await seedAccount();
+
+    const rows = await as("authenticated", userId, async () => {
+      await db.query(
+        `insert into board_visits (user_id, venue_id) values ($1, $2)`,
+        [userId, venueId],
+      );
+      await db.query(
+        `update board_visits set pinned_at = now() where venue_id = $1`,
+        [venueId],
+      );
+      const read = await db.query<{ pinned: boolean }>(
+        `select pinned_at is not null as pinned from board_visits`,
+      );
+      await db.query(`delete from board_visits where venue_id = $1`, [venueId]);
+      return read.rows;
+    });
+
+    expect(rows).toEqual([{ pinned: true }]);
+  });
+
+  it("hides one account's visits from another", async () => {
+    const { venueId } = await seedBoard();
+    const owner = await seedAccount();
+    const other = await seedAccount();
+    await db.query(
+      `insert into board_visits (user_id, venue_id) values ($1, $2)`,
+      [owner, venueId],
+    );
+
+    const seen = await as("authenticated", other, async () => {
+      const read = await db.query(`select * from board_visits`);
+      // RLS filters these to nothing rather than refusing them.
+      await db.query(`update board_visits set pinned_at = now()`);
+      await db.query(`delete from board_visits`);
+      return read.rows;
+    });
+
+    expect(seen).toEqual([]);
+    const left = await db.query<{ pinned_at: string | null }>(
+      `select pinned_at from board_visits where user_id = $1`,
+      [owner],
+    );
+    expect(left.rows).toEqual([{ pinned_at: null }]);
+  });
+
+  it("refuses a visit recorded for another account", async () => {
+    const { venueId } = await seedBoard();
+    const signedIn = await seedAccount();
+    const other = await seedAccount();
+
+    await expect(
+      as("authenticated", signedIn, () =>
+        db.query(
+          `insert into board_visits (user_id, venue_id) values ($1, $2)`,
+          [other, venueId],
+        ),
+      ),
+    ).rejects.toThrow(/row-level security/);
+  });
+
+  it("refuses moving a visit to another account", async () => {
+    const { venueId } = await seedBoard();
+    const signedIn = await seedAccount();
+    const other = await seedAccount();
+    await db.query(
+      `insert into board_visits (user_id, venue_id) values ($1, $2)`,
+      [signedIn, venueId],
+    );
+
+    await expect(
+      as("authenticated", signedIn, () =>
+        db.query(`update board_visits set user_id = $1 where user_id = $2`, [
+          other,
+          signedIn,
+        ]),
+      ),
+    ).rejects.toThrow(/row-level security/);
+  });
+
+  it("is closed to signed-out visitors", async () => {
+    await expect(
+      as("anon", null, () => db.query(`select * from board_visits`)),
+    ).rejects.toThrow(/permission denied/i);
+  });
+
+  it("keeps one row per account and board", async () => {
+    const { venueId } = await seedBoard();
+    const userId = await seedAccount();
+    await db.query(
+      `insert into board_visits (user_id, venue_id) values ($1, $2)`,
+      [userId, venueId],
+    );
+
+    await expect(
+      db.query(`insert into board_visits (user_id, venue_id) values ($1, $2)`, [
+        userId,
+        venueId,
+      ]),
+    ).rejects.toThrow(/board_visits_pkey/);
+  });
+
+  it("goes away when the board closes", async () => {
+    const { venueId } = await seedBoard();
+    const userId = await seedAccount();
+    await db.query(
+      `insert into board_visits (user_id, venue_id) values ($1, $2)`,
+      [userId, venueId],
+    );
+
+    await db.query(`select close_venue($1)`, [venueId]);
+
+    const left = await db.query(
+      `select 1 from board_visits where user_id = $1`,
+      [userId],
+    );
+    expect(left.rows).toEqual([]);
+  });
+
+  it("goes away with the account", async () => {
+    const { venueId } = await seedBoard();
+    const userId = await seedAccount();
+    await db.query(
+      `insert into board_visits (user_id, venue_id) values ($1, $2)`,
+      [userId, venueId],
+    );
+
+    await db.query(`delete from auth.users where id = $1`, [userId]);
+
+    const left = await db.query(
+      `select 1 from board_visits where venue_id = $1`,
+      [venueId],
+    );
+    expect(left.rows).toEqual([]);
   });
 });
 

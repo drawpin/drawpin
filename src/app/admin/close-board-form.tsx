@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { closeBoardAction, type CloseBoardState } from "./actions";
+import { BoardIdField } from "./board-context";
 
 const initialState: CloseBoardState = { status: "idle" };
 
@@ -13,7 +14,17 @@ const initialState: CloseBoardState = { status: "idle" };
  * behind a first tap that only explains, and a second that needs the board's
  * name typed, because nothing about it can be undone.
  */
-export function CloseBoardForm({ name }: { name: string }) {
+export function CloseBoardForm({
+  name,
+  deletesSignIn,
+}: {
+  name: string;
+  /**
+   * Closing deletes the sign-in too: it's the account's last board and the
+   * account doesn't draw (ADR-016).
+   */
+  deletesSignIn: boolean;
+}) {
   const [state, formAction, pending] = useActionState(
     closeBoardAction,
     initialState,
@@ -32,13 +43,21 @@ export function CloseBoardForm({ name }: { name: string }) {
           action={formAction}
           className="border-destructive/40 flex flex-col gap-3 rounded-lg border p-3"
         >
+          <BoardIdField />
           <ul className="list-disc pl-4 text-xs">
             <li>Every drawing, vote and report, and the Hall of Fame.</li>
             <li>
               Your board link and every QR code stop working, and the link can
               be given to a new board.
             </li>
-            <li>Your sign-in. You can set up a new board later.</li>
+            {deletesSignIn ? (
+              <li>Your sign-in. You can set up a new board later.</li>
+            ) : (
+              <li>
+                This board only. You stay signed in, and anything else you have
+                on DrawPin stays.
+              </li>
+            )}
           </ul>
           <div className="flex flex-col gap-1">
             <Label htmlFor="close-board-name" className="text-xs">

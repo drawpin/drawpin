@@ -1,5 +1,4 @@
 import { signInWithGoogle } from "@/app/auth/sign-in";
-import { EmailSignIn } from "@/components/email-sign-in";
 
 /** Google's "G", in its own colours, as Google's sign-in guidelines ask. */
 function GoogleMark() {
@@ -26,42 +25,39 @@ function GoogleMark() {
 }
 
 /**
- * Signs a customer in with Google so they can post, compete and vote
- * (ADR-004, ADR-007), with an emailed code underneath for anyone without a
- * Google account (ADR-010). Drawing for fun works without either.
- *
- * Deliberately modest (UI pass, 2026-10-03): a small white pill sized to
- * its label, so the drawings around it stay the main thing on the page.
+ * The small white pill for a "Sign in" on a board page (the vote header,
+ * the account line) that opens the sign-in sheet. Deliberately modest (UI
+ * pass, 2026-10-03): sized to its label, so the drawings around it stay the
+ * main thing on the page.
+ */
+export const SIGN_IN_PILL =
+  "border-border text-foreground hover:bg-secondary focus-visible:ring-highlight inline-flex h-10 cursor-pointer items-center gap-2 rounded-full border bg-white px-3.5 text-sm font-semibold shadow-[0_1px_2px_rgb(15_27_45/0.08)] transition-colors duration-150 ease-out outline-none focus-visible:ring-3 motion-reduce:transition-none";
+
+/**
+ * Signs anyone in with Google so they can post, compete and vote
+ * (ADR-004, ADR-007): the full-width inked button in the sign-in sheet and
+ * page (`SignInPanel`), where it and the emailed code (ADR-010) carry equal
+ * weight. Drawing for fun works without either.
  *
  * @param next - The page to come back to afterwards.
- * @param withEmail - Whether the emailed-code way in shows underneath. Off
- *   only where a form can't open, such as the vote page's header; the
- *   account line further down the same page still offers it.
  */
 export function GoogleSignIn({
   next,
   label = "Sign in with Google",
-  size = "lg",
-  withEmail = true,
 }: {
   next: string;
   label?: string;
-  size?: "sm" | "lg";
-  withEmail?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-2">
-      <form action={signInWithGoogle} className="shrink-0">
-        <input type="hidden" name="next" value={next} />
-        <button
-          type="submit"
-          className={`border-border text-foreground hover:bg-secondary focus-visible:ring-highlight inline-flex items-center gap-2 rounded-full border bg-white font-semibold shadow-[0_1px_2px_rgb(15_27_45/0.08)] transition-colors duration-150 ease-out outline-none focus-visible:ring-3 motion-reduce:transition-none ${size === "sm" ? "h-10 px-3.5 text-sm" : "h-11 px-4 text-sm"}`}
-        >
-          <GoogleMark />
-          {label}
-        </button>
-      </form>
-      {withEmail && <EmailSignIn next={next} />}
-    </div>
+    <form action={signInWithGoogle} className="w-full">
+      <input type="hidden" name="next" value={next} />
+      <button
+        type="submit"
+        className="border-foreground text-foreground hover:bg-secondary focus-visible:ring-highlight inline-flex h-12 w-full cursor-pointer items-center justify-center gap-2.5 rounded-xl border-2 bg-white font-bold transition-colors duration-150 ease-out outline-none focus-visible:ring-3 motion-reduce:transition-none"
+      >
+        <GoogleMark />
+        {label}
+      </button>
+    </form>
   );
 }

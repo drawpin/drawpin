@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { boardUrl } from "@/lib/board";
 import { serverEnv } from "@/lib/env";
 import { replaceJoinCode } from "@/lib/join-code/ensure";
 import type { ModerationLevel } from "@/lib/moderation/policy";
@@ -22,9 +21,10 @@ import {
 import { closeBoard, type CloseBoardResult } from "./close-board";
 import { removeTile } from "./remove-tile";
 import { renameVenue } from "./rename-venue";
+import { adminPath, LINK_CHANGED_PARAM } from "./board-field";
 import {
   listReportedTiles,
-  requireOwnedVenue,
+  requireOwnedVenueForAction,
   resolveReports,
   SupabaseBlockStore,
   SupabaseCloseBoardStore,
@@ -39,6 +39,19 @@ export async function signOut(): Promise<void> {
   redirect("/login");
 }
 
+/**
+ * Refreshes every owner page after a change: the board's own screen and
+ * print page, `/admin`'s list and the board switcher, which show its name.
+ *
+ * Every `/b/[slug]` page calls `connection()`, so none of them is in the
+ * full route cache and a change shows there on the next request. **If a
+ * board page ever becomes cacheable, the actions here have to revalidate
+ * it too.**
+ */
+function revalidateOwnerScreens(): void {
+  revalidatePath("/admin", "layout");
+}
+
 const pauseSchema = z.object({ paused: z.enum(["true", "false"]) });
 
 /**
@@ -46,7 +59,7 @@ const pauseSchema = z.object({ paused: z.enum(["true", "false"]) });
  * but refuses new posts (docs/PLAN.md, Owner admin).
  */
 export async function setBoardPaused(formData: FormData): Promise<void> {
-  const venue = await requireOwnedVenue();
+  const venue = await requireOwnedVenueForAction(formData);
   const parsed = pauseSchema.safeParse({ paused: formData.get("paused") });
   if (!parsed.success) throw new Error("Invalid pause request");
 
@@ -57,7 +70,7 @@ export async function setBoardPaused(formData: FormData): Promise<void> {
 
   if (error) throw new Error(`Could not update the board: ${error.message}`);
 
-  revalidatePath("/admin");
+  revalidateOwnerScreens();
 }
 
 export type RenameBoardState =
@@ -71,17 +84,15 @@ export type RenameBoardState =
  * Only the display name: the slug, the QR code and the join code are
  * untouched, so nothing printed stops working (issue #105).
  *
- * Revalidates `/admin` alone. Every `/b/[slug]` page calls `connection()`, so
- * none of them is in the full route cache, and `getBoard`'s React `cache()` is
- * per-request memoization that can't go stale — the new name is read fresh on
- * the next request. **If a board page ever becomes cacheable, this action has
- * to revalidate it.**
+ * Revalidates the owner screens alone; see {@link revalidateOwnerScreens}.
+ * `getBoard`'s React `cache()` is per-request memoization that can't go
+ * stale, so the board page reads the new name on its next request.
  */
 export async function renameBoardAction(
   _previous: RenameBoardState,
   formData: FormData,
 ): Promise<RenameBoardState> {
-  const venue = await requireOwnedVenue();
+  const venue = await requireOwnedVenueForAction(formData);
 
   const parsed = venueNameSchema.safeParse(formData.get("name"));
   if (!parsed.success) {
@@ -107,24 +118,28 @@ export async function renameBoardAction(
     // if a board is renamed to something abusive, this is how we find out
     // what it was before (issue #105, "No rate limit and no name-history").
     console.info(`Board renamed: ${venue.id} "${venue.name}" -> "${name}"`);
-    revalidatePath("/admin");
+    revalidateOwnerScreens();
   }
 
   return { status: "renamed", name };
 }
 
 export type ChangeLinkState =
-  | { status: "idle" }
-  | { status: "error"; message: string }
-  | { status: "changed"; url: string };
+  { status: "idle" } | { status: "error"; message: string };
 
 /**
  * Gives the owner's board a new link built from its current name. The old
  * link, and every QR code printed with it, keeps working: it redirects to the
  * new one (ADR-008).
+ *
+ * The owner screen lives at the board's slug, so it moves too: this ends on
+ * the new one, which says the link changed (`LINK_CHANGED_PARAM`).
  */
-export async function changeBoardLinkAction(): Promise<ChangeLinkState> {
-  const venue = await requireOwnedVenue();
+export async function changeBoardLinkAction(
+  _previous: ChangeLinkState,
+  formData: FormData,
+): Promise<ChangeLinkState> {
+  const venue = await requireOwnedVenueForAction(formData);
 
   let slug: string;
   try {
@@ -145,8 +160,8 @@ export async function changeBoardLinkAction(): Promise<ChangeLinkState> {
 
   // Kept for the same reason as the rename log: what a board used to be.
   console.info(`Board link changed: ${venue.id} ${venue.slug} -> ${slug}`);
-  revalidatePath("/admin");
-  return { status: "changed", url: boardUrl(serverEnv().SITE_URL, slug) };
+  revalidateOwnerScreens();
+  redirect(`${adminPath(slug)}?${LINK_CHANGED_PARAM}=1`);
 }
 
 export type NewCodeState =
@@ -158,8 +173,10 @@ export type NewCodeState =
  * Gives the owner's board a new join code. The old one stops working at once,
  * which is the remedy for a code that has got around (ADR-014).
  */
-export async function newJoinCodeAction(): Promise<NewCodeState> {
-  const venue = await requireOwnedVenue();
+export async function newJoinCodeAction(
+  formData: FormData,
+): Promise<NewCodeState> {
+  const venue = await requireOwnedVenueForAction(formData);
 
   try {
     await replaceJoinCode(createAdminClient(), venue.id);
@@ -174,7 +191,7 @@ export async function newJoinCodeAction(): Promise<NewCodeState> {
 
   // The code itself stays out of the logs: it opens the board.
   console.info(`Board code replaced: ${venue.id}`);
-  revalidatePath("/admin");
+  revalidateOwnerScreens();
   return { status: "changed" };
 }
 
@@ -192,7 +209,7 @@ export async function setTimeZoneAction(
   _previous: TimeZoneState,
   formData: FormData,
 ): Promise<TimeZoneState> {
-  const venue = await requireOwnedVenue();
+  const venue = await requireOwnedVenueForAction(formData);
 
   const zone = formData.get("timezone");
   if (typeof zone !== "string" || !isSupportedTimeZone(zone)) {
@@ -227,7 +244,7 @@ export async function setTimeZoneAction(
   console.info(
     `Board time zone ${plan.status}: ${venue.id} ${venue.clock.timeZone} -> ${zone}`,
   );
-  revalidatePath("/admin");
+  revalidateOwnerScreens();
   return { status: "saved" };
 }
 
@@ -244,7 +261,7 @@ export async function setModerationLevelAction(
   _previous: BoardRulesState,
   formData: FormData,
 ): Promise<BoardRulesState> {
-  const venue = await requireOwnedVenue();
+  const venue = await requireOwnedVenueForAction(formData);
 
   const parsed = moderationLevelFormSchema.safeParse({
     moderationLevel: formData.get("moderationLevel"),
@@ -280,7 +297,7 @@ export async function setModerationLevelAction(
     console.info(
       `Board moderation level changed: ${venue.id} ${venue.moderationLevel} -> ${level}`,
     );
-    revalidatePath("/admin");
+    revalidateOwnerScreens();
   }
   return { status: "saved", level };
 }
@@ -298,7 +315,7 @@ export async function removeTileAction(
   _previous: RemoveTileState,
   formData: FormData,
 ): Promise<RemoveTileState> {
-  const venue = await requireOwnedVenue();
+  const venue = await requireOwnedVenueForAction(formData);
   const parsed = removeSchema.safeParse({ tileId: formData.get("tileId") });
   if (!parsed.success) {
     return { status: "error", message: "We couldn't remove that tile." };
@@ -315,7 +332,7 @@ export async function removeTileAction(
     return { status: "error", message: "We couldn't remove that tile." };
   }
 
-  revalidatePath("/admin");
+  revalidateOwnerScreens();
   return { status: "idle" };
 }
 
@@ -324,7 +341,7 @@ export async function dismissReportsAction(
   _previous: RemoveTileState,
   formData: FormData,
 ): Promise<RemoveTileState> {
-  const venue = await requireOwnedVenue();
+  const venue = await requireOwnedVenueForAction(formData);
   const parsed = removeSchema.safeParse({ tileId: formData.get("tileId") });
   if (!parsed.success) {
     return { status: "error", message: "We couldn't dismiss those reports." };
@@ -337,7 +354,7 @@ export async function dismissReportsAction(
   }
 
   await resolveReports(parsed.data.tileId);
-  revalidatePath("/admin");
+  revalidateOwnerScreens();
   return { status: "idle" };
 }
 
@@ -352,7 +369,7 @@ export async function blockAccountAction(
   _previous: BlockState,
   formData: FormData,
 ): Promise<BlockState> {
-  const venue = await requireOwnedVenue();
+  const venue = await requireOwnedVenueForAction(formData);
   const parsed = removeSchema.safeParse({ tileId: formData.get("tileId") });
   if (!parsed.success) {
     return { status: "error", message: "We couldn't block that account." };
@@ -372,7 +389,7 @@ export async function blockAccountAction(
     return { status: "error", message: "We couldn't block that account." };
   }
 
-  revalidatePath("/admin");
+  revalidateOwnerScreens();
   if (result.failed > 0) {
     return {
       status: "error",
@@ -389,7 +406,7 @@ export async function unblockAccountAction(
   _previous: BlockState,
   formData: FormData,
 ): Promise<BlockState> {
-  const venue = await requireOwnedVenue();
+  const venue = await requireOwnedVenueForAction(formData);
   const parsed = unblockSchema.safeParse({ userId: formData.get("userId") });
   if (!parsed.success) {
     return { status: "error", message: "We couldn't unblock that account." };
@@ -407,7 +424,7 @@ export async function unblockAccountAction(
     return { status: "error", message: "We couldn't unblock that account." };
   }
 
-  revalidatePath("/admin");
+  revalidateOwnerScreens();
   return { status: "idle" };
 }
 
@@ -415,14 +432,19 @@ export type CloseBoardState =
   { status: "idle" } | { status: "error"; message: string };
 
 /**
- * Closes the owner's board for good, then signs them out (ADR-009). The
- * owner confirms by typing the board's name.
+ * Closes one of the owner's boards for good (ADR-009, ADR-016). The owner
+ * confirms by typing the board's name.
+ *
+ * Their other boards stay, and so does the sign-in unless this was the last
+ * board of an account that doesn't draw: then it's gone, this device is
+ * signed out, and they land on the home page. Otherwise they go to `/admin`,
+ * which shows the boards they have left, or sets up a new one.
  */
 export async function closeBoardAction(
   _previous: CloseBoardState,
   formData: FormData,
 ): Promise<CloseBoardState> {
-  const venue = await requireOwnedVenue();
+  const venue = await requireOwnedVenueForAction(formData);
   const typed = formData.get("name");
 
   let result: CloseBoardResult;
@@ -447,8 +469,11 @@ export async function closeBoardAction(
   }
 
   console.info(`Board closed: ${venue.id} "${venue.name}" (${venue.slug})`);
-  // The login may already be gone; clearing this device's session is all
-  // that's left, and failing to is no reason to stop.
+  revalidateOwnerScreens();
+  if (result === "closed") redirect("/admin");
+
+  // The login is already gone; clearing this device's session is all that's
+  // left, and failing to is no reason to stop.
   await (await createClient()).auth.signOut().catch(() => undefined);
   redirect("/");
 }
